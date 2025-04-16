@@ -1,0 +1,734 @@
+{
+	"info": {
+		"_postman_id": "86db276e-7ef9-4b7b-9f38-2c7443a1b433",
+		"name": "Obituary App",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12342439"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const accessToken = pm.response.headers.get(\"access-token\");",
+									"const refreshToken = pm.response.headers.get(\"refresh-token\");",
+									"",
+									"",
+									"pm.collectionVariables.set('accessToken', accessToken);",
+									"pm.collectionVariables.set('refreshToken', refreshToken);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"testUser@gmail.com\",\n    \"password\": \"abc123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"testUser@example.com\",\n    \"password\": \"abc123\",\n    \"role\": \"User\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Funeral Company",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Funeral Services\",\n  \"email\": \"test@funeralservices.com\",\n  \"password\": \"abc123\",\n  \"role\": \"Funeral Company\",\n  \"company\": \"Best Funeral Services\",\n  \"region\": \"California\",\n  \"city\": \"Los Angeles\"\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Florist",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Floral Boutique\",\n    \"email\": \"test@floralboutique.com\",\n    \"password\": \"abc123\",\n    \"role\": \"Florist\",\n    \"company\": \"Floral Boutique\",\n    \"region\": \"New York\",\n    \"city\": \"Manhattan\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update My User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"testUser@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete My User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"me"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Obituaries",
+			"item": [
+				{
+					"name": "Create Obituary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "John",
+									"type": "text"
+								},
+								{
+									"key": "sirName",
+									"value": "Doe",
+									"type": "text"
+								},
+								{
+									"key": "location",
+									"value": "Hometown",
+									"type": "text"
+								},
+								{
+									"key": "region",
+									"value": "Region 1",
+									"type": "text"
+								},
+								{
+									"key": "city",
+									"value": "City 1",
+									"type": "text"
+								},
+								{
+									"key": "gender",
+									"value": "Male",
+									"type": "text"
+								},
+								{
+									"key": "birthDate",
+									"value": "1980-04-21",
+									"type": "text"
+								},
+								{
+									"key": "deathDate",
+									"value": "2023-03-17",
+									"type": "text"
+								},
+								{
+									"key": "funeralLocation",
+									"value": "Main Hall",
+									"type": "text"
+								},
+								{
+									"key": "funeralCemetery",
+									"value": "Cemetery A",
+									"type": "text"
+								},
+								{
+									"key": "funeralTimestamp",
+									"value": "2023-03-18T14:30:00Z",
+									"type": "text"
+								},
+								{
+									"key": "events",
+									"value": "\"[{\\\"name\\\":\\\"Memorial\\\",\\\"date\\\":\\\"2023-03-20\\\",\\\"location\\\":\\\"Church\\\"}]\"",
+									"type": "text"
+								},
+								{
+									"key": "deathReportExists",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "obituary",
+									"value": "Loving father and husband.",
+									"type": "text"
+								},
+								{
+									"key": "symbol",
+									"value": "Christian",
+									"type": "text"
+								},
+								{
+									"key": "picture",
+									"type": "file",
+									"src": "/Users/huzaifahtariq/Pictures/Random/FB_IMG_1663405964480.jpg"
+								},
+								{
+									"key": "deathReport",
+									"type": "file",
+									"src": "/Users/huzaifahtariq/Pictures/Random/FB_IMG_1664823114005.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/obituary",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"obituary"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Obituaries",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/obituary?userId=2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"obituary"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "2"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Obituary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "access-token",
+								"value": "{{accessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "refresh-token",
+								"value": "{{refreshToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "John1",
+									"type": "text"
+								},
+								{
+									"key": "sirName",
+									"value": "Doe",
+									"type": "text"
+								},
+								{
+									"key": "location",
+									"value": "Hometown",
+									"type": "text"
+								},
+								{
+									"key": "region",
+									"value": "Region 1",
+									"type": "text"
+								},
+								{
+									"key": "city",
+									"value": "City 1",
+									"type": "text"
+								},
+								{
+									"key": "gender",
+									"value": "Male",
+									"type": "text"
+								},
+								{
+									"key": "birthDate",
+									"value": "1980-04-21",
+									"type": "text"
+								},
+								{
+									"key": "deathDate",
+									"value": "2023-03-17",
+									"type": "text"
+								},
+								{
+									"key": "funeralLocation",
+									"value": "Main Hall",
+									"type": "text"
+								},
+								{
+									"key": "funeralCemetery",
+									"value": "Cemetery A",
+									"type": "text"
+								},
+								{
+									"key": "funeralTimestamp",
+									"value": "2023-03-18T14:30:00Z",
+									"type": "text"
+								},
+								{
+									"key": "events",
+									"value": "\"[{\\\"name\\\":\\\"Memorial\\\",\\\"date\\\":\\\"2023-03-20\\\",\\\"location\\\":\\\"Church\\\"}]\"",
+									"type": "text"
+								},
+								{
+									"key": "obituary",
+									"value": "Loving father and husband.",
+									"type": "text"
+								},
+								{
+									"key": "symbol",
+									"value": "Christian",
+									"type": "text"
+								},
+								{
+									"key": "picture",
+									"type": "file",
+									"src": "/Users/huzaifahtariq/Pictures/Random/FB_IMG_1663405964480.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/obituary/2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"obituary",
+								"2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4000",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -1,0 +1,350 @@
+##
+# You should look at the following URL's in order to grasp a solid understanding
+# of Nginx configuration files in order to fully unleash the power of Nginx.
+# https://www.nginx.com/resources/wiki/start/
+# https://www.nginx.com/resources/wiki/start/topics/tutorials/config_pitfalls/
+# https://wiki.debian.org/Nginx/DirectoryStructure
+#
+# In most cases, administrators will remove this file from sites-enabled/ and
+# leave it as reference inside of sites-available where it will continue to be
+# updated by the nginx packaging team.
+#
+# This file will automatically load configuration files provided by other
+# applications, such as Drupal or Wordpress. These applications will be made
+# available underneath a path with that package name, such as /drupal8.
+#
+# Please see /usr/share/doc/nginx-doc/examples/ for more detailed examples.
+##
+
+# Default server configuration
+#
+##listen 80 default_server;
+##listen [::]:80 default_server;
+
+server {
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+
+        client_max_body_size 150M;
+        # SSL configuration
+        root /var/www/html/oomrtnica;
+
+        # Add index.php to the list if you are using PHP
+        index index.php index.html index.htm index.nginx-debian.html;
+
+        server_name osmrtnica.com;
+           location / {
+                           client_max_body_size 300M;
+                           #try_files $uri.html $uri $uri/ /index.html;
+                           #try_files $uri /index.html;
+			   #proxy_pass http://localhost:3000;
+                           proxy_http_version 1.1;
+                           proxy_set_header Upgrade $http_upgrade;
+                           proxy_set_header Connection 'upgrade';
+                           proxy_set_header Host $host;
+                           proxy_cache_bypass $http_upgrade;
+               }
+
+
+        location ~ \.php$ {
+
+                try_files $fastcgi_script_name =404;
+                include fastcgi_params;
+                fastcgi_pass  unix:/run/php/php8.3-fpm.sock;
+                fastcgi_index index.php;
+                fastcgi_param DOCUMENT_ROOT  $realpath_root;
+                fastcgi_param SCRIPT_FILENAME   $realpath_root$fastcgi_script_name;
+	}
+
+
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/osmrtnica.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/osmrtnica.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+
+server {
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+
+        client_max_body_size 150M;
+        # SSL configuration
+        root /var/www/html/dev485/osmrtnica;
+        # root /var/www/html/dev485/osmrtnica/www;
+
+        # Add index.php to the list if you are using PHP
+        index index.php index.html index.htm index.nginx-debian.html;
+
+        server_name dev485.osmrtnica.com;
+           location / {
+                           client_max_body_size 300M;
+                           #try_files $uri.html $uri $uri/ /index.html;
+                           #try_files $uri /index.html;
+                           proxy_pass http://localhost:3000;
+                           proxy_http_version 1.1;
+                           proxy_set_header Upgrade $http_upgrade;
+                           proxy_set_header Connection 'upgrade';
+                           proxy_set_header Host $host;
+                           proxy_cache_bypass $http_upgrade;
+               }
+
+
+        location ~ \.php$ {
+
+                try_files $fastcgi_script_name =404;
+                include fastcgi_params;
+                fastcgi_pass  unix:/run/php/php8.3-fpm.sock;
+                fastcgi_index index.php;
+                fastcgi_param DOCUMENT_ROOT  $realpath_root;
+                fastcgi_param SCRIPT_FILENAME   $realpath_root$fastcgi_script_name;
+        }
+
+        location /source-code {
+                alias /var/www/html/dev485/source-code/;
+                autoindex on;
+}
+
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/dev485.osmrtnica.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/dev485.osmrtnica.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+}
+
+server {
+
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        client_max_body_size 150M;
+        root /var/www/html/admin/build;
+
+        # Add index.php to the list if you are using PHP
+        index index.php index.html index.htm index.nginx-debian.html;
+
+        server_name admin.osmrtnica.com;
+           location / {
+                           try_files $uri.html $uri $uri/ /index.html;
+                           client_max_body_size 300M;
+                           proxy_set_header Host $http_host;
+                           #proxy_set_header Host $host;
+                           proxy_set_header X-Real-IP $remote_addr;
+                           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                           proxy_read_timeout 3600;
+                           proxy_connect_timeout 300s;
+                           proxy_set_header X-Forwarded-Proto $scheme;
+               }
+        location ~ \.php$ {
+
+                try_files $fastcgi_script_name =404;
+                include fastcgi_params;
+                fastcgi_pass  unix:/run/php/php8.3-fpm.sock;
+                fastcgi_index index.php;
+                fastcgi_param DOCUMENT_ROOT  $realpath_root;
+                fastcgi_param SCRIPT_FILENAME   $realpath_root$fastcgi_script_name;
+              }
+
+     
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/admin.osmrtnica.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/admin.osmrtnica.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+
+}
+
+         server {
+
+        client_max_body_size 150M;
+        root /var/www/html/api;
+
+        # Add index.php to the list if you are using PHP
+        index index.php index.html index.htm index.nginx-debian.html;
+
+        server_name api.osmrtnica.com;
+           location / {
+                                        # Proxy_pass configuration
+                                        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                                        proxy_set_header Host $http_host;
+                                        #proxy_set_header Host $host;
+                                        proxy_set_header X-NginX-Proxy true;
+                                        proxy_http_version 1.1;
+                                        proxy_set_header Upgrade $http_upgrade;
+                                        proxy_set_header Connection "upgrade";
+                                        proxy_max_temp_file_size 0;
+					#proxy_pass http://127.0.0.1:5100;
+					#proxy_pass http://localhost:5000;
+                                        #proxy_pass http://scenekeyapi;
+                                        proxy_redirect off;
+                                        proxy_read_timeout 240s;
+               }
+           location /phpmyadmin {
+              try_files $uri $uri/ =404;
+           }
+              location ~ \.php$ {
+                try_files $fastcgi_script_name =404;
+                include fastcgi_params;
+                fastcgi_pass  unix:/run/php/php8.3-fpm.sock;
+                fastcgi_index index.php;
+                fastcgi_param DOCUMENT_ROOT  $realpath_root;
+                fastcgi_param SCRIPT_FILENAME   $realpath_root$fastcgi_script_name;
+	}
+
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/api.osmrtnica.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/api.osmrtnica.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+# Virtual Host configuration for example.com
+#
+# You can move that to a different file under sites-available/ and symlink that
+# to sites-enabled/ to enable it.
+#
+#server {
+#	listen 80;
+#	listen [::]:80;
+#
+#	server_name example.com;
+#
+#	root /var/www/example.com;
+#	index index.html;
+#
+#	location / {
+#		try_files $uri $uri/ =404;
+#	}
+#}
+
+
+server {
+    if ($host = osmrtnica.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+
+        server_name osmrtnica.com;
+    listen 80;
+    return 404; # managed by Certbot
+
+
+}
+     server {
+    if ($host = admin.osmrtnica.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+
+        server_name admin.osmrtnica.com;
+    listen 80;
+    return 404; # managed by Certbot
+
+
+}
+
+         server {
+    if ($host = api.osmrtnica.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+
+        server_name api.osmrtnica.com;
+    listen 80;
+    return 404; # managed by Certbot
+
+
+}
+
+server {
+    server_name dev112.osmrtnica.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/dev112.osmrtnica.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/dev112.osmrtnica.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+server {
+    server_name dev111.osmrtnica.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/dev112.osmrtnica.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/dev112.osmrtnica.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = dev485.osmrtnica.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+
+        server_name dev485.osmrtnica.com;
+    listen 80;
+    return 404; # managed by Certbot
+
+
+}
+
+
+server {
+    if ($host = dev112.osmrtnica.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name dev112.osmrtnica.com;
+    return 404; # managed by Certbot
+
+
+}
+
+server {
+    if ($host = dev111.osmrtnica.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name dev111.osmrtnica.com;
+    return 404; # managed by Certbot
+
+
+}
