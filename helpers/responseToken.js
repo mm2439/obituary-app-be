@@ -1,14 +1,22 @@
 const {
   generateRefreshToken,
   generateAccessToken,
-} = require('../models/user.model');
-const { RefreshToken } = require('../models/refreshToken.model');
+} = require("../models/user.model");
+const { RefreshToken } = require("../models/refreshToken.model");
 
 const responseToken = {
   setAccessToken: (user, response) => {
     const accessToken = generateAccessToken(user);
 
-    response.header('access-token', accessToken);
+    response.header("access-token", accessToken);
+
+    response.cookie("accessToken", accessToken, {
+      httpOnly: false,
+      secure: false,
+      sameSite: "Strict",
+      maxAge: 24 * 60 * 60 * 1000,
+      path: "/",
+    });
   },
 
   setRefreshToken: async (user, response) => {
@@ -31,7 +39,7 @@ const responseToken = {
       }
     );
 
-    response.header('refresh-token', refreshToken);
+    response.header("refresh-token", refreshToken);
   },
 };
 

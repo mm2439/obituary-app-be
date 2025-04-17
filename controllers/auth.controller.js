@@ -45,6 +45,7 @@ const authController = {
     }
 
     responseToken.setAccessToken(user, res);
+
     await responseToken.setRefreshToken(user, res);
 
     res.status(httpStatus.OK).json({
@@ -54,14 +55,28 @@ const authController = {
   },
 
   logout: async (req, res) => {
-    await RefreshToken.update(
-      { isValid: false },
-      { where: { userId: req.user.id } }
-    );
+    try {
+      await RefreshToken.update(
+        { isValid: false },
+        { where: { userId: req.user.id } }
+      );
 
-    res.status(httpStatus.OK).json({
-      message: "Logged out successfully!",
-    });
+      res.clearCookie("accessToken", {
+        path: "/",
+        httpOnly: false,
+        secure: false,
+        sameSite: "Strict",
+        maxAge: 0,
+      });
+      res.status(httpStatus.OK).json({
+        message: "Logged out successfully!",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        error: "Failed to log out",
+      });
+    }
   },
 };
 

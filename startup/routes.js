@@ -19,12 +19,14 @@ const logs = require("../routers/logs.route");
 const report = require("../routers/report.route");
 
 const corsOptions = {
-  origin:
-    process.env.CORS_ORIGIN === "*" ? "*" : process.env.CORS_ORIGIN?.split(","),
+  // origin:
+  //   process.env.CORS_ORIGIN === "*" ? "*" : process.env.CORS_ORIGIN?.split(","),
+  origin: process.env.CORS_ORIGIN,
   methods: "POST,GET,PATCH,DELETE",
   allowedHeaders: ["Content-Type", "access-token", "refresh-token"],
   exposedHeaders: ["access-token", "refresh-token"],
   optionsSuccessStatus: 200,
+  credentials: true,
 };
 
 module.exports = (app) => {
