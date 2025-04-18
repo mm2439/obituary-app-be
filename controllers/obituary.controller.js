@@ -871,6 +871,7 @@ const obituaryController = {
           "status",
           "createdTimestamp",
           "userName",
+          "typeInSL",
         ],
         include: [
           {

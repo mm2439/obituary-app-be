@@ -65,7 +65,8 @@ const condolenceController = {
             userId,
             condolence.id,
             condolence.status,
-            condolence.name
+            condolence.name,
+            "Sožalje"
           );
         } catch (logError) {
           console.error("Error creating memory log:", logError);

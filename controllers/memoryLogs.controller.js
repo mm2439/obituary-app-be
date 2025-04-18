@@ -17,7 +17,8 @@ const memoryLogsController = {
     userId,
     interactionId = null,
     status,
-    name
+    name,
+    typeInSl
   ) => {
     try {
       if (!type || !obituaryId || !userId || !status) {
@@ -32,6 +33,7 @@ const memoryLogsController = {
         obituaryId,
         interactionId: interactionId || null,
         userName: name || null,
+        typeInSL: typeInSl,
       });
 
       return log;

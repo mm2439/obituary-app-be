@@ -45,7 +45,8 @@ const dedicationController = {
             userId,
             dedication.id,
             dedication.status,
-            dedication.name
+            dedication.name,
+            "Posvetilo"
           );
         } catch (logError) {
           console.error("Error creating memory log:", logError);

@@ -58,7 +58,7 @@ const userController = {
     const { email, company, region, city } = req.body;
 
     const user = await User.findByPk(req.user.id);
-
+    console.log(req.body);
     if (!user) {
       console.warn("User not found");
 

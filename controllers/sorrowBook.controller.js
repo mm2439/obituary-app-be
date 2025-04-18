@@ -49,7 +49,8 @@ const sorrowBookController = {
             userId,
             sorrowBook.id,
             "approved",
-            sorrowBook.name
+            sorrowBook.name,
+            "Žalna knjiga"
           );
         } catch (logError) {
           console.error("Error creating memory log:", logError);

@@ -58,7 +58,8 @@ const photoController = {
             userId,
             photo.id,
             photo.status,
-            "annonymous"
+            "annonymous",
+            "Slika"
           );
         } catch (logError) {
           console.error("Error adding photo log:", logError);

@@ -49,6 +49,17 @@ MemoryLog.init(
       ),
       allowNull: false,
     },
+    typeInSL: {
+      type: DataTypes.ENUM(
+        "Slika",
+        "Sožalje",
+        "Posvetilo",
+        "Žalna knjiga",
+        "Dnevna sveča",
+        "Skrbnik"
+      ),
+      allowNull: false,
+    },
 
     interactionId: {
       type: DataTypes.INTEGER,
