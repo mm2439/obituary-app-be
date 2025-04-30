@@ -1040,6 +1040,94 @@ const obituaryController = {
       });
     }
   },
+
+  getMemoriesAdmin: async (req, res) => {
+    const obituaries = await Obituary.findAll({
+      attributes: [
+        "id",
+        "name",
+        "sirName",
+        "deathDate",
+        "city",
+        "birthDate",
+        "funeralTimestamp",
+        "totalVisits",
+        "createdTimestamp",
+      ],
+      include: [
+        {
+          model: Keeper,
+          required: false,
+          order: [["createdTimestamp", "DESC"]],
+        },
+        {
+          model: MemoryLog,
+          where: {
+            type: {
+              [Op.notIn]: ["visit"],
+            },
+            status: "approved",
+          },
+          required: false,
+        },
+        {
+          model: Visit,
+          as: "visits",
+
+          required: false,
+          attributes: ["id", "createdTimestamp"], // Keep visit ID and created timestamp
+        },
+        {
+          model: Candle,
+          as: "candles",
+          required: false,
+          attributes: ["id", "createdTimestamp"], // Keep candle ID and created timestamp
+        },
+      ],
+    });
+
+    // Process the retrieved obituaries
+    const finalObituaries = obituaries.map((obituary) => {
+      const totalVisits = obituary.visits.length;
+      const hasKeeper = obituary.Keepers.length > 0;
+      const totalContributions = obituary.MemoryLogs.length;
+      const uniqueContribution = Array.from(
+        new Map(
+          obituary.MemoryLogs.map((memory) => [memory.userId, memory])
+        ).values()
+      ).length;
+      const totalSorrowBooks = obituary.MemoryLogs.filter((memory) => {
+        return memory.type === "sorrowbook";
+      }).length;
+      const totalCondolences = obituary.MemoryLogs.filter((memory) => {
+        return memory.type === "condolence";
+      }).length;
+      const totalPhotos = obituary.MemoryLogs.filter((memory) => {
+        return memory.type === "photo";
+      }).length;
+      const totalDedications = obituary.MemoryLogs.filter((memory) => {
+        return memory.type === "dedication";
+      }).length;
+      const totalCandles = obituary.candles.length;
+
+      return {
+        ...obituary.toJSON(),
+        hasKeeper,
+        totalVisits,
+        totalContributions,
+        uniqueContribution,
+        totalSorrowBooks,
+        totalCondolences,
+        totalCandles,
+        totalPhotos,
+        totalDedications,
+      };
+    });
+
+    return res.status(httpStatus.OK).json({
+      finalObituaries,
+    });
+  },
 };
 
 module.exports = obituaryController;

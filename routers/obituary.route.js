@@ -24,6 +24,7 @@ router.get(
   [authenticationMiddleware],
   obituaryController.getMemories
 );
+router.get("/admin/memories", obituaryController.getMemoriesAdmin);
 router.get(
   "/keeper/memories",
   [authenticationMiddleware],
