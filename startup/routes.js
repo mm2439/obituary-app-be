@@ -15,6 +15,7 @@ const dedication = require("../routers/dedication.route");
 const candle = require("../routers/candle.route");
 const common = require("../routers/common.route");
 const logs = require("../routers/logs.route");
+const cemetry = require("../routers/cemetry.route");
 
 const report = require("../routers/report.route");
 
@@ -44,6 +45,7 @@ module.exports = (app) => {
   app.use("/api/sorrow-book", sorrow_book);
   app.use("/api/photo", photo);
   app.use("/api/dedication", dedication);
+  app.use("/api/cemetry", cemetry);
   app.use("/api/candle", candle);
   app.use("/api/logs", logs);
   app.use("/api/post", common);

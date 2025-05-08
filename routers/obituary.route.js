@@ -15,7 +15,11 @@ const uploadFields = upload.fields([
   { name: "deathReport", maxCount: 1 },
 ]);
 
-router.post("/", [uploadFields], obituaryController.createObituary);
+router.post(
+  "/",
+  [authenticationMiddleware, uploadFields],
+  obituaryController.createObituary
+);
 router.get("/", obituaryController.getObituary);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/memory", obituaryController.getMemory);
@@ -24,7 +28,17 @@ router.get(
   [authenticationMiddleware],
   obituaryController.getMemories
 );
+router.get(
+  "/company/monthly",
+  [authenticationMiddleware],
+  obituaryController.getCompanyMonthlyObituaries
+);
 router.get("/admin/memories", obituaryController.getMemoriesAdmin);
+router.get(
+  "/company",
+  [authenticationMiddleware],
+  obituaryController.getCompanyObituaries
+);
 router.get(
   "/keeper/memories",
   [authenticationMiddleware],
@@ -48,6 +62,11 @@ router.get(
   "/logs/",
   [authenticationMiddleware],
   obituaryController.getMemoryLogs
+);
+router.get(
+  "/company/logs/",
+  [authenticationMiddleware],
+  obituaryController.getCompanyMemoryLogs
 );
 
 module.exports = router;

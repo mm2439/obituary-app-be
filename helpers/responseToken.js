@@ -12,10 +12,11 @@ const responseToken = {
 
     response.cookie("accessToken", accessToken, {
       httpOnly: false,
-      secure: false,
-      sameSite: "Strict",
-      maxAge: 24 * 60 * 60 * 1000,
+      secure: true,
+      sameSite: "None",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
       path: "/",
+      domain: ".osmrtnica.com", // Ensure it's a subdomain cookie
     });
   },
 

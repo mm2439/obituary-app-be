@@ -13,17 +13,17 @@ Obituary.init(
       autoIncrement: true,
       allowNull: false,
     },
-    // userId: {
-    //   type: DataTypes.INTEGER,
-    //   allowNull: false,
-    //   unique: true,
-    //   references: {
-    //     model: "users",
-    //     key: "id",
-    //   },
-    //   onDelete: "CASCADE",
-    //   onUpdate: "RESTRICT",
-    // },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      unique: true,
+      references: {
+        model: "users",
+        key: "id",
+      },
+      onDelete: "CASCADE",
+      onUpdate: "RESTRICT",
+    },
 
     name: {
       type: DataTypes.STRING(100),

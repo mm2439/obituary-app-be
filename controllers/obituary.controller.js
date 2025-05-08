@@ -5,6 +5,7 @@ const sharp = require("sharp");
 const { Op } = require("sequelize");
 const { Sequelize } = require("sequelize");
 const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
+const moment = require("moment");
 
 const { Obituary, validateObituary } = require("../models/obituary.model");
 const { User } = require("../models/user.model");
@@ -84,6 +85,7 @@ const obituaryController = {
       deathReportExists,
       obituary,
       symbol,
+      userId: req.user.id,
     });
 
     const obituaryId = newObituary.id;
@@ -134,23 +136,28 @@ const obituaryController = {
   },
 
   getObituary: async (req, res) => {
-    const { id, userId, page = 1, limit = 10, region, city } = req.query;
+    const { id, userId, name, region, city } = req.query;
 
     const whereClause = {};
 
     if (id) whereClause.id = id;
     if (userId) whereClause.userId = userId;
+    if (name) {
+      whereClause[Op.or] = [
+        { name: { [Op.like]: `%${name}%` } },
+        { sirName: { [Op.like]: `%${name}%` } },
+      ];
+    }
+
     if (city) {
       whereClause.city = city;
     } else if (region) {
       whereClause.region = region;
     }
-    const offset = (page - 1) * limit;
 
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10),
+
       order: [["createdTimestamp", "DESC"]],
       include: [
         {
@@ -161,8 +168,7 @@ const obituaryController = {
 
     res.status(httpStatus.OK).json({
       total: obituaries.count,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+
       obituaries: obituaries.rows,
     });
   },
@@ -200,6 +206,12 @@ const obituaryController = {
           where: { status: "approved" },
           required: false,
           limit: 1000,
+        },
+        {
+          model: MemoryLog,
+          where: { status: "approved" },
+          required: false,
+          limit: 3,
         },
         {
           model: Photo,
@@ -713,6 +725,12 @@ const obituaryController = {
             limit: 1000,
           },
           {
+            model: MemoryLog,
+            where: { status: "approved" },
+            required: false,
+            limit: 3,
+          },
+          {
             model: Photo,
             where: { status: "approved" },
             required: false,
@@ -987,7 +1005,6 @@ const obituaryController = {
       });
 
       // Total contributions
-      const totalContributions = allLogs.length;
 
       // Unique memory pages
       const memoryPagesSet = new Set();
@@ -1005,7 +1022,7 @@ const obituaryController = {
           uniqueLogsMap.set(log.interactionId, log);
         }
       });
-
+      const totalContributions = allLogs.length;
       const latestLogs = Array.from(uniqueLogsMap.values());
 
       const approvedCounts = {
@@ -1127,6 +1144,204 @@ const obituaryController = {
     return res.status(httpStatus.OK).json({
       finalObituaries,
     });
+  },
+
+  getCompanyObituaries: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const startOfTheMonth = moment().startOf("month").toDate();
+      const endOfTheMonth = moment().endOf("month").toDate();
+
+      const startOfLastMonth = moment()
+        .subtract(1, "month")
+        .startOf("month")
+        .toDate();
+
+      const endOfLastMonth = moment()
+        .subtract(1, "month")
+        .endOf("month")
+        .toDate();
+
+      const obituaries = await Obituary.findAll({
+        where: {
+          userId: userId,
+        },
+
+        order: [["createdTimestamp", "DESC"]],
+        include: [
+          {
+            model: Keeper,
+            required: false,
+            attributes: ["id"],
+          },
+        ],
+      });
+
+      const modifiedObituaries = obituaries.map((obituary) => {
+        return {
+          ...obituary.toJSON(),
+
+          hasKeeper: obituary.Keepers && obituary.Keepers.length > 0,
+        };
+      });
+      function getTotal(entries) {
+        let currentMonthCount = 0;
+        let lastMonthCount = 0;
+        if (entries.length === 0) {
+          return { currentMonthCount, lastMonthCount };
+        }
+        entries.forEach((entry) => {
+          const createdDate = moment(entry.createdTimestamp);
+          if (
+            createdDate.isBetween(startOfTheMonth, endOfTheMonth, "day", "[]")
+          ) {
+            currentMonthCount++;
+          } else if (
+            createdDate.isBetween(startOfLastMonth, endOfLastMonth, "day", "[]")
+          ) {
+            lastMonthCount++;
+          }
+        });
+
+        return { currentMonthCount, lastMonthCount };
+      }
+
+      res.status(httpStatus.OK).json({
+        obituaries: modifiedObituaries,
+        data: getTotal(obituaries),
+      });
+    } catch (error) {
+      console.log(error);
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  getCompanyMonthlyObituaries: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const obituaries = await Obituary.findAll({
+        where: { userId },
+        include: [{ model: Keeper }],
+        order: [["createdTimestamp", "DESC"]],
+      });
+
+      const groupedByMonth = {};
+      let totalObituaries = 0;
+      let totalObituariesWithKeeper = 0;
+      let totalWithPhotos = 0;
+      let totalWithFunerals = 0;
+      let totalComplete = 0;
+
+      obituaries.forEach((obituary) => {
+        totalObituaries++;
+        const month = moment(obituary.createdTimestamp).format("MMMM YYYY");
+
+        if (!groupedByMonth[month]) {
+          groupedByMonth[month] = {
+            obituaries: [],
+            stats: {
+              imageCount: 0,
+              funeralCount: 0,
+              keeperCount: 0,
+              completeObits: 0,
+            },
+          };
+        }
+
+        groupedByMonth[month].obituaries.push(obituary);
+        if (obituary.image !== null) {
+          groupedByMonth[month].stats.imageCount++;
+          totalWithPhotos++;
+        }
+
+        if (obituary.funeralTimestamp !== "") {
+          groupedByMonth[month].stats.funeralCount++;
+          totalWithFunerals++;
+        }
+
+        if (obituary.Keepers) {
+          groupedByMonth[month].stats.keeperCount++;
+          totalObituariesWithKeeper++;
+        }
+        if (obituary.image !== null && obituary.funeralTimestamp !== "") {
+          groupedByMonth[month].stats.completeObits++;
+          totalComplete++;
+        }
+      });
+
+      return res.status(200).json({
+        totalObituaries,
+        totalObituariesWithKeeper,
+        totalWithPhotos,
+        totalComplete,
+        totalWithFunerals,
+
+        obituaries: groupedByMonth,
+      });
+    } catch (error) {
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
+  },
+
+  getCompanyMemoryLogs: async (req, res) => {
+    try {
+      const logs = await MemoryLog.findAll({
+        where: {
+          type: ["dedication", "photo", "sorrowbook", "condolence"],
+        },
+        include: [
+          {
+            model: Obituary,
+            attributes: ["name", "sirName"],
+            where: {
+              userId: req.user.id,
+            },
+          },
+        ],
+      });
+      console.log(req.user.id, "==============");
+      let approvedCounts = {
+        dedication: 0,
+        photo: 0,
+        sorrowbook: 0,
+        condolence: 0,
+      };
+
+      logs.forEach((log) => {
+        if (
+          log.status === "approved" &&
+          approvedCounts.hasOwnProperty(log.type)
+        ) {
+          approvedCounts[log.type]++;
+        }
+      });
+
+      const totalContirbutions = logs.length;
+
+      approvedCounts = {
+        ...approvedCounts,
+        other: approvedCounts.dedication + approvedCounts.photo,
+      };
+      const memoryPagesSet = new Set();
+      logs.forEach((log) => {
+        if (log.obituaryId) {
+          memoryPagesSet.add(log.obituaryId);
+        }
+      });
+      const obitsTotalCount = memoryPagesSet.size;
+      return res
+        .status(httpStatus.OK)
+        .json({ logs, totalContirbutions, approvedCounts, obitsTotalCount });
+    } catch (error) {
+      console.log(error);
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal Server Error" });
+    }
   },
 };
 

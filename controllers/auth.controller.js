@@ -64,9 +64,9 @@ const authController = {
       res.clearCookie("accessToken", {
         path: "/",
         httpOnly: false,
-        secure: false,
-        sameSite: "Strict",
-        maxAge: 0,
+        secure: true,
+        sameSite: "None",
+        domain: ".osmrtnica.com",
       });
       res.status(httpStatus.OK).json({
         message: "Logged out successfully!",
