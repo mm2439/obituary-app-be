@@ -1,8 +1,11 @@
 const { Candle } = require("../models/candle.model");
 const { Op } = require("sequelize");
 const moment = require("moment");
+const path = require("path");
 
 const { Cemetry } = require("../models/cemetry.model");
+const CEMETRY_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
+
 const cemetryController = {
   addCemetry: async (req, res) => {
     try {
@@ -24,7 +27,32 @@ const cemetryController = {
         address,
         city,
       });
+      const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, newCemetry.id);
 
+      if (!fs.existsSync(cemetryFolder)) {
+        fs.mkdirSync(cemetryFolder, { recursive: true });
+      }
+
+      let picturePath = null;
+
+      if (req.files?.picture) {
+        const pictureFile = req.files.picture[0];
+
+        const optimizedPicturePath = path.join(
+          "cemetryUploads",
+          String(obituaryId),
+          `${path.parse(pictureFile.originalname).name}.avif`
+        );
+
+        await sharp(pictureFile.buffer)
+          .resize(195, 267, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toFile(path.join(__dirname, "../", optimizedPicturePath));
+
+        picturePath = optimizedPicturePath;
+      }
+      newCemetry.image = picturePath;
+      await newCemetry.save();
       return res
         .status(201)
         .json({ message: "Cemetry created successfully.", newCemetry });

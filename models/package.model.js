@@ -3,9 +3,9 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
-class Cemetry extends Model {}
+class Package extends Model {}
 
-Cemetry.init(
+Package.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -14,19 +14,9 @@ Cemetry.init(
       allowNull: false,
     },
 
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: "users",
-        key: "id",
-      },
-      onDelete: "CASCADE",
-      onUpdate: "RESTRICT",
-    },
     companyId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: "companypages",
         key: "id",
@@ -34,27 +24,18 @@ Cemetry.init(
       onDelete: "CASCADE",
       onUpdate: "RESTRICT",
     },
-    address: {
-      type: DataTypes.STRING(500),
-      allowNull: false,
-    },
-    name: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-    },
-    city: {
-      type: DataTypes.STRING(100),
+    title: {
+      type: DataTypes.STRING(250),
       allowNull: false,
     },
     image: {
       type: DataTypes.STRING(500),
-      allowNull: true,
+      allowNull: false,
     },
-    enrolled: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
+    price: {
+      type: DataTypes.NUMBER(1000),
+      allowNull: false,
     },
-
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -69,18 +50,18 @@ Cemetry.init(
   },
   {
     sequelize,
-    modelName: "Cemetry",
-    tableName: "cemetries",
+    modelName: "Package",
+    tableName: "packages",
     timestamps: false,
   }
 );
 
-const validateCemetry = (cemetry) => {
-  const cemetrySchema = Joi.object({
+const validatePackage = (package) => {
+  const packageSchema = Joi.object({
     //for future if needed
   });
 
-  return cemetrySchema.validate(cemetry);
+  return packageSchema.validate(package);
 };
 
-module.exports = { Cemetry, validateCemetry };
+module.exports = { Package, validatePackage };

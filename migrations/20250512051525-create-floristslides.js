@@ -2,42 +2,34 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("cemetries", {
+    await queryInterface.createTable("floristslides", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
         allowNull: false,
       },
-      userId: {
+      companyId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "users", // Must match the actual table name
+          model: "companypages",
           key: "id",
         },
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
-      address: {
-        type: Sequelize.STRING(500),
+      title: {
+        type: Sequelize.STRING(250),
         allowNull: false,
       },
       image: {
         type: Sequelize.STRING(500),
-        allowNull: true,
-      },
-      name: {
-        type: Sequelize.STRING(100),
         allowNull: false,
       },
-      city: {
-        type: Sequelize.STRING(100),
+      description: {
+        type: Sequelize.STRING(1000),
         allowNull: false,
-      },
-      enrolled: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
       },
       createdTimestamp: {
         type: Sequelize.DATE,
@@ -53,6 +45,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("cemetries");
+    await queryInterface.dropTable("floristslides");
   },
 };

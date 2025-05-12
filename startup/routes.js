@@ -16,6 +16,10 @@ const candle = require("../routers/candle.route");
 const common = require("../routers/common.route");
 const logs = require("../routers/logs.route");
 const cemetry = require("../routers/cemetry.route");
+const floristShop = require("../routers/floristShop.route");
+const floristSlide = require("../routers/floristSlide.route");
+const faq = require("../routers/faq.route");
+const package = require("../routers/package.route");
 
 const report = require("../routers/report.route");
 
@@ -46,6 +50,10 @@ module.exports = (app) => {
   app.use("/api/photo", photo);
   app.use("/api/dedication", dedication);
   app.use("/api/cemetry", cemetry);
+  app.use("/api/florist_shop", floristShop);
+  app.use("/api/florist_slide", floristSlide);
+  app.use("/api/faq", faq);
+  app.use("/api/package", package);
   app.use("/api/candle", candle);
   app.use("/api/logs", logs);
   app.use("/api/post", common);

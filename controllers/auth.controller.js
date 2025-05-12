@@ -60,13 +60,13 @@ const authController = {
         { isValid: false },
         { where: { userId: req.user.id } }
       );
-
+      const isProd = process.env.NODE_ENV === "production";
       res.clearCookie("accessToken", {
         path: "/",
         httpOnly: false,
-        secure: true,
-        sameSite: "None",
-        domain: ".osmrtnica.com",
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+        domain: isProd ? ".osmrtnica.com" : undefined,
       });
       res.status(httpStatus.OK).json({
         message: "Logged out successfully!",

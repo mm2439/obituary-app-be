@@ -6,15 +6,15 @@ const upload = multer({
   storage: storage,
 });
 
-const uploadFields = upload.fields([{ name: "picture", maxCount: 1 }]);
-const cemetryController = require("../controllers/cemetry.controller");
+const uploadFields = upload.fields([{ name: "picture", maxCount: 8 }]);
+
+const packageController = require("../controllers/package.controller");
 const router = express.Router();
 
 router.post(
   "/",
   [authenticationMiddleware, uploadFields],
-  cemetryController.addCemetry
+  packageController.addPackages
 );
-router.get("/", cemetryController.getCemetries);
 
 module.exports = router;

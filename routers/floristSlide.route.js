@@ -6,15 +6,15 @@ const upload = multer({
   storage: storage,
 });
 
-const uploadFields = upload.fields([{ name: "picture", maxCount: 1 }]);
-const cemetryController = require("../controllers/cemetry.controller");
+const uploadFields = upload.fields([{ name: "picture", maxCount: 10 }]);
+
+const florsitSlideController = require("../controllers/floristslide.controller");
 const router = express.Router();
 
 router.post(
   "/",
   [authenticationMiddleware, uploadFields],
-  cemetryController.addCemetry
+  florsitSlideController.addFloristSlide
 );
-router.get("/", cemetryController.getCemetries);
 
 module.exports = router;

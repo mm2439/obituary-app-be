@@ -9,14 +9,15 @@ const responseToken = {
     const accessToken = generateAccessToken(user);
 
     response.header("access-token", accessToken);
+    const isProd = process.env.NODE_ENV === "production";
 
     response.cookie("accessToken", accessToken, {
       httpOnly: false,
-      secure: true,
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+      maxAge: 24 * 60 * 60 * 1000,
       path: "/",
-      domain: ".osmrtnica.com", // Ensure it's a subdomain cookie
+      domain: isProd ? ".osmrtnica.com" : undefined,
     });
   },
 
