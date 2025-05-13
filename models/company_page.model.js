@@ -123,6 +123,18 @@ CompanyPage.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    offer_one_image: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    offer_two_image: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    offer_three_image: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
     box_one_icon: {
       type: DataTypes.STRING(250),
       allowNull: true,
