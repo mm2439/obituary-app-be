@@ -63,17 +63,17 @@ const companyController = {
   },
   creatFuneral: async (req, res) => {
     try {
-      const { name, facbook, address, email, telephone, website } = req.body;
+      const { name, facebook, address, email, phone, website } = req.body;
       const userId = req.user.id;
 
       const funeralCompany = await CompanyPage.create({
         userId,
         type: "FUNERAL",
         name,
-        facbook,
+        facebook,
         address,
         email,
-        telephone,
+        phone,
         website,
       });
       const companyFolder = path.join(
@@ -135,10 +135,29 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  getCompany: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      const company = await CompanyPage.findOne({ where: { userId: userId } });
+
+      res.status(httpStatus.OK).json({
+        message: `success`,
+        company,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
   updateCompanyPage: async (req, res) => {
     try {
-      const { companyId } = req.params;
-      const company = await CompanyPage.findByPk(companyId);
+      const { id } = req.params;
+      console.log(id);
+      const company = await CompanyPage.findByPk(id);
 
       if (!company) {
         return res
@@ -154,7 +173,7 @@ const companyController = {
       }
 
       const fileFields = [
-        { field: "backgroundImage", resize: [195, 267] },
+        { field: "background", resize: [195, 267] },
         { field: "logo", resize: [195, 267] },
         { field: "secondary_image", resize: [400, 300] },
         { field: "funeral_section_one_image_one", resize: [400, 300] },

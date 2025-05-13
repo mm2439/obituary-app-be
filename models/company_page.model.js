@@ -53,6 +53,11 @@ CompanyPage.init(
       type: DataTypes.STRING(250),
       allowNull: true,
     },
+    facebook: {
+      //to be added in migrations
+      type: DataTypes.STRING(250),
+      allowNull: true,
+    },
     website: {
       //to be added in migrations
       type: DataTypes.STRING(250),
@@ -66,7 +71,11 @@ CompanyPage.init(
       type: DataTypes.STRING(20),
       allowNull: true,
     },
-    backgroundImage: {
+    background: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    logo: {
       type: DataTypes.STRING(500),
       allowNull: true,
     },
