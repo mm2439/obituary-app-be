@@ -33,7 +33,7 @@ Package.init(
       allowNull: false,
     },
     price: {
-      type: DataTypes.NUMBER(1000),
+      type: DataTypes.STRING(10),
       allowNull: false,
     },
     createdTimestamp: {

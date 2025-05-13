@@ -40,7 +40,7 @@ CompanyPage.init(
       allowNull: true,
     },
     phone: {
-      type: DataTypes.NUMBER(15),
+      type: DataTypes.STRING(15),
       allowNull: true,
     },
     address: {
@@ -59,7 +59,7 @@ CompanyPage.init(
       allowNull: true,
     },
     emergencyPhone: {
-      type: DataTypes.NUMBER(15),
+      type: DataTypes.STRING(15),
       allowNull: true,
     },
     workingHours: {

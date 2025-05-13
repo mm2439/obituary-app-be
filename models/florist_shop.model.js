@@ -45,7 +45,7 @@ FloristShop.init(
       allowNull: false,
     },
     telephone: {
-      type: DataTypes.NUMBER(15),
+      type: DataTypes.STRING(15),
       allowNull: false,
     },
     logo: {
