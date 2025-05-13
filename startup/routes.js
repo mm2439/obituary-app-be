@@ -20,6 +20,7 @@ const floristShop = require("../routers/floristShop.route");
 const floristSlide = require("../routers/floristSlide.route");
 const faq = require("../routers/faq.route");
 const package = require("../routers/package.route");
+const company = require("../routers/company.route");
 
 const report = require("../routers/report.route");
 
@@ -54,6 +55,7 @@ module.exports = (app) => {
   app.use("/api/florist_slide", floristSlide);
   app.use("/api/faq", faq);
   app.use("/api/package", package);
+  app.use("/api/company", company);
   app.use("/api/candle", candle);
   app.use("/api/logs", logs);
   app.use("/api/post", common);

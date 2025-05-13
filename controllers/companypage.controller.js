@@ -1,5 +1,8 @@
 const { CompanyPage } = require("../models/company_page.model");
+const path = require("path");
 const COMPANY_UPLOADS_PATH = path.join(__dirname, "../companyUploads");
+const fs = require("fs");
+const sharp = require("sharp");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -7,15 +10,20 @@ const companyController = {
   creatFlorist: async (req, res) => {
     try {
       const { address, phone, title, description } = req.body;
+      const userId = req.user.id;
 
       const floristCompany = await CompanyPage.create({
+        userId,
         type: "FLORIST",
         address,
         phone,
         title,
         description,
       });
-      const companyFolder = path.join(COMPANY_UPLOADS_PATH, floristCompany.id);
+      const companyFolder = path.join(
+        COMPANY_UPLOADS_PATH,
+        String(floristCompany.id)
+      );
 
       if (!fs.existsSync(companyFolder)) {
         fs.mkdirSync(companyFolder, { recursive: true });
@@ -28,7 +36,7 @@ const companyController = {
 
         const optimizedPicturePath = path.join(
           "companyUploads",
-          String(obituaryId),
+          String(floristCompany.id),
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
@@ -39,12 +47,12 @@ const companyController = {
 
         picturePath = optimizedPicturePath;
       }
-      newCemetry.background = picturePath;
-      await newCemetry.save();
+      floristCompany.background = picturePath;
+      await floristCompany.save();
 
       res.status(httpStatus.OK).json({
         message: `Florist Company Created Successfully `,
-        post,
+        floristCompany,
       });
     } catch (error) {
       console.error("Error :", error);
@@ -56,8 +64,10 @@ const companyController = {
   creatFuneral: async (req, res) => {
     try {
       const { name, facbook, address, email, telephone, website } = req.body;
+      const userId = req.user.id;
 
       const funeralCompany = await CompanyPage.create({
+        userId,
         type: "FUNERAL",
         name,
         facbook,
@@ -66,7 +76,10 @@ const companyController = {
         telephone,
         website,
       });
-      const companyFolder = path.join(COMPANY_UPLOADS_PATH, funeralCompany.id);
+      const companyFolder = path.join(
+        COMPANY_UPLOADS_PATH,
+        String(funeralCompany.id)
+      );
 
       if (!fs.existsSync(companyFolder)) {
         fs.mkdirSync(companyFolder, { recursive: true });
@@ -80,7 +93,7 @@ const companyController = {
 
         const optimizedPicturePath = path.join(
           "companyUploads",
-          String(obituaryId),
+          String(funeralCompany.id),
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
@@ -96,7 +109,7 @@ const companyController = {
 
         const optimizedPicturePath = path.join(
           "companyUploads",
-          String(obituaryId),
+          String(funeralCompany.id),
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
@@ -113,7 +126,7 @@ const companyController = {
 
       res.status(httpStatus.OK).json({
         message: `Funeral Company Created Successfully `,
-        post,
+        funeralCompany,
       });
     } catch (error) {
       console.error("Error :", error);

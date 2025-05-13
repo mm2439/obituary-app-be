@@ -28,6 +28,12 @@ CompanyPage.init(
       type: DataTypes.ENUM("FLORIST", "FUNERAL"),
       allowNull: false,
     },
+    // status: {
+    //   //to add in migration
+    //   type: DataTypes.ENUM("DRAFT", "PUBLISHED"),
+    //   allowNull: false,
+    //   defaultValue: "DRAFT",
+    // },
     name: {
       //name of funeral / florist company
       type: DataTypes.STRING(250),
