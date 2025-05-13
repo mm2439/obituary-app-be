@@ -163,5 +163,6 @@ Thumbs.db
 
 # Obituary Uploads
 obituaryUploads/
+
 #sql file
 init.sql
