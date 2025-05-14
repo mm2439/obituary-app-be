@@ -163,6 +163,10 @@ Thumbs.db
 
 # Obituary Uploads
 obituaryUploads/
-
+cemetryUploads/
+companyUploads/
+floristShopUploads/
+floristSlideUploads/
+packageUploads/
 #sql file
 init.sql

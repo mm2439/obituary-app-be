@@ -71,6 +71,11 @@ CompanyPage.init(
       type: DataTypes.STRING(20),
       allowNull: true,
     },
+    working_hour_highlight_text: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+    },
+
     background: {
       type: DataTypes.STRING(500),
       allowNull: true,

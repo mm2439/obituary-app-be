@@ -2,6 +2,9 @@ const { Candle } = require("../models/candle.model");
 const { Op } = require("sequelize");
 const moment = require("moment");
 const path = require("path");
+const fs = require("fs");
+
+const sharp = require("sharp");
 
 const { Cemetry } = require("../models/cemetry.model");
 const CEMETRY_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
@@ -9,58 +12,74 @@ const CEMETRY_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
 const cemetryController = {
   addCemetry: async (req, res) => {
     try {
-      const { userId, name, address, city } = req.body;
+      const { companyId, cemeteries } = req.body;
+      const userId = req.user.id;
 
-      const cemetryExist = await Cemetry.findOne({
-        where: {
-          name: name,
-        },
-      });
+      const createdCemeteries = [];
 
-      if (cemetryExist) {
-        return res.status(409).json({ message: "Cemetry Already Exists" });
-      }
+      const cemeteriesArray = cemeteries;
 
-      const newCemetry = await Cemetry.create({
-        userId,
-        name,
-        address,
-        city,
-      });
-      const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, newCemetry.id);
+      for (let i = 0; i < cemeteriesArray.length; i++) {
+        const cemetery = cemeteriesArray[i];
+        const { name, address, city } = cemetery;
 
-      if (!fs.existsSync(cemetryFolder)) {
-        fs.mkdirSync(cemetryFolder, { recursive: true });
-      }
+        const existing = await Cemetry.findOne({ where: { name } });
+        if (existing) {
+          return res
+            .status(409)
+            .json({ message: `Cemetery "${name}" already exists.` });
+        }
 
-      let picturePath = null;
+        const newCemetry = await Cemetry.create({
+          userId,
+          name,
+          city,
+          address,
+          companyId,
+        });
 
-      if (req.files?.picture) {
-        const pictureFile = req.files.picture[0];
+        const cemetryFolder = path.join(
+          CEMETRY_UPLOADS_PATH,
+          String(newCemetry.id)
+        );
+        if (!fs.existsSync(cemetryFolder)) {
+          fs.mkdirSync(cemetryFolder, { recursive: true });
+        }
 
-        const optimizedPicturePath = path.join(
-          "cemetryUploads",
-          String(obituaryId),
-          `${path.parse(pictureFile.originalname).name}.avif`
+        // Find the image file that corresponds to the cemetery index
+        const file = req.files.find(
+          (f) => f.fieldname === `cemeteries[${i}][image]`
         );
 
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", optimizedPicturePath));
+        if (file) {
+          const imagePath = path.join(
+            "cemetryUploads",
+            String(newCemetry.id),
+            `${path.parse(file.originalname).name}.avif`
+          );
 
-        picturePath = optimizedPicturePath;
+          await sharp(file.buffer)
+            .resize(195, 267, { fit: "cover" })
+            .toFormat("avif", { quality: 50 })
+            .toFile(path.join(__dirname, "../", imagePath));
+
+          newCemetry.image = imagePath;
+          await newCemetry.save();
+        }
+
+        createdCemeteries.push(newCemetry);
       }
-      newCemetry.image = picturePath;
-      await newCemetry.save();
-      return res
-        .status(201)
-        .json({ message: "Cemetry created successfully.", newCemetry });
+
+      return res.status(201).json({
+        message: "Cemeteries created successfully.",
+        cemeteries: createdCemeteries,
+      });
     } catch (error) {
-      console.error("Error creating Cemetry:", error);
+      console.error("Error creating cemeteries:", error);
       return res.status(500).json({ message: "Internal server error." });
     }
   },
+
   getCemetries: async (req, res) => {
     try {
       const { userId } = req.body;
