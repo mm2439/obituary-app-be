@@ -17,11 +17,43 @@ const cemetryController = {
 
       const createdCemeteries = [];
 
-      const cemeteriesArray = cemeteries;
+      for (let i = 0; i < cemeteries.length; i++) {
+        const cemetery = cemeteries[i];
+        const { id, updated, name, address, city } = cemetery;
 
-      for (let i = 0; i < cemeteriesArray.length; i++) {
-        const cemetery = cemeteriesArray[i];
-        const { name, address, city } = cemetery;
+        if (id && updated) {
+          await Cemetry.update({ name, address, city }, { where: { id } });
+
+          const file = req.files.find(
+            (f) => f.fieldname === `cemeteries[${i}][image]`
+          );
+
+          if (file) {
+            const imagePath = path.join(
+              "cemetryUploads",
+              String(id),
+              `${path.parse(file.originalname).name}.avif`
+            );
+
+            const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(id));
+            if (!fs.existsSync(cemetryFolder)) {
+              fs.mkdirSync(cemetryFolder, { recursive: true });
+            }
+
+            await sharp(file.buffer)
+              .resize(195, 267, { fit: "cover" })
+              .toFormat("avif", { quality: 50 })
+              .toFile(path.join(__dirname, "../", imagePath));
+
+            await Cemetry.update({ image: imagePath }, { where: { id } });
+          }
+
+          continue;
+        }
+
+        if (id && !updated) {
+          continue;
+        }
 
         const existing = await Cemetry.findOne({ where: { name } });
         if (existing) {
@@ -46,7 +78,6 @@ const cemetryController = {
           fs.mkdirSync(cemetryFolder, { recursive: true });
         }
 
-        // Find the image file that corresponds to the cemetery index
         const file = req.files.find(
           (f) => f.fieldname === `cemeteries[${i}][image]`
         );
@@ -71,11 +102,11 @@ const cemetryController = {
       }
 
       return res.status(201).json({
-        message: "Cemeteries created successfully.",
+        message: "Cemeteries processed successfully.",
         cemeteries: createdCemeteries,
       });
     } catch (error) {
-      console.error("Error creating cemeteries:", error);
+      console.error("Error creating/updating cemeteries:", error);
       return res.status(500).json({ message: "Internal server error." });
     }
   },

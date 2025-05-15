@@ -27,7 +27,11 @@ router.post(
   [authenticationMiddleware, uploadFields],
   companyController.creatFuneral
 );
-router.get("/", [authenticationMiddleware], companyController.getCompany);
+router.get(
+  "/",
+  [authenticationMiddleware],
+  companyController.getFuneralCompany
+);
 router.patch(
   "/:id",
   [authenticationMiddleware, uploadFields],

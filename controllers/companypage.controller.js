@@ -3,6 +3,8 @@ const path = require("path");
 const COMPANY_UPLOADS_PATH = path.join(__dirname, "../companyUploads");
 const fs = require("fs");
 const sharp = require("sharp");
+const { FAQ } = require("../models/faq.model");
+const { Cemetry } = require("../models/cemetry.model");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -136,15 +138,28 @@ const companyController = {
     }
   },
 
-  getCompany: async (req, res) => {
+  getFuneralCompany: async (req, res) => {
     try {
       const userId = req.user.id;
 
       const company = await CompanyPage.findOne({ where: { userId: userId } });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const faqs = await FAQ.findAll({ where: { companyId } });
+      const cemeteries = await Cemetry.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.faqs = faqs;
+      companyData.cemeteries = cemeteries;
 
       res.status(httpStatus.OK).json({
-        message: `success`,
-        company,
+        message: "success",
+        company: companyData,
       });
     } catch (error) {
       console.error("Error :", error);

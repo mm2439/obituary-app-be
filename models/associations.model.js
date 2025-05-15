@@ -12,6 +12,7 @@ const { Candle } = require("./candle.model");
 const { Visit } = require("./visit.model");
 const { Cemetry } = require("./cemetry.model");
 const { CompanyPage } = require("./company_page.model");
+const { FAQ } = require("./faq.model");
 
 User.hasMany(RefreshToken, { foreignKey: "userId" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
@@ -33,6 +34,9 @@ Cemetry.belongsTo(User, { foreignKey: "userId" });
 
 CompanyPage.hasMany(Cemetry, { foreignKey: "companyId" });
 Cemetry.belongsTo(CompanyPage, { foreignKey: "companyId" });
+
+CompanyPage.hasMany(FAQ, { foreignKey: "companyId" });
+FAQ.belongsTo(CompanyPage, { foreignKey: "companyId" });
 
 Obituary.hasMany(Keeper, { foreignKey: "obituaryId" });
 Keeper.belongsTo(Obituary, { foreignKey: "obituaryId" });
