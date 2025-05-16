@@ -11,7 +11,7 @@ const packageController = {
       for (let i = 0; i < packages.length; i++) {
         const { companyId, title, price } = packages[i];
         const newPackage = await Package.create({ companyId, title, price });
-
+      
         const packageFolder = path.join(PACKAGE_UPLOADS, newPackage.id);
         if (!fs.existsSync(packageFolder)) {
           fs.mkdirSync(packageFolder, { recursive: true });

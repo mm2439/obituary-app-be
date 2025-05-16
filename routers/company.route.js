@@ -1,10 +1,9 @@
 const express = require("express");
 const multer = require("multer");
 const authenticationMiddleware = require("../middlewares/authentication");
+const companyController = require("../controllers/companypage.controller");
 const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-});
+const upload = multer({ storage: storage });
 
 const uploadFields = upload.fields([
   { name: "background", maxCount: 1 },
@@ -19,18 +18,30 @@ const uploadFields = upload.fields([
   { name: "deathReport", maxCount: 1 },
 ]);
 
-const companyController = require("../controllers/companypage.controller");
 const router = express.Router();
 
+// Funeral route
 router.post(
   "/funeral",
   [authenticationMiddleware, uploadFields],
   companyController.creatFuneral
 );
+
+// Florist route (Fixed line)
+router.post(
+  "/florist",
+  [authenticationMiddleware, uploadFields],
+  companyController.creatFlorist
+);
+
+// Get company details
 router.get("/", [authenticationMiddleware], companyController.getCompany);
+
+// Update company by ID
 router.patch(
   "/:id",
   [authenticationMiddleware, uploadFields],
   companyController.updateCompanyPage
 );
+
 module.exports = router;
