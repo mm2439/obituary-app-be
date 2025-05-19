@@ -184,13 +184,13 @@ const obituaryController = {
   getObituaryById: async (req, res) => {
   try {
     // Get userId from query params
-    const { userId } = req.query;
+    const { obituaryId } = req.query;
     
-    if (!userId) {
+    if (!obituaryId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    const obituary = await Obituary.findOne({ userId: userId });
+    const obituary = await Obituary.findByPk(obituaryId);
     
     if (!obituary) {
       return res.status(404).json({ error: 'No obituary found for this user' });
