@@ -140,9 +140,12 @@ const companyController = {
 
   getFuneralCompany: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const { userId, id } = req.params;
+      const whereClause = {};
 
-      const company = await CompanyPage.findOne({ where: { userId: userId } });
+      if (id) whereClause.id = id;
+      if (userId) whereClause.userId = userId;
+      const company = await CompanyPage.findOne({ where: whereClause });
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
