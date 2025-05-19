@@ -20,7 +20,6 @@ router.post(
   [authenticationMiddleware, uploadFields],
   obituaryController.createObituary
 );
-// router.get("/", obituaryController.getObituary);
 router.get("/", obituaryController.getObituaryById);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/memory", obituaryController.getMemory);
