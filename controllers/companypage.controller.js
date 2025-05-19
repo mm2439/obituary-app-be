@@ -11,13 +11,15 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const companyController = {
   creatFlorist: async (req, res) => {
     try {
-      const { address, phone, title, description } = req.body;
+      const { name, phone, title, description } = req.body;
       const userId = req.user.id;
+
+      console.log(req.body);
 
       const floristCompany = await CompanyPage.create({
         userId,
         type: "FLORIST",
-        address,
+        name,
         phone,
         title,
         description,
@@ -137,7 +139,6 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
-
   getFuneralCompany: async (req, res) => {
     try {
       const { userId, id } = req.params;
@@ -184,6 +185,8 @@ const companyController = {
       }
 
       const updateData = { ...req.body };
+
+      console.log(updateData, "Data");
 
       const companyFolder = path.join(COMPANY_UPLOADS_PATH, String(company.id));
       if (!fs.existsSync(companyFolder)) {
