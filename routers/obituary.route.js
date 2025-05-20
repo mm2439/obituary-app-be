@@ -15,11 +15,7 @@ const uploadFields = upload.fields([
   { name: "deathReport", maxCount: 1 },
 ]);
 
-router.post(
-  "/",
-  [authenticationMiddleware, uploadFields],
-  obituaryController.createObituary
-);
+router.post("/", [authenticationMiddleware, uploadFields], obituaryController.createObituary);
 router.get("/", obituaryController.getObituaryById);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/memory", obituaryController.getMemory);
