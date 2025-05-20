@@ -59,7 +59,7 @@ const companyController = {
 
       res.status(httpStatus.OK).json({
         message: `Florist Company Created Successfully `,
-        floristCompany,
+        company: floristCompany,
       });
     } catch (error) {
       console.error("Error :", error);
@@ -133,7 +133,7 @@ const companyController = {
 
       res.status(httpStatus.OK).json({
         message: `Funeral Company Created Successfully `,
-        funeralCompany,
+        company: funeralCompany,
       });
     } catch (error) {
       console.error("Error :", error);
@@ -149,7 +149,7 @@ const companyController = {
 
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
-      whereClause.type === "FUNERAL";
+      whereClause.type = "FUNERAL";
       const company = await CompanyPage.findOne({ where: whereClause });
       if (!company) {
         return res
@@ -183,7 +183,7 @@ const companyController = {
 
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
-      whereClause.type === "FLORIST";
+      whereClause.type = "FLORIST";
       const company = await CompanyPage.findOne({ where: whereClause });
       if (!company) {
         return res

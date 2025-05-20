@@ -10,27 +10,70 @@ const florsitSlideController = {
   addFloristSlide: async (req, res) => {
     try {
       const { slides, companyId } = req.body;
-      const createdSlides = [];
-      for (let i = 0; i < slides.length; i++) {
-        const { title, description } = slides[i];
+      const createdOrUpdatedSlides = [];
 
+      for (let i = 0; i < slides.length; i++) {
+        const { id, updated, title, description, image } = slides[i];
+        const file = req.files.find(
+          (f) => f.fieldname === `slides[${i}][image]`
+        );
+
+        // === Update existing slide ===
+        if (id && updated) {
+          await FloristSlide.update({ title, description }, { where: { id } });
+
+          if (file) {
+            const imagePath = path.join(
+              "floristSlideUploads",
+              String(id),
+              `${path.parse(file.originalname).name}.avif`
+            );
+
+            const slideFolder = path.join(
+              FLORIST_SLIDE_UPLOADS_PATH,
+              String(id)
+            );
+            if (!fs.existsSync(slideFolder)) {
+              fs.mkdirSync(slideFolder, { recursive: true });
+            }
+
+            await sharp(file.buffer)
+              .resize(195, 267, { fit: "cover" })
+              .toFormat("avif", { quality: 50 })
+              .toFile(path.join(__dirname, "../", imagePath));
+
+            await FloristSlide.update({ image: imagePath }, { where: { id } });
+          } else if (typeof image === "string") {
+            await FloristSlide.update({ image }, { where: { id } });
+          }
+
+          const updatedSlide = await FloristSlide.findByPk(id);
+          if (updatedSlide) {
+            createdOrUpdatedSlides.push(updatedSlide);
+          }
+
+          continue;
+        }
+
+        // === Skip unmodified existing slide ===
+        if (id && !updated) {
+          continue;
+        }
+
+        // === Create new slide ===
         const newSlide = await FloristSlide.create({
           companyId,
           title,
           description,
         });
 
-        const slidesFolder = path.join(
+        const slideFolder = path.join(
           FLORIST_SLIDE_UPLOADS_PATH,
           String(newSlide.id)
         );
-        if (!fs.existsSync(slidesFolder)) {
-          fs.mkdirSync(slidesFolder, { recursive: true });
+        if (!fs.existsSync(slideFolder)) {
+          fs.mkdirSync(slideFolder, { recursive: true });
         }
-
-        const file = req.files.find(
-          (f) => f.fieldname === `slides[${i}][image]`
-        );
 
         if (file) {
           const imagePath = path.join(
@@ -46,17 +89,20 @@ const florsitSlideController = {
 
           newSlide.image = imagePath;
           await newSlide.save();
+        } else if (typeof image === "string") {
+          newSlide.image = image;
+          await newSlide.save();
         }
 
-        createdSlides.push(newSlide);
+        createdOrUpdatedSlides.push(newSlide);
       }
 
       return res.status(201).json({
-        message: "Slides created successfully.",
-        slides: createdSlides,
+        message: "Slides processed successfully.",
+        slides: createdOrUpdatedSlides,
       });
     } catch (error) {
-      console.error("Error creating Slide:", error);
+      console.error("Error processing slides:", error);
       return res.status(500).json({ message: "Internal server error." });
     }
   },
