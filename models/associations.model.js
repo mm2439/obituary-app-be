@@ -13,6 +13,8 @@ const { Visit } = require("./visit.model");
 const { Cemetry } = require("./cemetry.model");
 const { CompanyPage } = require("./company_page.model");
 const { FAQ } = require("./faq.model");
+const { FloristSlide } = require("./florist_slide.model");
+const { FloristShop } = require("./florist_shop.model");
 
 User.hasMany(RefreshToken, { foreignKey: "userId" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
@@ -34,6 +36,12 @@ Cemetry.belongsTo(User, { foreignKey: "userId" });
 
 CompanyPage.hasMany(Cemetry, { foreignKey: "companyId" });
 Cemetry.belongsTo(CompanyPage, { foreignKey: "companyId" });
+
+CompanyPage.hasMany(FloristSlide, { foreignKey: "companyId" });
+FloristSlide.belongsTo(CompanyPage, { foreignKey: "companyId" });
+
+CompanyPage.hasMany(FloristShop, { foreignKey: "companyId" });
+FloristShop.belongsTo(CompanyPage, { foreignKey: "companyId" });
 
 CompanyPage.hasMany(FAQ, { foreignKey: "companyId" });
 FAQ.belongsTo(CompanyPage, { foreignKey: "companyId" });

@@ -58,6 +58,11 @@ CompanyPage.init(
       type: DataTypes.STRING(250),
       allowNull: true,
     },
+    instagram: {
+      //to be added in migrations
+      type: DataTypes.STRING(250),
+      allowNull: true,
+    },
     website: {
       //to be added in migrations
       type: DataTypes.STRING(250),
@@ -81,6 +86,10 @@ CompanyPage.init(
       allowNull: true,
     },
     logo: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    highlightText: {
       type: DataTypes.STRING(500),
       allowNull: true,
     },

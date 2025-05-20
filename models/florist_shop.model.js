@@ -24,10 +24,7 @@ FloristShop.init(
       onDelete: "CASCADE",
       onUpdate: "RESTRICT",
     },
-    name: {
-      type: DataTypes.STRING(250),
-      allowNull: false,
-    },
+
     shopName: {
       type: DataTypes.STRING(250),
       allowNull: false,
@@ -48,22 +45,7 @@ FloristShop.init(
       type: DataTypes.STRING(15),
       allowNull: false,
     },
-    logo: {
-      type: DataTypes.STRING(500),
-      allowNull: false,
-    },
-    highlightText: {
-      type: DataTypes.STRING(250),
-      allowNull: false,
-    },
-    facebook: {
-      type: DataTypes.STRING(250),
-      allowNull: false,
-    },
-    instagram: {
-      type: DataTypes.STRING(250),
-      allowNull: false,
-    },
+
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,

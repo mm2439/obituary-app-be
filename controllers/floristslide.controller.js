@@ -1,15 +1,18 @@
 const path = require("path");
 const { FloristSlide } = require("../models/florist_slide.model");
-const FLORIST_SLIDE_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
-
+const FLORIST_SLIDE_UPLOADS_PATH = path.join(
+  __dirname,
+  "../floristSlideUploads"
+);
+const sharp = require("sharp");
+const fs = require("fs");
 const florsitSlideController = {
   addFloristSlide: async (req, res) => {
     try {
-      const slidesData = JSON.parse(req.body.slides);
+      const { slides, companyId } = req.body;
       const createdSlides = [];
-
-      for (let i = 0; i < slidesData.length; i++) {
-        const { companyId, title, description } = slidesData[i];
+      for (let i = 0; i < slides.length; i++) {
+        const { title, description } = slides[i];
 
         const newSlide = await FloristSlide.create({
           companyId,
@@ -17,33 +20,31 @@ const florsitSlideController = {
           description,
         });
 
-        const floristSlideFolder = path.join(
+        const slidesFolder = path.join(
           FLORIST_SLIDE_UPLOADS_PATH,
-          newSlide.id
+          String(newSlide.id)
         );
-
-        if (!fs.existsSync(floristSlideFolder)) {
-          fs.mkdirSync(floristSlideFolder, { recursive: true });
+        if (!fs.existsSync(slidesFolder)) {
+          fs.mkdirSync(slidesFolder, { recursive: true });
         }
 
-        let picturePath = null;
+        const file = req.files.find(
+          (f) => f.fieldname === `slides[${i}][image]`
+        );
 
-        if (req.files?.pictures && req.files.pictures[i]) {
-          const pictureFile = req.files.pictures[i];
-
-          const optimizedPicturePath = path.join(
+        if (file) {
+          const imagePath = path.join(
             "floristSlideUploads",
             String(newSlide.id),
-            `${path.parse(pictureFile.originalname).name}.avif`
+            `${path.parse(file.originalname).name}.avif`
           );
 
-          await sharp(pictureFile.buffer)
+          await sharp(file.buffer)
             .resize(195, 267, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", optimizedPicturePath));
+            .toFile(path.join(__dirname, "../", imagePath));
 
-          picturePath = optimizedPicturePath;
-          newSlide.image = picturePath;
+          newSlide.image = imagePath;
           await newSlide.save();
         }
 
@@ -55,7 +56,7 @@ const florsitSlideController = {
         slides: createdSlides,
       });
     } catch (error) {
-      console.error("Error creating Slides:", error);
+      console.error("Error creating Slide:", error);
       return res.status(500).json({ message: "Internal server error." });
     }
   },

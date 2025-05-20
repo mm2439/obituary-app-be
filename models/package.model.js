@@ -30,7 +30,7 @@ Package.init(
     },
     image: {
       type: DataTypes.STRING(500),
-      allowNull: false,
+      allowNull: true,
     },
     price: {
       type: DataTypes.STRING(10),

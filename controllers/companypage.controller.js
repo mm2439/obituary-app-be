@@ -4,6 +4,9 @@ const COMPANY_UPLOADS_PATH = path.join(__dirname, "../companyUploads");
 const fs = require("fs");
 const sharp = require("sharp");
 const { FAQ } = require("../models/faq.model");
+const { Package } = require("../models/package.model");
+const { FloristSlide } = require("../models/florist_slide.model");
+const { FloristShop } = require("../models/florist_shop.model");
 const { Cemetry } = require("../models/cemetry.model");
 
 const httpStatus = require("http-status-codes").StatusCodes;
@@ -11,7 +14,7 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const companyController = {
   creatFlorist: async (req, res) => {
     try {
-      const { name, phone, title, description } = req.body;
+      const { address, phone, title, description } = req.body;
       const userId = req.user.id;
 
       console.log(req.body);
@@ -19,7 +22,7 @@ const companyController = {
       const floristCompany = await CompanyPage.create({
         userId,
         type: "FLORIST",
-        name,
+        address,
         phone,
         title,
         description,
@@ -146,6 +149,7 @@ const companyController = {
 
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
+      whereClause.type === "FUNERAL";
       const company = await CompanyPage.findOne({ where: whereClause });
       if (!company) {
         return res
@@ -160,6 +164,42 @@ const companyController = {
 
       companyData.faqs = faqs;
       companyData.cemeteries = cemeteries;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+  getFloristCompany: async (req, res) => {
+    try {
+      const { userId, id } = req.params;
+      const whereClause = {};
+
+      if (id) whereClause.id = id;
+      if (userId) whereClause.userId = userId;
+      whereClause.type === "FLORIST";
+      const company = await CompanyPage.findOne({ where: whereClause });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const packages = await Package.findAll({ where: { companyId } });
+      const slides = await FloristSlide.findAll({ where: { companyId } });
+      const shops = await FloristShop.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.packages = packages;
+      companyData.slides = slides;
+      companyData.shops = shops;
 
       res.status(httpStatus.OK).json({
         message: "success",
@@ -199,9 +239,12 @@ const companyController = {
         { field: "secondary_image", resize: [400, 300] },
         { field: "funeral_section_one_image_one", resize: [400, 300] },
         { field: "funeral_section_one_image_two", resize: [400, 300] },
-        { field: "box_one_icon", resize: [50, 50] },
-        { field: "box_two_icon", resize: [50, 50] },
-        { field: "box_three_icon", resize: [50, 50] },
+        // { field: "box_one_icon", resize: [50, 50] },
+        // { field: "box_two_icon", resize: [50, 50] },
+        // { field: "box_three_icon", resize: [50, 50] },
+        { field: "offer_one_image", resize: [50, 50] },
+        { field: "offer_two_image", resize: [50, 50] },
+        { field: "offer_three_image", resize: [50, 50] },
       ];
 
       for (const fileField of fileFields) {

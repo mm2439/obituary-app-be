@@ -4,16 +4,22 @@ const authenticationMiddleware = require("../middlewares/authentication");
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
+  fileFilter: (req, file, cb) => {
+    const isPackageImage = /^packages\[\d+\]\[image\]$/.test(file.fieldname);
+    if (isPackageImage) {
+      cb(null, true);
+    } else {
+      cb(new multer.MulterError("LIMIT_UNEXPECTED_FILE", file.fieldname));
+    }
+  },
 });
-
-const uploadFields = upload.fields([{ name: "picture", maxCount: 8 }]);
 
 const packageController = require("../controllers/package.controller");
 const router = express.Router();
 
 router.post(
   "/",
-  [authenticationMiddleware, uploadFields],
+  [authenticationMiddleware, upload.any()],
   packageController.addPackages
 );
 
