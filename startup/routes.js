@@ -52,6 +52,21 @@ module.exports = (app) => {
     express.static(path.join(__dirname, "..", "cemetryUploads"))
   );
 
+  app.use(
+    "/api/floristShopUploads",
+    express.static(path.join(__dirname, "..", "floristShopUploads"))
+  );
+
+  app.use(
+    "/api/floristSlideUploads",
+    express.static(path.join(__dirname, "..", "floristSlideUploads"))
+  );
+
+  app.use(
+    "/api/packageUploads",
+    express.static(path.join(__dirname, "..", "packageUploads"))
+  );
+
   app.use("/api/auth", auth);
   app.use("/api/user", user);
   app.use("/api/obituary", obituary);
