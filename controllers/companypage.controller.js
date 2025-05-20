@@ -262,6 +262,8 @@ const companyController = {
             .toFile(path.join(__dirname, "../", optimizedPath));
 
           updateData[fileField.field] = optimizedPath;
+        } else if (req.body[fileField.field]) {
+          updateData[fileField.field] = req.body[fileField.field];
         }
       }
 

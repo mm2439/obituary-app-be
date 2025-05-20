@@ -19,14 +19,15 @@ const cemetryController = {
 
       for (let i = 0; i < cemeteries.length; i++) {
         const cemetery = cemeteries[i];
-        const { id, updated, name, address, city } = cemetery;
+        const { id, updated, name, address, city, image } = cemetery; // include `image`
 
+        const file = req.files.find(
+          (f) => f.fieldname === `cemeteries[${i}][image]`
+        );
+
+        // === Update existing cemetery ===
         if (id && updated) {
           await Cemetry.update({ name, address, city }, { where: { id } });
-
-          const file = req.files.find(
-            (f) => f.fieldname === `cemeteries[${i}][image]`
-          );
 
           if (file) {
             const imagePath = path.join(
@@ -46,6 +47,8 @@ const cemetryController = {
               .toFile(path.join(__dirname, "../", imagePath));
 
             await Cemetry.update({ image: imagePath }, { where: { id } });
+          } else if (typeof image === "string") {
+            await Cemetry.update({ image }, { where: { id } });
           }
 
           continue;
@@ -55,6 +58,7 @@ const cemetryController = {
           continue;
         }
 
+        // === Create new cemetery ===
         const existing = await Cemetry.findOne({ where: { name } });
         if (existing) {
           return res
@@ -78,10 +82,6 @@ const cemetryController = {
           fs.mkdirSync(cemetryFolder, { recursive: true });
         }
 
-        const file = req.files.find(
-          (f) => f.fieldname === `cemeteries[${i}][image]`
-        );
-
         if (file) {
           const imagePath = path.join(
             "cemetryUploads",
@@ -95,6 +95,9 @@ const cemetryController = {
             .toFile(path.join(__dirname, "../", imagePath));
 
           newCemetry.image = imagePath;
+          await newCemetry.save();
+        } else if (typeof image === "string") {
+          newCemetry.image = image;
           await newCemetry.save();
         }
 
