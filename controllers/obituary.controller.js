@@ -140,9 +140,31 @@ const obituaryController = {
     }
   },
   getObituary: async (req, res) => {
-    const { id, userId, name, region, city } = req.query;
+    const { id, userId, name, region, city, obituaryId } = req.query;
 
     const whereClause = {};
+
+    try {
+     if (!obituaryId) {
+        return res.status(400).json({ error: "User ID is required" });
+      } else {
+
+      const obituary = await Obituary.findByPk(obituaryId);
+
+      if (!obituary) {
+        return res
+          .status(404)
+          .json({ error: "No obituary found for this user" });
+      }
+
+      console.log(obituary);
+
+      res.json(obituary);
+    }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
 
     if (id) whereClause.id = id;
     if (userId) whereClause.userId = userId;
@@ -179,31 +201,31 @@ const obituaryController = {
 
   // GET obituary by user ID
 
-  getObituaryById: async (req, res) => {
-    try {
-      // Get userId from query params
-      const { obituaryId } = req.query;
+  // getObituaryById: async (req, res) => {
+  //   try {
+  //     // Get userId from query params
+  //     const { obituaryId } = req.query;
 
-      if (!obituaryId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
+  //     if (!obituaryId) {
+  //       return res.status(400).json({ error: "User ID is required" });
+  //     }
 
-      const obituary = await Obituary.findByPk(obituaryId);
+  //     const obituary = await Obituary.findByPk(obituaryId);
 
-      if (!obituary) {
-        return res
-          .status(404)
-          .json({ error: "No obituary found for this user" });
-      }
+  //     if (!obituary) {
+  //       return res
+  //         .status(404)
+  //         .json({ error: "No obituary found for this user" });
+  //     }
 
-      console.log(obituary);
+  //     console.log(obituary);
 
-      res.json(obituary);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Server error" });
-    }
-  },
+  //     res.json(obituary);
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ error: "Server error" });
+  //   }
+  // },
 
   getMemory: async (req, res) => {
     const { id } = req.query;
