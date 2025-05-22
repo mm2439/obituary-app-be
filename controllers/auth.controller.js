@@ -68,6 +68,13 @@ const authController = {
         sameSite: isProd ? "None" : "Lax",
         domain: isProd ? ".osmrtnica.com" : undefined,
       });
+      res.clearCookie("role", {
+        path: "/",
+        httpOnly: false,
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+        domain: isProd ? ".osmrtnica.com" : undefined,
+      });
       res.status(httpStatus.OK).json({
         message: "Logged out successfully!",
       });

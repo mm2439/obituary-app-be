@@ -21,113 +21,124 @@ const visitController = require("./visit.controller");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 
 const obituaryController = {
-createObituary: async (req, res) => {
-  try {
-    const {
-      name,
-      sirName,
-      location,
-      region,
-      city,
-      gender,
-      birthDate,
-      deathDate,
-      funeralLocation,
-      funeralCemetery,
-      funeralTimestamp,
-      events,
-      deathReportExists,
-      obituary,
-      symbol,
-    } = req.body;
+  createObituary: async (req, res) => {
+    try {
+      const {
+        name,
+        sirName,
+        location,
+        region,
+        city,
+        gender,
+        birthDate,
+        deathDate,
+        funeralLocation,
+        funeralCemetery,
+        funeralTimestamp,
+        events,
+        deathReportExists,
+        obituary,
+        symbol,
+      } = req.body;
 
-    const { error } = validateObituary(req.body);
-    if (error) {
-      console.warn(`Invalid data format: ${error}`);
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json({ error: `Invalid data format: ${error}` });
-    }
+      const { error } = validateObituary(req.body);
+      if (error) {
+        console.warn(`Invalid data format: ${error}`);
+        return res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ error: `Invalid data format: ${error}` });
+      }
 
-    const existingObituary = await Obituary.findOne({
-      where: { name, sirName, deathDate },
-    });
+      const existingObituary = await Obituary.findOne({
+        where: { name, sirName, deathDate },
+      });
 
-    if (existingObituary) {
-      console.warn("Duplicate obituary detected");
-      return res.status(httpStatus.CONFLICT).json({
-        error:
-          "An obituary with the same name, and death date already exists for this user.",
+      if (existingObituary) {
+        console.warn("Duplicate obituary detected");
+        return res.status(httpStatus.CONFLICT).json({
+          error:
+            "An obituary with the same name, and death date already exists for this user.",
+        });
+      }
+
+      const newObituary = await Obituary.create({
+        name,
+        sirName,
+        location,
+        region,
+        city,
+        gender,
+        birthDate,
+        deathDate,
+        funeralLocation,
+        funeralCemetery,
+        funeralTimestamp: funeralTimestamp || null,
+        events: JSON.parse(events || "[]"),
+        deathReportExists,
+        obituary,
+        symbol,
+        userId: req.user.id,
+      });
+
+      const obituaryId = newObituary.id;
+      const obituaryFolder = path.join(
+        OBITUARY_UPLOADS_PATH,
+        String(obituaryId)
+      );
+      if (!fs.existsSync(obituaryFolder)) {
+        fs.mkdirSync(obituaryFolder, { recursive: true });
+      }
+
+      let picturePath = null;
+      let deathReportPath = null;
+      const baseUrl = process.env.BASE_URL || "http://localhost:4000";
+
+      if (req.files?.picture) {
+        const pictureFile = req.files.picture[0];
+        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
+
+        const localPath = path.join(
+          "obituaryUploads",
+          String(obituaryId),
+          fileName
+        );
+
+        await sharp(pictureFile.buffer)
+          .resize(195, 267, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toFile(path.join(__dirname, "../", localPath));
+
+        picturePath = `${baseUrl}/${localPath.replace(/\\/g, "/")}`;
+      }
+
+      if (req.files?.deathReport) {
+        const fileName = req.files.deathReport[0].originalname;
+        const localPath = path.join(
+          "obituaryUploads",
+          String(obituaryId),
+          fileName
+        );
+
+        fs.writeFileSync(
+          path.join(__dirname, "../", localPath),
+          req.files.deathReport[0].buffer
+        );
+
+        deathReportPath = `${baseUrl}/${localPath.replace(/\\/g, "/")}`;
+      }
+
+      newObituary.image = picturePath;
+      newObituary.deathReport = deathReportPath;
+      await newObituary.save();
+
+      return res.status(httpStatus.CREATED).json(newObituary);
+    } catch (err) {
+      console.error("Error in createObituary:", err);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        error: "Failed to create obituary. Please try again.",
       });
     }
-
-    const newObituary = await Obituary.create({
-      name,
-      sirName,
-      location,
-      region,
-      city,
-      gender,
-      birthDate,
-      deathDate,
-      funeralLocation,
-      funeralCemetery,
-      funeralTimestamp: funeralTimestamp || null,
-      events: JSON.parse(events || "[]"),
-      deathReportExists,
-      obituary,
-      symbol,
-      userId: req.user.id,
-    });
-
-    const obituaryId = newObituary.id;
-    const obituaryFolder = path.join(OBITUARY_UPLOADS_PATH, String(obituaryId));
-    if (!fs.existsSync(obituaryFolder)) {
-      fs.mkdirSync(obituaryFolder, { recursive: true });
-    }
-
-    let picturePath = null;
-    let deathReportPath = null;
-    const baseUrl = process.env.BASE_URL || 'http://localhost:4000';
-
-    if (req.files?.picture) {
-      const pictureFile = req.files.picture[0];
-      const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
-
-      const localPath = path.join("obituaryUploads", String(obituaryId), fileName);
-
-      await sharp(pictureFile.buffer)
-        .resize(195, 267, { fit: "cover" })
-        .toFormat("avif", { quality: 50 })
-        .toFile(path.join(__dirname, "../", localPath));
-
-      picturePath = `${baseUrl}/${localPath.replace(/\\/g, '/')}`;
-    }
-
-    if (req.files?.deathReport) {
-      const fileName = req.files.deathReport[0].originalname;
-      const localPath = path.join("obituaryUploads", String(obituaryId), fileName);
-
-      fs.writeFileSync(
-        path.join(__dirname, "../", localPath),
-        req.files.deathReport[0].buffer
-      );
-
-      deathReportPath = `${baseUrl}/${localPath.replace(/\\/g, '/')}`;
-    }
-
-    newObituary.image = picturePath;
-    newObituary.deathReport = deathReportPath;
-    await newObituary.save();
-
-    return res.status(httpStatus.CREATED).json(newObituary);
-  } catch (err) {
-    console.error("Error in createObituary:", err);
-    return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-      error: "Failed to create obituary. Please try again.",
-    });
-  }
-},
+  },
   getObituary: async (req, res) => {
     const { id, userId, name, region, city } = req.query;
 
@@ -169,28 +180,30 @@ createObituary: async (req, res) => {
   // GET obituary by user ID
 
   getObituaryById: async (req, res) => {
-  try {
-    // Get userId from query params
-    const { obituaryId } = req.query;
-    
-    if (!obituaryId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    try {
+      // Get userId from query params
+      const { obituaryId } = req.query;
+
+      if (!obituaryId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const obituary = await Obituary.findByPk(obituaryId);
+
+      if (!obituary) {
+        return res
+          .status(404)
+          .json({ error: "No obituary found for this user" });
+      }
+
+      console.log(obituary);
+
+      res.json(obituary);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
     }
-
-    const obituary = await Obituary.findByPk(obituaryId);
-    
-    if (!obituary) {
-      return res.status(404).json({ error: 'No obituary found for this user' });
-    }
-
-    console.log(obituary);
-
-    res.json(obituary);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
-},
+  },
 
   getMemory: async (req, res) => {
     const { id } = req.query;
@@ -535,12 +548,12 @@ createObituary: async (req, res) => {
     const obituaryId = req.params.id;
     console.log(req.body);
     const existingObituary = await Obituary.findOne({
-  where: {
-    userId: obituaryId,
-  },
-});
+      where: {
+        userId: obituaryId,
+      },
+    });
 
-    console.log("it exists:", existingObituary)
+    console.log("it exists:", existingObituary);
 
     if (!existingObituary) {
       return res

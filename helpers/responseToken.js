@@ -15,7 +15,16 @@ const responseToken = {
       httpOnly: false,
       secure: isProd,
       sameSite: isProd ? "None" : "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+      path: "/",
+      domain: isProd ? ".osmrtnica.com" : undefined,
+    });
+
+    response.cookie("role", user.role, {
+      httpOnly: false,
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+      maxAge: 365 * 24 * 60 * 60 * 1000,
       path: "/",
       domain: isProd ? ".osmrtnica.com" : undefined,
     });
