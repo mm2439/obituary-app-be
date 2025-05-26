@@ -9,9 +9,13 @@ const app = express();
 connectToDB();
 
 app.use(
-  '/obituaryUploads',
-  express.static(path.join(__dirname, 'obituaryUploads'))
+  "/obituaryUploads",
+  express.static(path.join(__dirname, "obituaryUploads"))
 );
+
+app.get("/test", (req, res) => {
+  return res.status(200).json({ message: "Working great" });
+});
 
 // Load routes and models
 require("./startup/routes")(app);
