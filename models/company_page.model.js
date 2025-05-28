@@ -34,10 +34,20 @@ CompanyPage.init(
       defaultValue: "PENDING",
     },
     name: {
-      //name of funeral / florist company
       type: DataTypes.STRING(250),
       allowNull: true,
     },
+    glassFrameState: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true,
+    },
+    showBoxBackground: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true,
+    },
+
     phone: {
       type: DataTypes.STRING(15),
       allowNull: true,
@@ -81,6 +91,10 @@ CompanyPage.init(
     },
 
     background: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    boxBackgroundImage: {
       type: DataTypes.STRING(500),
       allowNull: true,
     },

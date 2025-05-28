@@ -236,15 +236,16 @@ const companyController = {
       const fileFields = [
         { field: "background", resize: [195, 267] },
         { field: "logo", resize: [195, 267] },
-        { field: "secondary_image", resize: [400, 300] },
-        { field: "funeral_section_one_image_one", resize: [400, 300] },
-        { field: "funeral_section_one_image_two", resize: [400, 300] },
+        { field: "secondary_image", resize: [195, 267] },
+        { field: "funeral_section_one_image_one", resize: [195, 267] },
+        { field: "funeral_section_one_image_two", resize: [195, 267] },
         // { field: "box_one_icon", resize: [50, 50] },
         // { field: "box_two_icon", resize: [50, 50] },
         // { field: "box_three_icon", resize: [50, 50] },
-        { field: "offer_one_image", resize: [50, 50] },
-        { field: "offer_two_image", resize: [50, 50] },
-        { field: "offer_three_image", resize: [50, 50] },
+        { field: "offer_one_image", resize: [195, 267] },
+        { field: "offer_two_image", resize: [195, 267] },
+        { field: "offer_three_image", resize: [195, 267] },
+        { field: "boxBackgroundImage", resize: [195, 267] },
       ];
 
       for (const fileField of fileFields) {

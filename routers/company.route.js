@@ -19,6 +19,7 @@ const uploadFields = upload.fields([
   { name: "offer_three_image", maxCount: 1 },
   { name: "picture", maxCount: 1 },
   { name: "deathReport", maxCount: 1 },
+  { name: "boxBackgroundImage", maxCount: 1 },
 ]);
 
 const router = express.Router();
