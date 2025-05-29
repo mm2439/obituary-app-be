@@ -15,7 +15,11 @@ const uploadFields = upload.fields([
   { name: "deathReport", maxCount: 1 },
 ]);
 
-router.post("/", [authenticationMiddleware, uploadFields], obituaryController.createObituary);
+router.post(
+  "/",
+  [authenticationMiddleware, uploadFields],
+  obituaryController.createObituary
+);
 router.get("/", obituaryController.getObituary);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/memory", obituaryController.getMemory);
@@ -52,7 +56,11 @@ router.get(
 //   [authenticationMiddleware, uploadFields],
 //   obituaryController.updateObituary
 // );
-router.patch("/:id", [uploadFields], obituaryController.updateObituary);
+router.patch(
+  "/:id",
+  [authenticationMiddleware, uploadFields],
+  obituaryController.updateObituary
+);
 router.patch("/visits/:id", obituaryController.updateVisitCounts);
 router.get(
   "/logs/",

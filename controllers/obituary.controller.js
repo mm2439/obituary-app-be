@@ -145,20 +145,19 @@ const obituaryController = {
     const whereClause = {};
 
     try {
-     if (obituaryId) {
-      
-      const obituary = await Obituary.findByPk(obituaryId);
+      if (obituaryId) {
+        const obituary = await Obituary.findByPk(obituaryId);
 
-      if (!obituary) {
-        return res
-          .status(404)
-          .json({ error: "No obituary found for this user" });
+        if (!obituary) {
+          return res
+            .status(404)
+            .json({ error: "No obituary found for this user" });
+        }
+
+        console.log(obituary);
+
+        res.json(obituary);
       }
-
-      console.log(obituary);
-
-      res.json(obituary);
-    }
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });
@@ -566,10 +565,12 @@ const obituaryController = {
 
   updateObituary: async (req, res) => {
     const obituaryId = req.params.id;
+    const userId = req.user.id;
     console.log(req.body);
     const existingObituary = await Obituary.findOne({
       where: {
-        userId: obituaryId,
+        id: obituaryId,
+        userId,
       },
     });
 
@@ -578,7 +579,7 @@ const obituaryController = {
     if (!existingObituary) {
       return res
         .status(httpStatus.NOT_FOUND)
-        .json({ error: "Obituary not found" });
+        .json({ error: "Obituary not found/Only Owner can update" });
     }
 
     const obituaryFolder = path.join(OBITUARY_UPLOADS_PATH, String(obituaryId));
