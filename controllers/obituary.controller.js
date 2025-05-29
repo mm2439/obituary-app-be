@@ -145,10 +145,8 @@ const obituaryController = {
     const whereClause = {};
 
     try {
-     if (!obituaryId) {
-        return res.status(400).json({ error: "User ID is required" });
-      } else {
-
+     if (obituaryId) {
+      
       const obituary = await Obituary.findByPk(obituaryId);
 
       if (!obituary) {
