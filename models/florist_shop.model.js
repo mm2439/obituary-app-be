@@ -33,10 +33,23 @@ FloristShop.init(
       type: DataTypes.STRING(250),
       allowNull: false,
     },
-    workingHours: {
+    hours: {
       type: DataTypes.STRING(20),
-      allowNull: false,
+      allowNull: true,
     },
+    secondaryHours: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    tertiaryHours: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    quaternaryHours: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+
     email: {
       type: DataTypes.STRING(250),
       allowNull: false,

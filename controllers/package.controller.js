@@ -80,9 +80,12 @@ const packageController = {
         createdOrUpdatedPackages.push(newPackage);
       }
 
+      // ✅ Fetch all related packages after processing
+      const allPackages = await Package.findAll({ where: { companyId } });
+
       return res.status(201).json({
         message: "Packages processed successfully.",
-        packages: createdOrUpdatedPackages,
+        packages: allPackages, // Send all related packages, not just newly created/updated
       });
     } catch (error) {
       console.error("Error processing packages:", error);

@@ -9,8 +9,18 @@ const florsitShopController = {
       const createdOrUpdatedShops = [];
 
       for (let i = 0; i < shops.length; i++) {
-        const { id, updated, shopName, address, hours, email, telephone } =
-          shops[i];
+        const {
+          id,
+          updated,
+          shopName,
+          address,
+          hours,
+          email,
+          telephone,
+          secondaryHours,
+          tertiaryHours,
+          quaternaryHours,
+        } = shops[i];
 
         // === Update existing shop ===
         if (id && updated) {
@@ -18,9 +28,12 @@ const florsitShopController = {
             {
               shopName,
               address,
-              workingHours: hours,
+              hours,
               email,
               telephone,
+              secondaryHours,
+              tertiaryHours,
+              quaternaryHours,
             },
             { where: { id } }
           );
@@ -37,17 +50,23 @@ const florsitShopController = {
           companyId,
           shopName,
           address,
-          workingHours: hours,
+          hours,
           email,
           telephone,
+          secondaryHours,
+          tertiaryHours,
+          quaternaryHours,
         });
 
         createdOrUpdatedShops.push(newShop);
       }
 
+      // ✅ Fetch all shops for the company
+      const allShops = await FloristShop.findAll({ where: { companyId } });
+
       return res.status(201).json({
         message: "Shops processed successfully.",
-        shops: createdOrUpdatedShops,
+        shops: allShops, // Send all shops instead of only created/updated
       });
     } catch (error) {
       console.error("Error processing shops:", error);

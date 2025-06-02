@@ -6,6 +6,7 @@ const FLORIST_SLIDE_UPLOADS_PATH = path.join(
 );
 const sharp = require("sharp");
 const fs = require("fs");
+
 const florsitSlideController = {
   addFloristSlide: async (req, res) => {
     try {
@@ -97,9 +98,12 @@ const florsitSlideController = {
         createdOrUpdatedSlides.push(newSlide);
       }
 
+      // ✅ Fetch all slides for the company
+      const allSlides = await FloristSlide.findAll({ where: { companyId } });
+
       return res.status(201).json({
         message: "Slides processed successfully.",
-        slides: createdOrUpdatedSlides,
+        slides: allSlides, // send all slides
       });
     } catch (error) {
       console.error("Error processing slides:", error);

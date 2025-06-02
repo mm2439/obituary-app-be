@@ -14,7 +14,7 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const companyController = {
   creatFlorist: async (req, res) => {
     try {
-      const { address, phone, title, description } = req.body;
+      const { heading, phone, title, description } = req.body;
       const userId = req.user.id;
 
       console.log(req.body);
@@ -22,7 +22,7 @@ const companyController = {
       const floristCompany = await CompanyPage.create({
         userId,
         type: "FLORIST",
-        address,
+        heading,
         phone,
         title,
         description,
@@ -79,6 +79,7 @@ const companyController = {
         name,
         facebook,
         address,
+
         email,
         phone,
         website,
@@ -215,7 +216,6 @@ const companyController = {
   updateCompanyPage: async (req, res) => {
     try {
       const { id } = req.params;
-      console.log(id);
       const company = await CompanyPage.findByPk(id);
 
       if (!company) {
@@ -225,8 +225,6 @@ const companyController = {
       }
 
       const updateData = { ...req.body };
-
-      console.log(updateData, "Data");
 
       const companyFolder = path.join(COMPANY_UPLOADS_PATH, String(company.id));
       if (!fs.existsSync(companyFolder)) {
@@ -239,9 +237,6 @@ const companyController = {
         { field: "secondary_image", resize: [195, 267] },
         { field: "funeral_section_one_image_one", resize: [195, 267] },
         { field: "funeral_section_one_image_two", resize: [195, 267] },
-        // { field: "box_one_icon", resize: [50, 50] },
-        // { field: "box_two_icon", resize: [50, 50] },
-        // { field: "box_three_icon", resize: [50, 50] },
         { field: "offer_one_image", resize: [195, 267] },
         { field: "offer_two_image", resize: [195, 267] },
         { field: "offer_three_image", resize: [195, 267] },
@@ -269,12 +264,30 @@ const companyController = {
       }
 
       updateData.modifiedTimestamp = new Date();
-
       await company.update(updateData);
+
+      // Fetch updated data including related items
+      const companyType = company.type;
+      const companyId = company.id;
+      const companyData = company.toJSON();
+
+      if (companyType === "FUNERAL") {
+        const faqs = await FAQ.findAll({ where: { companyId } });
+        const cemeteries = await Cemetry.findAll({ where: { companyId } });
+        companyData.faqs = faqs;
+        companyData.cemeteries = cemeteries;
+      } else if (companyType === "FLORIST") {
+        const packages = await Package.findAll({ where: { companyId } });
+        const slides = await FloristSlide.findAll({ where: { companyId } });
+        const shops = await FloristShop.findAll({ where: { companyId } });
+        companyData.packages = packages;
+        companyData.slides = slides;
+        companyData.shops = shops;
+      }
 
       res.status(httpStatus.OK).json({
         message: "Company page updated successfully",
-        company,
+        company: companyData,
       });
     } catch (error) {
       console.error("Update Error:", error);

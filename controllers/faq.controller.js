@@ -4,7 +4,6 @@ const faqController = {
   addFaq: async (req, res) => {
     try {
       const { companyId, faqs } = req.body;
-      const createdFaqs = [];
 
       for (let i = 0; i < faqs.length; i++) {
         const faq = faqs[i];
@@ -15,21 +14,22 @@ const faqController = {
         } else if (id && !updated) {
           continue;
         } else if (!id) {
-          const newFaq = await FAQ.create({
+          await FAQ.create({
             question,
             answer,
             companyId,
           });
-          createdFaqs.push(newFaq);
         }
       }
 
+      const allFaqs = await FAQ.findAll({ where: { companyId } });
+
       return res.status(201).json({
-        message: "success",
-        faqs: createdFaqs,
+        message: "FAQs processed successfully.",
+        faqs: allFaqs,
       });
     } catch (error) {
-      console.error("Error creating faqs:", error);
+      console.error("Error creating/updating FAQs:", error);
       return res.status(500).json({ message: "Internal server error." });
     }
   },

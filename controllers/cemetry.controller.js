@@ -104,9 +104,11 @@ const cemetryController = {
         createdCemeteries.push(newCemetry);
       }
 
+      const allCemeteries = await Cemetry.findAll({ where: { companyId } });
+
       return res.status(201).json({
         message: "Cemeteries processed successfully.",
-        cemeteries: createdCemeteries,
+        cemeteries: allCemeteries,
       });
     } catch (error) {
       console.error("Error creating/updating cemeteries:", error);

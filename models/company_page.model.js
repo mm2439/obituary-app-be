@@ -24,6 +24,10 @@ CompanyPage.init(
       onDelete: "CASCADE",
       onUpdate: "RESTRICT",
     },
+    heading: {
+      type: DataTypes.STRING(250),
+      allowNull: true,
+    },
     type: {
       type: DataTypes.ENUM("FLORIST", "FUNERAL"),
       allowNull: false,
@@ -179,19 +183,12 @@ CompanyPage.init(
       type: DataTypes.STRING(250),
       allowNull: true,
     },
-    box_three_icon: {
-      type: DataTypes.STRING(250),
-      allowNull: true,
-    },
+
     box_one_text: {
       type: DataTypes.STRING(100),
       allowNull: true,
     },
     box_two_text: {
-      type: DataTypes.STRING(100),
-      allowNull: true,
-    },
-    box_three_text: {
       type: DataTypes.STRING(100),
       allowNull: true,
     },
