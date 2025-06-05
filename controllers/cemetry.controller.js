@@ -118,12 +118,17 @@ const cemetryController = {
 
   getCemetries: async (req, res) => {
     try {
-      const { userId } = req.body;
+      const userId = req.user.id;
+      const { city } = req.query;
+      const whereClause = {
+        userId: userId,
+      };
 
+      if (city) {
+        whereClause.city = city;
+      }
       const cemetries = await Cemetry.findAll({
-        where: {
-          userId: userId,
-        },
+        where: whereClause,
       });
 
       return res.status(201).json({ message: "Success.", cemetries });

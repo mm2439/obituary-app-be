@@ -49,7 +49,7 @@ CompanyPage.init(
     showBoxBackground: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
-      defaultValue: true,
+      defaultValue: false,
     },
 
     phone: {

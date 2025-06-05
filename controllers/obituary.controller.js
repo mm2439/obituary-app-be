@@ -18,6 +18,7 @@ const { Candle } = require("../models/candle.model");
 const { MemoryLog } = require("../models/memory_logs.model");
 const { Visit } = require("../models/visit.model");
 const visitController = require("./visit.controller");
+const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 
 const obituaryController = {
@@ -144,27 +145,9 @@ const obituaryController = {
 
     const whereClause = {};
 
-    try {
-      if (obituaryId) {
-        const obituary = await Obituary.findByPk(obituaryId);
-
-        if (!obituary) {
-          return res
-            .status(404)
-            .json({ error: "No obituary found for this user" });
-        }
-
-        console.log(obituary);
-
-        res.json(obituary);
-      }
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Server error" });
-    }
-
     if (id) whereClause.id = id;
     if (userId) whereClause.userId = userId;
+    if (obituaryId) whereClause.id = obituaryId;
     if (name) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${name}%` } },
@@ -185,6 +168,9 @@ const obituaryController = {
       include: [
         {
           model: User,
+        },
+        {
+          model: Cemetry,
         },
       ],
     });
@@ -246,6 +232,11 @@ const obituaryController = {
 
           required: false,
           limit: 1000,
+        },
+
+        {
+          model: Cemetry,
+          required: false,
         },
         {
           model: SorrowBook,
@@ -323,116 +314,6 @@ const obituaryController = {
       obituary,
     });
   },
-
-  // getMemories: async (req, res) => {
-  //   const userId = req.user.id;
-  //   const ip =
-  //     req.headers["x-forwarded-for"]?.split(",")[0] ||
-  //     req.connection.remoteAddress ||
-  //     req.socket.remoteAddress ||
-  //     req.ip;
-
-  //   const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
-
-  //   const obituaries = await Obituary.findAll({
-  //     attributes: [
-  //       "id",
-  //       "name",
-  //       "sirName",
-  //       "deathDate",
-  //       "city",
-  //       "birthDate",
-  //       "funeralTimestamp",
-  //       "totalVisits",
-  //     ],
-  //     include: [
-  //       {
-  //         model: Keeper,
-  //         required: false,
-  //         order: [["createdTimestamp", "DESC"]],
-  //       },
-  //       {
-  //         model: MemoryLog,
-  //         where: {
-  //           type: {
-  //             [Op.notIn]: ["candle", "visit"],
-  //           },
-  //           status: "approved",
-  //         },
-  //         attributes: [
-  //           [
-  //             Sequelize.fn("COUNT", Sequelize.col("MemoryLogs.id")),
-  //             "totalMemoryLogs",
-  //           ],
-  //         ],
-  //         required: false,
-  //       },
-  //       {
-  //         model: Visit,
-  //         as: "visits",
-  //         where: {
-  //           [Op.or]: [{ userId: userId }, { ipAddress: ipAddress }],
-  //         },
-  //         required: false,
-  //         attributes: [
-  //           [
-  //             Sequelize.fn(
-  //               "COUNT",
-  //               Sequelize.fn("DISTINCT", Sequelize.col("visits.id"))
-  //             ),
-  //             "totalVisits",
-  //           ],
-  //           [
-  //             Sequelize.fn("MAX", Sequelize.col("visits.createdTimestamp")),
-  //             "lastVisit",
-  //           ],
-  //         ],
-  //       },
-
-  //       {
-  //         model: Candle,
-  //         as: "candles",
-  //         where: {
-  //           [Op.or]: [{ userId: userId }, { ipAddress: ipAddress }],
-  //         },
-  //         required: false,
-  //         attributes: [
-  //           [
-  //             Sequelize.fn(
-  //               "COUNT",
-  //               Sequelize.fn("DISTINCT", Sequelize.col("candles.id"))
-  //             ),
-  //             "totalCandles",
-  //           ],
-  //           [
-  //             Sequelize.fn("MAX", Sequelize.col("candles.createdTimestamp")),
-  //             "lastCandleBurnt",
-  //           ],
-  //         ],
-  //       },
-  //     ],
-  //     where: {
-  //       [Op.or]: [
-  //         { "$Keepers.userId$": userId },
-  //         { "$MemoryLogs.userId$": userId },
-  //       ],
-  //     },
-  //   });
-
-  //   const finalObituaries = obituaries.map((obituary) => {
-  //     const isKeeper = obituary.Keepers.some(
-  //       (keeper) => keeper.userId === userId
-  //     );
-
-  //     return {
-  //       ...obituary.toJSON(),
-  //       isKeeper: isKeeper,
-  //     };
-  //   });
-  //   return res.status(httpStatus.OK).json({
-  //     finalObituaries,
-  //   });
-  // },
 
   getMemories: async (req, res) => {
     const userId = req.user.id;
@@ -590,26 +471,6 @@ const obituaryController = {
 
     let picturePath = existingObituary.image;
     let deathReportPath = existingObituary.deathReport;
-    //old code
-    // if (req.files?.picture) {
-    //   picturePath = path.join(
-    //     "obituaryUploads",
-    //     String(obituaryId),
-    //     req.files.picture[0].originalname
-    //   );
-
-    //   if (
-    //     existingObituary.image &&
-    //     fs.existsSync(path.join(__dirname, "../", existingObituary.image))
-    //   ) {
-    //     fs.unlinkSync(path.join(__dirname, "../", existingObituary.image));
-    //   }
-
-    //   fs.writeFileSync(
-    //     path.join(__dirname, "../", picturePath),
-    //     req.files.picture[0].buffer
-    //   );
-    // }
 
     if (req.files?.picture) {
       const pictureFile = req.files.picture[0];
@@ -692,63 +553,7 @@ const obituaryController = {
 
     res.status(httpStatus.OK).json(existingObituary);
   },
-  //old
-  // updateVisitCounts: async (req, res) => {
-  //   const obituaryId = req.params.id;
 
-  //   const obituary = await Obituary.findByPk(obituaryId);
-
-  //   if (!obituary) {
-  //     console.warn("Obituary not found");
-
-  //     return res
-  //       .status(httpStatus.NOT_FOUND)
-  //       .json({ error: "Obituary not found" });
-  //   }
-
-  //   const currentTimestamp = new Date();
-
-  //   const startOfWeek = new Date();
-  //   const day = startOfWeek.getDay();
-  //   const diff = day === 0 ? 6 : day - 1;
-  //   startOfWeek.setDate(startOfWeek.getDate() - diff);
-  //   startOfWeek.setHours(0, 0, 0, 0);
-
-  //   let updatedCurrentWeekVisits = obituary.currentWeekVisits;
-
-  //   if (
-  //     !obituary.lastWeeklyReset ||
-  //     new Date(obituary.lastWeeklyReset) < startOfWeek
-  //   ) {
-  //     await Obituary.update(
-  //       {
-  //         currentWeekVisits: 0,
-  //         lastWeeklyReset: currentTimestamp,
-  //       },
-  //       { where: { id: obituaryId } }
-  //     );
-
-  //     updatedCurrentWeekVisits = 0;
-  //   }
-
-  //   await Obituary.update(
-  //     {
-  //       totalVisits: obituary.totalVisits + 1,
-  //       currentWeekVisits: updatedCurrentWeekVisits + 1,
-  //     },
-  //     { where: { id: obituaryId } }
-  //   );
-
-  //   const updatedObituary = await Obituary.findByPk(obituaryId, {
-  //     include: [
-  //       {
-  //         model: User,
-  //       },
-  //     ],
-  //   });
-
-  //   res.status(httpStatus.OK).json(updatedObituary);
-  // },
   updateVisitCounts: async (req, res) => {
     try {
       const { id: obituaryId } = req.params;
@@ -800,6 +605,10 @@ const obituaryController = {
             where: { status: "approved" },
             required: false,
             limit: 1000,
+          },
+          {
+            model: Cemetry,
+            required: false,
           },
           {
             model: Candle,
@@ -883,44 +692,6 @@ const obituaryController = {
     }
   },
 
-  // getPendingData: async (req, res) => {
-  //   try {
-  //     const keeperObituaries = await Keeper.findAll({
-  //       where: { userId: req.user.id },
-  //       attributes: ["obituaryId"],
-  //     });
-
-  //     if (!keeperObituaries.length) return [];
-
-  //     const obituaryIds = keeperObituaries.map((k) => k.obituaryId);
-
-  //     const interactions = await MemoryLog.findAll({
-  //       where: {
-  //         obituaryId: obituaryIds,
-  //         type: ["photo", "condolence", "dedication"],
-  //         status: "pending",
-  //       },
-  //       attributes: [
-  //         "id",
-  //         "interactionId",
-  //         "type",
-  //         "status",
-  //         "createdTimestamp",
-  //       ],
-  //       include: [
-  //         {
-  //           model: Obituary,
-  //           attributes: ["name", "sirName"],
-  //         },
-  //       ],
-  //     });
-
-  //     res.status(httpStatus.OK).json(interactions);
-  //   } catch (error) {
-  //     console.error("Error fetching interactions:", error);
-  //     return [];
-  //   }
-  // },
   getPendingData: async (req, res) => {
     try {
       const keeperObituaries = await Keeper.findAll({

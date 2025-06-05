@@ -14,7 +14,7 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const companyController = {
   creatFlorist: async (req, res) => {
     try {
-      const { heading, phone, title, description } = req.body;
+      const { heading, phone, title, description, background } = req.body;
       const userId = req.user.id;
 
       console.log(req.body);
@@ -38,8 +38,8 @@ const companyController = {
 
       let picturePath = null;
 
-      if (req.files?.picture) {
-        const pictureFile = req.files.picture[0];
+      if (req.files?.background) {
+        const pictureFile = req.files.background[0];
 
         const optimizedPicturePath = path.join(
           "companyUploads",
@@ -53,6 +53,8 @@ const companyController = {
           .toFile(path.join(__dirname, "../", optimizedPicturePath));
 
         picturePath = optimizedPicturePath;
+      } else if (typeof background === "string") {
+        picturePath = background;
       }
       floristCompany.background = picturePath;
       await floristCompany.save();
@@ -70,7 +72,8 @@ const companyController = {
   },
   creatFuneral: async (req, res) => {
     try {
-      const { name, facebook, address, email, phone, website } = req.body;
+      const { name, facebook, address, email, phone, website, background } =
+        req.body;
       const userId = req.user.id;
 
       const funeralCompany = await CompanyPage.create({
@@ -96,8 +99,8 @@ const companyController = {
       let picturePath = null;
       let logoPath = null;
 
-      if (req.files?.picture) {
-        const pictureFile = req.files.picture[0];
+      if (req.files?.background) {
+        const pictureFile = req.files.background[0];
 
         const optimizedPicturePath = path.join(
           "companyUploads",
@@ -111,6 +114,8 @@ const companyController = {
           .toFile(path.join(__dirname, "../", optimizedPicturePath));
 
         picturePath = optimizedPicturePath;
+      } else if (typeof background === "string") {
+        picturePath = background;
       }
       if (req.files?.logo) {
         const pictureFile = req.files.logo[0];

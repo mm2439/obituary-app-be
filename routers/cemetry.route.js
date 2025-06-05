@@ -25,6 +25,6 @@ router.post(
   cemetryController.addCemetry
 );
 
-router.get("/", cemetryController.getCemetries);
+router.get("/", authenticationMiddleware, cemetryController.getCemetries);
 
 module.exports = router;

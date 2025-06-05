@@ -37,6 +37,9 @@ Cemetry.belongsTo(User, { foreignKey: "userId" });
 CompanyPage.hasMany(Cemetry, { foreignKey: "companyId" });
 Cemetry.belongsTo(CompanyPage, { foreignKey: "companyId" });
 
+Cemetry.hasMany(Obituary, { foreignKey: "funeralCemetery" });
+Obituary.belongsTo(Cemetry, { foreignKey: "funeralCemetery" });
+
 CompanyPage.hasMany(FloristSlide, { foreignKey: "companyId" });
 FloristSlide.belongsTo(CompanyPage, { foreignKey: "companyId" });
 

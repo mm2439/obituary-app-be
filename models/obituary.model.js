@@ -60,8 +60,14 @@ Obituary.init(
       allowNull: true,
     },
     funeralCemetery: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: "cemetries",
+        key: "id",
+      },
+      onDelete: "CASCADE",
+      onUpdate: "RESTRICT",
     },
     funeralTimestamp: {
       type: DataTypes.DATE,
