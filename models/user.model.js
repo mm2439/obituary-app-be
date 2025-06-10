@@ -5,6 +5,15 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
+function generateSlugKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 class User extends Model {
   toSafeObject() {
     const {
@@ -15,6 +24,7 @@ class User extends Model {
       region,
       city,
       role,
+      slugKey,
       createdTimestamp,
       modifiedTimestamp,
     } = this;
@@ -26,6 +36,7 @@ class User extends Model {
       region,
       city,
       role,
+      slugKey,
       createdTimestamp,
       modifiedTimestamp,
     };
@@ -77,6 +88,11 @@ User.init(
       allowNull: false,
       defaultValue: process.env.USER_ROLE,
     },
+    slugKey: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      unique: true,
+    },
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -100,6 +116,23 @@ User.beforeCreate(async (user, options) => {
   if (user.password) {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
+  }
+});
+
+User.beforeValidate(async (user, options) => {
+  if (!user.slugKey) {
+    let slugKey;
+    let isUnique = false;
+
+    while (!isUnique) {
+      slugKey = generateSlugKey();
+      const existing = await User.findOne({ where: { slugKey } });
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+
+    user.slugKey = slugKey;
   }
 });
 
