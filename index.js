@@ -5,7 +5,6 @@ const listEndpoints = require("express-list-endpoints");
 
 const app = express();
 
-// Connect to DB
 connectToDB();
 
 app.use(
