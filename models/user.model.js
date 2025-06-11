@@ -90,7 +90,7 @@ User.init(
     },
     slugKey: {
       type: DataTypes.STRING(10),
-      allowNull: false,
+      allowNull: true,
       unique: true,
     },
     createdTimestamp: {
