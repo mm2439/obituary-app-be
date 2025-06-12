@@ -150,7 +150,7 @@ const companyController = {
   },
   getFuneralCompany: async (req, res) => {
     try {
-      const { userId, id } = req.params;
+      const { userId, id } = req.query;
       const whereClause = {};
 
       if (id) whereClause.id = id;
@@ -184,11 +184,12 @@ const companyController = {
   },
   getFloristCompany: async (req, res) => {
     try {
-      const { userId, id } = req.params;
+      const { userId, id } = req.query;
       const whereClause = {};
 
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
+
       whereClause.type = "FLORIST";
       const company = await CompanyPage.findOne({ where: whereClause });
       if (!company) {
