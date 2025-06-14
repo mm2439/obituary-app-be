@@ -8,5 +8,6 @@ router.post('/', userController.register);
 router.get('/me', authenticationMiddleware, userController.getMyUser);
 router.patch('/me', authenticationMiddleware, userController.updateMyUser);
 router.delete('/me', authenticationMiddleware, userController.deleteMyUser);
+router.patch('/me/slug-key', authenticationMiddleware, userController.updateSlugKey);
 
 module.exports = router;
