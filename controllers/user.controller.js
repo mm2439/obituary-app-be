@@ -1,4 +1,5 @@
 const httpStatus = require("http-status-codes").StatusCodes;
+const { Op } = require("sequelize");
 
 const { User, validateUser } = require("../models/user.model");
 
@@ -121,31 +122,37 @@ const userController = {
       return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
     }
 
-    // Generate new slugKey based on role
-    let newSlugKey;
-    let isUnique = false;
+    const { slugKey } = req.body;
 
-    if (user.role === process.env.USER_ROLE) {
-      while (!isUnique) {
-        newSlugKey = generateSlugKey();
-        const existing = await User.findOne({ where: { slugKey: newSlugKey } });
-        if (!existing) {
-          isUnique = true;
-        }
-      }
-    } else {
-      // For FUNERAL_COMPANY_ROLE and FLORIST_ROLE
-      const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      while (!isUnique) {
-        newSlugKey = generateUniqueSlugKey(baseSlug);
-        const existing = await User.findOne({ where: { slugKey: newSlugKey } });
-        if (!existing) {
-          isUnique = true;
-        }
-      }
+    if (!slugKey) {
+      return res.status(httpStatus.BAD_REQUEST).json({ 
+        error: "Slug key is required" 
+      });
     }
 
-    user.slugKey = newSlugKey;
+    // Safety check for slug key format
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(slugKey)) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+        error: "Invalid slug key format. Only lowercase letters, numbers, and hyphens are allowed."
+      });
+    }
+
+    // Check if the slug key already exists for another user
+    const existingUser = await User.findOne({ 
+      where: { 
+        slugKey: slugKey,
+        id: { [Op.ne]: user.id } // Exclude current user
+      } 
+    });
+
+    if (existingUser) {
+      return res.status(httpStatus.CONFLICT).json({ 
+        error: "This slug key is already taken. Please choose a different one." 
+      });
+    }
+
+    user.slugKey = slugKey;
     await user.save();
 
     res.status(httpStatus.OK).json({
