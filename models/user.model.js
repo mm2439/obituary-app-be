@@ -5,6 +5,24 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
+function generateSlugKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function generateUniqueSlugKey(name) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 3; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${name}-${result}`;
+}
+
 class User extends Model {
   toSafeObject() {
     const {
@@ -15,6 +33,7 @@ class User extends Model {
       region,
       city,
       role,
+      slugKey,
       createdTimestamp,
       modifiedTimestamp,
     } = this;
@@ -26,6 +45,7 @@ class User extends Model {
       region,
       city,
       role,
+      slugKey,
       createdTimestamp,
       modifiedTimestamp,
     };
@@ -77,6 +97,11 @@ User.init(
       allowNull: false,
       defaultValue: process.env.USER_ROLE,
     },
+    slugKey: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      unique: true,
+    },
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -100,6 +125,88 @@ User.beforeCreate(async (user, options) => {
   if (user.password) {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
+  }
+});
+
+User.beforeValidate(async (user, options) => {
+  if (!user.slugKey) {
+    try {
+      let slugKey;
+      let isUnique = false;
+
+      if (user.role === process.env.USER_ROLE) {
+        // For regular users - always use 4-digit random code
+        while (!isUnique) {
+          slugKey = generateSlugKey();
+          const existing = await User.findOne({ where: { slugKey } });
+          if (!existing) {
+            isUnique = true;
+          }
+        }
+      } else if (user.role === process.env.FLORIST_ROLE) {
+        // For florists - use shop name (name field)
+        if (!user.name) {
+          // Fallback to random code if no shop name
+          while (!isUnique) {
+            slugKey = generateSlugKey();
+            const existing = await User.findOne({ where: { slugKey } });
+            if (!existing) {
+              isUnique = true;
+            }
+          }
+        } else {
+          const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          const existingWithBaseSlug = await User.findOne({ where: { slugKey: baseSlug } });
+          
+          if (!existingWithBaseSlug) {
+            slugKey = baseSlug;
+          } else {
+            while (!isUnique) {
+              slugKey = generateUniqueSlugKey(baseSlug);
+              const existing = await User.findOne({ where: { slugKey } });
+              if (!existing) {
+                isUnique = true;
+              }
+            }
+          }
+        }
+      } else if (user.role === process.env.FUNERAL_COMPANY_ROLE) {
+        // For funeral companies - use company name (company field)
+        if (!user.company) {
+          // Fallback to random code if no company name
+          while (!isUnique) {
+            slugKey = generateSlugKey();
+            const existing = await User.findOne({ where: { slugKey } });
+            if (!existing) {
+              isUnique = true;
+            }
+          }
+        } else {
+          const baseSlug = user.company.toLowerCase().replace(/[^a-z0-9]/g, '-');
+          console.log('Generated base slug:', baseSlug);
+          
+          const existingWithBaseSlug = await User.findOne({ where: { slugKey: baseSlug } });
+          console.log('Existing with base slug:', existingWithBaseSlug ? 'yes' : 'no');
+          
+          if (!existingWithBaseSlug) {
+            slugKey = baseSlug;
+          } else {
+            while (!isUnique) {
+              slugKey = generateUniqueSlugKey(baseSlug);
+              const existing = await User.findOne({ where: { slugKey } });
+              if (!existing) {
+                isUnique = true;
+              }
+            }
+          }
+        }
+      }
+
+      user.slugKey = slugKey;
+    } catch (error) {
+      console.error('Error in slugKey generation:', error);
+      throw error;
+    }
   }
 });
 
