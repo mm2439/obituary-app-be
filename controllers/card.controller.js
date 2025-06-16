@@ -1,5 +1,6 @@
 const { Card } = require("../models/card.model");
 const { User } = require("../models/user.model");
+const memoryLogsController = require("./memoryLogs.controller");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -28,6 +29,16 @@ const cardController = {
         obituaryId,
         cardId,
       });
+
+      await memoryLogsController.createLog(
+        "card",
+        obituaryId,
+        UserExists.id,
+        card.id,
+        "approved",
+        UserExists.name,
+        `MOBI Pogreb ${cardId}`
+      );
 
       res.status(httpStatus.CREATED).json(card);
     } catch (error) {

@@ -45,6 +45,19 @@ Keeper.init(
       type: DataTypes.DATE,
       allowNull: false,
     },
+    relation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    deathReport: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     modifiedTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,

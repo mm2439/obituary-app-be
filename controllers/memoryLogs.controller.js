@@ -8,6 +8,7 @@ const { MemoryLog } = require("../models/memory_logs.model");
 const { Condolence } = require("../models/condolence.model");
 const { Dedication } = require("../models/dedication.model");
 const { Photo } = require("../models/photo.model");
+const { Obituary } = require("../models/obituary.model");
 
 const models = { condolence: Condolence, dedication: Dedication, photo: Photo };
 const memoryLogsController = {
@@ -47,10 +48,8 @@ const memoryLogsController = {
     try {
       const obituaryId = req.params.id;
 
-      // 1. Get all memory logs for the obituary
       const memoryLogs = await MemoryLog.findAll({ where: { obituaryId } });
 
-      // 2. Group logs by type
       const logsByType = {};
       memoryLogs.forEach((log) => {
         if (!logsByType[log.type]) {
@@ -59,7 +58,6 @@ const memoryLogsController = {
         logsByType[log.type].push(log);
       });
 
-      // 3. Batch fetch all interaction data per type
       const interactionDataMap = {};
 
       await Promise.all(
@@ -72,7 +70,6 @@ const memoryLogsController = {
             where: { id: ids },
           });
 
-          // Map interactions by ID for fast lookup
           interactionDataMap[type] = {};
           interactions.forEach((data) => {
             interactionDataMap[type][data.id] = data;
@@ -80,7 +77,6 @@ const memoryLogsController = {
         })
       );
 
-      // 4. Attach interaction data to each memory log
       const detailedLogs = memoryLogs.map((log) => {
         const interactionData =
           interactionDataMap[log.type]?.[log.interactionId] || null;
@@ -113,6 +109,51 @@ const memoryLogsController = {
   //     res.status(500).json({ message: "Failed to get memory logs" });
   //   }
   // },
+  getUserCardAndKeeperLogs: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      const userObituaries = await Obituary.findAll({
+        where: { userId },
+        attributes: ["id"],
+      });
+
+      if (!userObituaries.length) {
+        return res.status(200).json({ logs: [] });
+      }
+
+      const obituaryIds = userObituaries.map((obit) => obit.id);
+
+      const logs = await MemoryLog.findAll({
+        where: {
+          obituaryId: obituaryIds,
+          type: ["card", "keeper_activation", "keeper_deactivation"],
+          status: "approved",
+        },
+        include: [
+          {
+            model: Obituary,
+            attributes: ["city", "name", "sirName"],
+          },
+        ],
+        order: [["createdTimestamp", "DESC"]],
+      });
+
+      const formattedLogs = logs.map((log) => ({
+        city: log.Obituary.city,
+        name: log.Obituary.name,
+        sirName: log.Obituary.sirName,
+        giftedTo: log.userName,
+        createdAt: log.createdTimestamp,
+        typeInSL: log.typeInSL,
+      }));
+
+      return res.status(200).json({ logs: formattedLogs });
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      res.status(500).json({ message: "Failed to fetch logs" });
+    }
+  },
 };
 
 module.exports = memoryLogsController;
