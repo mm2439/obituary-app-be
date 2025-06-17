@@ -238,7 +238,7 @@ const companyController = {
       }
 
       const fileFields = [
-        { field: "background", resize: [195, 267] },
+        { field: "background", resize: [1280, 420] },
         { field: "logo", resize: [370, 240] },
         { field: "secondary_image", resize: [195, 267] },
         { field: "funeral_section_one_image_one", resize: [195, 267] },
