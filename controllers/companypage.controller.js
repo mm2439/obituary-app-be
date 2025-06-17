@@ -239,14 +239,14 @@ const companyController = {
 
       const fileFields = [
         { field: "background", resize: [195, 267] },
-        { field: "logo", resize: [195, 267] },
+        { field: "logo", resize: [370, 240] },
         { field: "secondary_image", resize: [195, 267] },
         { field: "funeral_section_one_image_one", resize: [195, 267] },
         { field: "funeral_section_one_image_two", resize: [195, 267] },
         { field: "offer_one_image", resize: [195, 267] },
         { field: "offer_two_image", resize: [195, 267] },
         { field: "offer_three_image", resize: [195, 267] },
-        { field: "boxBackgroundImage", resize: [195, 267] },
+        { field: "boxBackgroundImage", resize: [1280, 420] },
       ];
 
       for (const fileField of fileFields) {
