@@ -34,7 +34,7 @@ Package.init(
     },
     price: {
       type: DataTypes.STRING(10),
-      allowNull: false,
+      allowNull: true,
     },
     createdTimestamp: {
       type: DataTypes.DATE,

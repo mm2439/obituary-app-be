@@ -45,7 +45,8 @@ MemoryLog.init(
         "sorrowbook",
         "candle",
         "keeper_activation",
-        "keeper_deactivation"
+        "keeper_deactivation",
+        "card"
       ),
       allowNull: false,
     },
@@ -56,7 +57,12 @@ MemoryLog.init(
         "Posvetilo",
         "Žalna knjiga",
         "Dnevna sveča",
-        "Skrbnik"
+        "Skrbnik",
+        "MOBI Pogreb 1",
+        "MOBI Pogreb 2",
+        "MOBI Pogreb 3",
+        "MOBI Pogreb 4",
+        "MOBI Pogreb 5"
       ),
       allowNull: false,
     },
