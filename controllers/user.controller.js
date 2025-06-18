@@ -42,10 +42,10 @@ const userController = {
         user: newUser.toSafeObject(),
       });
     } catch (error) {
-      console.error('Error in user registration:', error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ 
+      console.error("Error in user registration:", error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         error: "Something went wrong. Please try again!",
-        details: error.message 
+        details: error.message,
       });
     }
   },
@@ -63,7 +63,7 @@ const userController = {
   },
 
   updateMyUser: async (req, res) => {
-    const { email, company, region, city } = req.body;
+    const { email, company, region, city, secondaryCity } = req.body;
 
     const user = await User.findByPk(req.user.id);
     console.log(req.body);
@@ -88,6 +88,9 @@ const userController = {
     if (company) user.company = company;
     if (region) user.region = region;
     if (city) user.city = city;
+    if (req.body.hasOwnProperty("secondaryCity")) {
+      user.secondaryCity = secondaryCity;
+    }
 
     await user.save();
 
@@ -135,7 +138,7 @@ const userController = {
       }
     } else {
       // For FUNERAL_COMPANY_ROLE and FLORIST_ROLE
-      const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
       while (!isUnique) {
         newSlugKey = generateUniqueSlugKey(baseSlug);
         const existing = await User.findOne({ where: { slugKey: newSlugKey } });

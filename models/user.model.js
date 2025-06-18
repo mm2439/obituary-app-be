@@ -6,8 +6,8 @@ const Joi = require("joi");
 const { sequelize } = require("../startup/db");
 
 function generateSlugKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
   for (let i = 0; i < 4; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -15,8 +15,8 @@ function generateSlugKey() {
 }
 
 function generateUniqueSlugKey(name) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
   for (let i = 0; i < 3; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -88,6 +88,10 @@ User.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    secondaryCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     role: {
       type: DataTypes.ENUM(
         process.env.USER_ROLE,
@@ -155,9 +159,11 @@ User.beforeValidate(async (user, options) => {
             }
           }
         } else {
-          const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-          const existingWithBaseSlug = await User.findOne({ where: { slugKey: baseSlug } });
-          
+          const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+          const existingWithBaseSlug = await User.findOne({
+            where: { slugKey: baseSlug },
+          });
+
           if (!existingWithBaseSlug) {
             slugKey = baseSlug;
           } else {
@@ -182,12 +188,19 @@ User.beforeValidate(async (user, options) => {
             }
           }
         } else {
-          const baseSlug = user.company.toLowerCase().replace(/[^a-z0-9]/g, '-');
-          console.log('Generated base slug:', baseSlug);
-          
-          const existingWithBaseSlug = await User.findOne({ where: { slugKey: baseSlug } });
-          console.log('Existing with base slug:', existingWithBaseSlug ? 'yes' : 'no');
-          
+          const baseSlug = user.company
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "-");
+          console.log("Generated base slug:", baseSlug);
+
+          const existingWithBaseSlug = await User.findOne({
+            where: { slugKey: baseSlug },
+          });
+          console.log(
+            "Existing with base slug:",
+            existingWithBaseSlug ? "yes" : "no"
+          );
+
           if (!existingWithBaseSlug) {
             slugKey = baseSlug;
           } else {
@@ -204,7 +217,7 @@ User.beforeValidate(async (user, options) => {
 
       user.slugKey = slugKey;
     } catch (error) {
-      console.error('Error in slugKey generation:', error);
+      console.error("Error in slugKey generation:", error);
       throw error;
     }
   }

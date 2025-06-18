@@ -4,6 +4,7 @@ const COMPANY_UPLOADS_PATH = path.join(__dirname, "../companyUploads");
 const fs = require("fs");
 const sharp = require("sharp");
 const { FAQ } = require("../models/faq.model");
+const { User } = require("../models/user.model");
 const { Package } = require("../models/package.model");
 const { FloristSlide } = require("../models/florist_slide.model");
 const { FloristShop } = require("../models/florist_shop.model");
@@ -300,6 +301,47 @@ const companyController = {
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: "Something went wrong" });
+    }
+  },
+
+  getFullCompanyDetails: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { type } = req.query;
+
+      let dynamicInclude = [];
+
+      if (type === "FLORIST") {
+        dynamicInclude.push({
+          model: FloristShop,
+        });
+      } else if (type === "FUNERAL") {
+        dynamicInclude.push({
+          model: Cemetry,
+        });
+      }
+
+      const user = await User.findByPk(userId, {
+        attributes: ["id", "name", "email", "city", "secondaryCity"],
+        include: [
+          {
+            model: CompanyPage,
+            include: dynamicInclude,
+          },
+        ],
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json({
+        message: "success",
+        user,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Something went wrong" });
     }
   },
 };

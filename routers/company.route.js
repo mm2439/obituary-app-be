@@ -42,6 +42,12 @@ router.get(
   companyController.getFloristCompany
 );
 
+router.get(
+  "/details",
+  [authenticationMiddleware],
+  companyController.getFullCompanyDetails
+);
+
 router.patch(
   "/:id",
   [authenticationMiddleware, uploadFields],

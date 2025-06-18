@@ -37,7 +37,7 @@ const photoController = {
         );
 
         await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
+          .resize(200, 200, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toFile(path.join(__dirname, "../", optimizedPicturePath));
 

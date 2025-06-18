@@ -52,6 +52,9 @@ FAQ.belongsTo(CompanyPage, { foreignKey: "companyId" });
 Obituary.hasMany(Keeper, { foreignKey: "obituaryId" });
 Keeper.belongsTo(Obituary, { foreignKey: "obituaryId" });
 
+User.hasOne(CompanyPage, { foreignKey: "userId" });
+CompanyPage.belongsTo(User, { foreignKey: "userId" });
+
 Obituary.hasMany(Photo, { foreignKey: "obituaryId" });
 Photo.belongsTo(Obituary, { foreignKey: "obituaryId" });
 
