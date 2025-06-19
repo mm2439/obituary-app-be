@@ -207,7 +207,11 @@ const obituaryController = {
   },
 
   getMemory: async (req, res) => {
-    const { id } = req.query;
+    const { id, slugKey } = req.query;
+    const whereClause = {};
+
+    if (id) whereClause.id = id;
+    else if (slugKey) whereClause.slugKey = slugKey;
 
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0] ||
@@ -216,8 +220,9 @@ const obituaryController = {
       req.ip;
 
     const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
+
     const obituary = await Obituary.findOne({
-      where: { id: id },
+      where: whereClause,
       include: [
         {
           model: User,
