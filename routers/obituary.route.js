@@ -28,6 +28,7 @@ router.get(
   [authenticationMiddleware],
   obituaryController.getMemories
 );
+router.get("/id", obituaryController.getMemoryId);
 router.get(
   "/company/monthly",
   [authenticationMiddleware],

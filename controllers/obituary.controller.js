@@ -16,6 +16,7 @@ const { Photo } = require("../models/photo.model");
 const { Condolence } = require("../models/condolence.model");
 const { Candle } = require("../models/candle.model");
 const { MemoryLog } = require("../models/memory_logs.model");
+const { CompanyPage } = require("../models/company_page.model");
 const { Visit } = require("../models/visit.model");
 const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
@@ -555,6 +556,7 @@ const obituaryController = {
             required: false,
             limit: 1000,
           },
+
           {
             model: Dedication,
             where: { status: "approved" },
@@ -584,6 +586,7 @@ const obituaryController = {
             model: Cemetry,
             required: false,
           },
+
           {
             model: Candle,
             as: "candles",
@@ -1145,6 +1148,44 @@ const obituaryController = {
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
+    }
+  },
+
+  getMemoryId: async (req, res) => {
+    try {
+      const { date, city, type } = req.query;
+      console.log(req.query);
+      if (!date || !city || !type) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+
+      const whereClause = {
+        city,
+        createdTimestamp:
+          type === "previous"
+            ? { [Op.lt]: new Date(date) }
+            : { [Op.gt]: new Date(date) },
+      };
+
+      const order = [
+        ["createdTimestamp", type === "previous" ? "DESC" : "ASC"],
+      ];
+
+      const obituary = await Obituary.findOne({
+        where: whereClause,
+        order,
+      });
+
+      if (!obituary) {
+        return res.status(404).json({
+          message: `No ${type} obituary found for the specified date and city.`,
+        });
+      }
+
+      return res.status(200).json(obituary);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error." });
     }
   },
 };
