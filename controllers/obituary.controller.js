@@ -40,6 +40,7 @@ const obituaryController = {
         deathReportExists,
         obituary,
         symbol,
+        slugKey: providedSlugKey,
       } = req.body;
 
       const { error } = validateObituary(req.body);
@@ -49,6 +50,27 @@ const obituaryController = {
           .status(httpStatus.BAD_REQUEST)
           .json({ error: `Invalid data format: ${error}` });
       }
+
+      // Generate slugKey if not provided
+      let slugKey = providedSlugKey;
+      if (!slugKey) {
+        const formatDate = (date) => {
+          const d = new Date(date);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          return `${day}.${month}.${year}`;
+        };
+        slugKey = `${name}_${sirName}_${formatDate(deathDate)}`.replace(/\s+/g, '_');
+      }
+      // Ensure slugKey is unique, append number if needed
+      let uniqueSlugKey = slugKey;
+      let counter = 1;
+      while (await Obituary.findOne({ where: { slugKey: uniqueSlugKey } })) {
+        uniqueSlugKey = `${slugKey}_${counter}`;
+        counter++;
+      }
+      slugKey = uniqueSlugKey;
 
       const existingObituary = await Obituary.findOne({
         where: { name, sirName, deathDate },
@@ -79,6 +101,7 @@ const obituaryController = {
         obituary,
         symbol,
         userId: req.user.id,
+        slugKey,
       });
 
       const obituaryId = newObituary.id;
@@ -141,13 +164,14 @@ const obituaryController = {
     }
   },
   getObituary: async (req, res) => {
-    const { id, userId, name, region, city, obituaryId } = req.query;
+    const { id, userId, name, region, city, obituaryId, slugKey } = req.query;
 
     const whereClause = {};
 
     if (id) whereClause.id = id;
     if (userId) whereClause.userId = userId;
     if (obituaryId) whereClause.id = obituaryId;
+    if (slugKey) whereClause.slugKey = slugKey;
     if (name) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${name}%` } },
