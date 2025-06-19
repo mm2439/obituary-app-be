@@ -113,6 +113,11 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.NOW,
       },
+      slugKey: {
+        type: Sequelize.STRING(150),
+        allowNull: false,
+        unique: true,
+      },
     });
   },
 

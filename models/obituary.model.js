@@ -128,6 +128,11 @@ Obituary.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    slugKey: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+      unique: true,
+    },
   },
   {
     sequelize,
@@ -155,6 +160,7 @@ const validateObituary = (obituary) => {
     deathReportExists: Joi.boolean().required(),
     deathReport: Joi.any().allow(null, "").optional(),
     obituary: Joi.string().required(),
+    slugKey: Joi.string().max(150).optional(),
   });
 
   return obituarySchema.validate(obituary);
