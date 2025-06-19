@@ -578,6 +578,7 @@ const obituaryController = {
             where: { status: "approved" },
             required: false,
             limit: 1000,
+            order: [["createdTimestamp", "DESC"]],
           },
           {
             model: Cemetry,
