@@ -6,6 +6,7 @@ const { Op } = require("sequelize");
 const { Sequelize } = require("sequelize");
 const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
 const moment = require("moment");
+const { FloristShop } = require("../models/florist_shop.model");
 
 const { Obituary, validateObituary } = require("../models/obituary.model");
 const { User } = require("../models/user.model");
@@ -57,12 +58,15 @@ const obituaryController = {
       if (!slugKey) {
         const formatDate = (date) => {
           const d = new Date(date);
-          const day = String(d.getDate()).padStart(2, '0');
-          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, "0");
+          const month = String(d.getMonth() + 1).padStart(2, "0");
           const year = d.getFullYear();
           return `${day}.${month}.${year}`;
         };
-        slugKey = `${name}_${sirName}_${formatDate(deathDate)}`.replace(/\s+/g, '_');
+        slugKey = `${name}_${sirName}_${formatDate(deathDate)}`.replace(
+          /\s+/g,
+          "_"
+        );
       }
       // Ensure slugKey is unique, append number if needed
       let uniqueSlugKey = slugKey;
@@ -689,6 +693,44 @@ const obituaryController = {
 
       await visitController.visitMemory(userId, ipAddress, obituaryId);
 
+      // 1. Get the city and user
+      const city = obituary.city;
+      const user = obituary.User;
+
+      const company = await CompanyPage.findOne({ where: { userId: user.id } });
+
+      let floristShopList = [];
+
+      if (user.role === "Florist" && company) {
+        const ownShop = await FloristShop.findOne({
+          where: {
+            companyId: company.id,
+            city: city,
+          },
+        });
+        if (ownShop) {
+          ownShop.dataValues.own = true;
+        }
+
+        const randomShops = await FloristShop.findAll({
+          where: {
+            city: city,
+            companyId: { [Sequelize.Op.ne]: company.id },
+          },
+          order: Sequelize.literal("RAND()"),
+          limit: 5,
+        });
+
+        floristShopList = [...(ownShop ? [ownShop] : []), ...randomShops];
+      } else {
+        floristShopList = await FloristShop.findAll({
+          where: { city },
+          order: Sequelize.literal("RAND()"),
+          limit: 5,
+        });
+      }
+
+      obituary.dataValues.floristShops = floristShopList;
       res.status(httpStatus.OK).json(obituary);
     } catch (error) {
       console.error("Error updating visit counts:", error);

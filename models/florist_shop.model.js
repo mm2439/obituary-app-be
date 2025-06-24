@@ -37,6 +37,15 @@ FloristShop.init(
       type: DataTypes.STRING(20),
       allowNull: true,
     },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    logo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
     secondaryHours: {
       type: DataTypes.STRING(20),
       allowNull: true,

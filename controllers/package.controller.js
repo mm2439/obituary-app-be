@@ -3,6 +3,7 @@ const { Package } = require("../models/package.model");
 const PACKAGE_UPLOADS = path.join(__dirname, "../packageUploads");
 const sharp = require("sharp");
 const fs = require("fs");
+const { CompanyPage } = require("../models/company_page.model");
 
 const packageController = {
   addPackages: async (req, res) => {
@@ -86,6 +87,31 @@ const packageController = {
       return res.status(201).json({
         message: "Packages processed successfully.",
         packages: allPackages, // Send all related packages, not just newly created/updated
+      });
+    } catch (error) {
+      console.error("Error processing packages:", error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  },
+  getPackages: async (req, res) => {
+    try {
+      const { companyId } = req.query;
+      console.log("hereeeeeeeeee");
+      const allPackages = await Package.findAll({
+        where: { companyId },
+        limit: 3,
+      });
+
+      let company = null;
+
+      if (allPackages && allPackages.length > 0) {
+        company = await CompanyPage.findOne({ where: { id: companyId } });
+      }
+
+      return res.status(200).json({
+        message: "Packages retrieved successfully.",
+        packages: allPackages,
+        company: company,
       });
     } catch (error) {
       console.error("Error processing packages:", error);

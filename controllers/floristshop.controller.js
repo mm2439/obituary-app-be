@@ -1,12 +1,22 @@
 const path = require("path");
 const { FloristShop } = require("../models/florist_shop.model");
+const { CompanyPage } = require("../models/company_page.model");
 const FLORIST_SHOP_UPLOADS_PATH = path.join(__dirname, "../floristShopUploads");
 
 const florsitShopController = {
   addFloristShop: async (req, res) => {
     try {
       const { shops, companyId } = req.body;
+      const city = req.user.city;
+      console.log(city);
       const createdOrUpdatedShops = [];
+
+      const company = await CompanyPage.findOne({
+        where: {
+          userId: req.user.id,
+        },
+      });
+      const logo = company.logo;
 
       for (let i = 0; i < shops.length; i++) {
         const {
@@ -34,6 +44,8 @@ const florsitShopController = {
               secondaryHours,
               tertiaryHours,
               quaternaryHours,
+              city,
+              logo,
             },
             { where: { id } }
           );
@@ -56,6 +68,8 @@ const florsitShopController = {
           secondaryHours,
           tertiaryHours,
           quaternaryHours,
+          city,
+          logo,
         });
 
         createdOrUpdatedShops.push(newShop);

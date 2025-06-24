@@ -23,4 +23,6 @@ router.post(
   packageController.addPackages
 );
 
+router.get("/", packageController.getPackages);
+
 module.exports = router;
