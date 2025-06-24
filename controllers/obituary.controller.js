@@ -169,7 +169,8 @@ const obituaryController = {
     }
   },
   getObituary: async (req, res) => {
-    const { id, userId, name, region, city, obituaryId, slugKey } = req.query;
+    const { id, userId, name, region, city, obituaryId, slugKey, date } =
+      req.query;
 
     const whereClause = {};
 
@@ -177,6 +178,15 @@ const obituaryController = {
     if (userId) whereClause.userId = userId;
     if (obituaryId) whereClause.id = obituaryId;
     if (slugKey) whereClause.slugKey = slugKey;
+    if (date) {
+      const endDate = new Date(date);
+      const startDate = new Date(endDate);
+      startDate.setDate(endDate.getDate() - 30);
+
+      whereClause.createdTimestamp = {
+        [Op.between]: [startDate, endDate],
+      };
+    }
     if (name) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${name}%` } },
