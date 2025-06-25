@@ -62,6 +62,7 @@ module.exports = (app) => {
     "/api/floristSlideUploads",
     express.static(path.join(__dirname, "..", "floristSlideUploads"))
   );
+  app.use("/api/assets", express.static(path.join(__dirname, "..", "assets")));
 
   app.use(
     "/api/packageUploads",
