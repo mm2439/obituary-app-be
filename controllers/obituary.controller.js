@@ -232,9 +232,18 @@ const obituaryController = {
       req.ip;
 
     const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
-
-    const obituary = await Obituary.findOne({
+    const baseObituary = await Obituary.findOne({
       where: whereClause,
+      attributes: ["id"],
+    });
+
+    if (!baseObituary) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Memory not found" });
+    }
+    const obituary = await Obituary.findOne({
+      where: { id: baseObituary.id },
       include: [
         {
           model: User,
@@ -571,7 +580,6 @@ const obituaryController = {
   updateVisitCounts: async (req, res) => {
     try {
       const { id: obituaryId } = req.params;
-      const { userId } = req.body;
 
       const ip =
         req.headers["x-forwarded-for"]?.split(",")[0] ||
@@ -584,10 +592,9 @@ const obituaryController = {
 
       const obituary = await Obituary.findByPk(obituaryId, {
         include: [
-          User,
+          { model: User },
           {
             model: Keeper,
-
             required: false,
             limit: 1000,
           },
@@ -698,7 +705,7 @@ const obituaryController = {
       // One single DB update call here
       await obituary.update(updates);
 
-      await visitController.visitMemory(userId, ipAddress, obituaryId);
+      await visitController.visitMemory(1, ipAddress, obituaryId);
 
       // 1. Get the city and user
       const city = obituary.city;
