@@ -28,6 +28,14 @@ const responseToken = {
       path: "/",
       domain: isProd ? ".osmrtnica.com" : undefined,
     });
+    response.cookie("slugKey", user.slugKey, {
+      httpOnly: false,
+      secure: isProd,
+      sameSite: isProd ? "None" : "Lax",
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+      path: "/",
+      domain: isProd ? ".osmrtnica.com" : undefined,
+    });
   },
 
   setRefreshToken: async (user, response) => {
