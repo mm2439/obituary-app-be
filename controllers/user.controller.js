@@ -132,6 +132,7 @@ const userController = {
         error: "Slug key is required",
       });
     }
+    slugKey = slugKey.toLowerCase().replace(/č/g, "c").replace(/š/g, "s");
 
     // Safety check for slug key format
     const slugRegex = /^[a-z0-9-]+$/;
