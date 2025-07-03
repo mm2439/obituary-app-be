@@ -177,14 +177,15 @@ const obituaryController = {
     if (userId) whereClause.userId = userId;
     if (obituaryId) whereClause.id = obituaryId;
     if (slugKey) whereClause.slugKey = slugKey;
-    let totalDays = 30;
-    if (days) totalDays = parseInt(days);
+    let totalDays = parseInt(days) || 30;
+
     console.log(days, date, city);
     if (date) {
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
       const startDate = new Date(endDate);
       startDate.setDate(endDate.getDate() - (totalDays - 1));
+      startDate.setHours(0, 0, 0, 0);
 
       whereClause.createdTimestamp = {
         [Op.between]: [startDate, endDate],
