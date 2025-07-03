@@ -132,14 +132,6 @@ const userController = {
         error: "Slug key is required",
       });
     }
-    slugKey = slugKey
-      .toLowerCase()
-      .replace(/č/gi, "c")
-      .replace(/š/gi, "s")
-      .replace(/Ć/gi, "c")
-      .replace(/Š/gi, "s")
-      .replace(/Ž/gi, "z")
-      .replace(/Đ/gi, "s");
 
     // Safety check for slug key format
     const slugRegex = /^[a-z0-9-]+$/;
@@ -149,7 +141,7 @@ const userController = {
           "Invalid slug key format. Only lowercase letters, numbers, and hyphens are allowed.",
       });
     }
-
+    console.log(slugKey, "============");
     // Check if the slug key already exists for another user
     const existingUser = await User.findOne({
       where: {

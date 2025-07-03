@@ -55,6 +55,7 @@ const obituaryController = {
 
       // Generate slugKey if not provided
       let slugKey = providedSlugKey;
+
       if (!slugKey) {
         const formatDate = (date) => {
           const d = new Date(date);
@@ -65,14 +66,7 @@ const obituaryController = {
         };
         slugKey = `${name}_${sirName}_${formatDate(deathDate)}`;
       }
-      slugKey = slugKey
-        .toLowerCase()
-        .replace(/č/gi, "c")
-        .replace(/š/gi, "s")
-        .replace(/Ć/gi, "c")
-        .replace(/Š/gi, "s")
-        .replace(/Ž/gi, "z")
-        .replace(/Đ/gi, "s");
+
       // Ensure slugKey is unique, append number if needed
       let uniqueSlugKey = slugKey;
       let counter = 1;
@@ -174,7 +168,7 @@ const obituaryController = {
     }
   },
   getObituary: async (req, res) => {
-    const { id, userId, name, region, city, obituaryId, slugKey, date } =
+    const { id, userId, name, region, city, obituaryId, slugKey, date, days } =
       req.query;
 
     const whereClause = {};
@@ -183,10 +177,14 @@ const obituaryController = {
     if (userId) whereClause.userId = userId;
     if (obituaryId) whereClause.id = obituaryId;
     if (slugKey) whereClause.slugKey = slugKey;
+    let totalDays = 30;
+    if (days) totalDays = parseInt(days);
+    console.log(days, date, city);
     if (date) {
       const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
       const startDate = new Date(endDate);
-      startDate.setDate(endDate.getDate() - 30);
+      startDate.setDate(endDate.getDate() - (totalDays - 1));
 
       whereClause.createdTimestamp = {
         [Op.between]: [startDate, endDate],
