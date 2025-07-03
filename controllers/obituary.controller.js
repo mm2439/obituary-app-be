@@ -65,7 +65,14 @@ const obituaryController = {
         };
         slugKey = `${name}_${sirName}_${formatDate(deathDate)}`;
       }
-      slugKey = slugKey.toLowerCase().replace(/č/g, "c").replace(/š/g, "s");
+      slugKey = slugKey
+        .toLowerCase()
+        .replace(/č/gi, "c")
+        .replace(/š/gi, "s")
+        .replace(/Ć/gi, "c")
+        .replace(/Š/gi, "s")
+        .replace(/Ž/gi, "z")
+        .replace(/Đ/gi, "s");
       // Ensure slugKey is unique, append number if needed
       let uniqueSlugKey = slugKey;
       let counter = 1;

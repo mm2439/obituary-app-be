@@ -132,7 +132,14 @@ const userController = {
         error: "Slug key is required",
       });
     }
-    slugKey = slugKey.toLowerCase().replace(/č/g, "c").replace(/š/g, "s");
+    slugKey = slugKey
+      .toLowerCase()
+      .replace(/č/gi, "c")
+      .replace(/š/gi, "s")
+      .replace(/Ć/gi, "c")
+      .replace(/Š/gi, "s")
+      .replace(/Ž/gi, "z")
+      .replace(/Đ/gi, "s");
 
     // Safety check for slug key format
     const slugRegex = /^[a-z0-9-]+$/;
