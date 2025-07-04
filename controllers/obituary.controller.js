@@ -192,6 +192,7 @@ const obituaryController = {
         [Op.between]: [startDate, endDate],
       };
     }
+
     if (name) {
       whereClause[Op.or] = [
         { name: { [Op.like]: `%${name}%` } },
@@ -205,9 +206,9 @@ const obituaryController = {
       whereClause.region = region;
     }
 
+    // Main obituary query
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
-
       order: [["createdTimestamp", "DESC"]],
       include: [
         {
@@ -219,10 +220,26 @@ const obituaryController = {
       ],
     });
 
+    // Count funerals between today and tomorrow
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+
+    const funeralCount = await Obituary.count({
+      where: {
+        ...(city && { funeralLocation: city }),
+        funeralTimestamp: {
+          [Op.between]: [today, tomorrow],
+        },
+      },
+    });
+
     res.status(httpStatus.OK).json({
       total: obituaries.count,
-
       obituaries: obituaries.rows,
+      funeralCount: funeralCount,
     });
   },
 
