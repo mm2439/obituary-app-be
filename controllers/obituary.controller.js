@@ -167,6 +167,7 @@ const obituaryController = {
       });
     }
   },
+  //test
   getObituary: async (req, res) => {
     const { id, userId, name, region, city, obituaryId, slugKey, date, days } =
       req.query;
