@@ -770,6 +770,7 @@ const obituaryController = {
       }
 
       obituary.dataValues.floristShops = floristShopList;
+      obituary.dataValues.Company = company;
       res.status(httpStatus.OK).json(obituary);
     } catch (error) {
       console.error("Error updating visit counts:", error);
