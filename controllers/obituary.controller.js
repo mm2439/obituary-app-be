@@ -1291,7 +1291,7 @@ const obituaryController = {
           message: `No ${type} obituary found for the specified date and city.`,
         });
       }
-
+      //
       return res.status(200).json(obituary);
     } catch (error) {
       console.error(error);
