@@ -1,0 +1,22 @@
+name: Block Direct Pushes to Main
+
+on:
+  push:
+    branches: [ "main" ]  # ⚠️ Use "master" if needed
+
+jobs:
+  block-direct-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if push is from an allowed user
+        env:
+          ALLOWED_USERS: "mm2439,MohsinKhattak,mohid-faizi,abdulbasit145,mb3451007"
+        run: |
+          USERNAME="${{ github.actor }}"
+          if [[ ",${ALLOWED_USERS// /}," == *",${USERNAME},"* ]]; then
+            echo "✅ $USERNAME is allowed to push directly to main."
+          else
+            echo "::error::🚫 Direct pushes to 'main' are blocked for $USERNAME!"
+            echo "Please create a branch and submit a Pull Request instead."
+            exit 1
+          fi
