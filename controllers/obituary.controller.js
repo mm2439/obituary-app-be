@@ -123,7 +123,6 @@ const obituaryController = {
 
       let picturePath = null;
       let deathReportPath = null;
-      const baseUrl = process.env.BASE_URL || "http://localhost:4000";
 
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
@@ -140,7 +139,7 @@ const obituaryController = {
           .toFormat("avif", { quality: 50 })
           .toFile(path.join(__dirname, "../", localPath));
 
-        picturePath = `${baseUrl}/${localPath.replace(/\\/g, "/")}`;
+        picturePath = `${localPath.replace(/\\/g, "/")}`;
       }
 
       if (req.files?.deathReport) {
@@ -156,7 +155,7 @@ const obituaryController = {
           req.files.deathReport[0].buffer
         );
 
-        deathReportPath = `${baseUrl}/${localPath.replace(/\\/g, "/")}`;
+        deathReportPath = `${localPath.replace(/\\/g, "/")}`;
       }
 
       newObituary.image = picturePath;
