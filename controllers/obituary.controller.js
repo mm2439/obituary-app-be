@@ -64,7 +64,11 @@ const obituaryController = {
           const year = String(d.getFullYear()).slice(-2);
           return `${day}${month}${year}`;
         };
-        slugKey = `${name}_${sirName}_${formatDate(deathDate)}`;
+
+        slugKey = `${name}_${sirName}_${formatDate(deathDate)}`.replace(
+          /\s+/g,
+          "_"
+        );
       }
 
       // Ensure slugKey is unique, append number if needed

@@ -15,7 +15,7 @@ const sequelize = new Sequelize(
 
 const connectToDB = () => {
   sequelize
-    .sync({ force: true })
+    .sync({ force: false })
     .then(() => {
       console.log("Database and tables synced");
     })
