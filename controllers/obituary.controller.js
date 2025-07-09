@@ -21,6 +21,7 @@ const { CompanyPage } = require("../models/company_page.model");
 const { Visit } = require("../models/visit.model");
 const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
+const { dbUploadObituaryTemplateCardsPath } = require("../config/upload");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 
 const obituaryController = {
@@ -1300,6 +1301,36 @@ const obituaryController = {
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Internal server error." });
+    }
+  },
+  uploadTemplateCards: async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+      const { cardImages, cardPdfs } = req.files || {};
+      if (!cardImages || !cardPdfs) {
+        return res.status(400).json({ message: "Missing required fields." });
+      }
+      const obituary = await Obituary.findByPk(id);
+
+      const newCardImages = cardImages.map((image) =>
+        dbUploadObituaryTemplateCardsPath(image?.filename)
+      );
+      const newCardPdfs = cardPdfs.map((pdf) =>
+        dbUploadObituaryTemplateCardsPath(pdf?.filename)
+      );
+
+      await obituary.update({
+        cardImages: newCardImages,
+        cardPdfs: newCardPdfs,
+      });
+      return res
+        .status(200)
+        .json({ message: "Template cards uploaded successfully." });
+    } catch (error) {
+      console.error(error);
     }
   },
 };

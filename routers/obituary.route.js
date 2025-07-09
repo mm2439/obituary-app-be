@@ -4,6 +4,7 @@ const authenticationMiddleware = require("../middlewares/authentication");
 
 const router = express.Router();
 const obituaryController = require("../controllers/obituary.controller");
+const { obituaryUploadsFields } = require("../config/upload");
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -20,6 +21,7 @@ router.post(
   [authenticationMiddleware, uploadFields],
   obituaryController.createObituary
 );
+
 router.get("/", obituaryController.getObituary);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/memory", obituaryController.getMemory);
@@ -57,6 +59,11 @@ router.get(
 //   [authenticationMiddleware, uploadFields],
 //   obituaryController.updateObituary
 // );
+router.patch(
+  "/:id/template-cards",
+  [authenticationMiddleware, obituaryUploadsFields],
+  obituaryController.uploadTemplateCards
+);
 router.patch(
   "/:id",
   [authenticationMiddleware, uploadFields],
