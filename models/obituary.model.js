@@ -133,6 +133,16 @@ Obituary.init(
       allowNull: false,
       unique: true,
     },
+    cardImages: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
+    cardPdfs: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
   },
   {
     sequelize,

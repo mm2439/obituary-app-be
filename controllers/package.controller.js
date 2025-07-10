@@ -4,6 +4,8 @@ const PACKAGE_UPLOADS = path.join(__dirname, "../packageUploads");
 const sharp = require("sharp");
 const fs = require("fs");
 const { CompanyPage } = require("../models/company_page.model");
+const { sharpHelpers } = require("../helpers/sharp");
+const { resizeConstants } = require("../constants/resize");
 
 const packageController = {
   addPackages: async (req, res) => {
@@ -33,10 +35,11 @@ const packageController = {
               fs.mkdirSync(packageFolder, { recursive: true });
             }
 
-            await sharp(file.buffer)
-              .resize(195, 267, { fit: "cover" })
-              .toFormat("avif", { quality: 50 })
-              .toFile(path.join(__dirname, "../", imagePath));
+            await sharpHelpers.processImageToAvif({
+              buffer: file.buffer,
+              outputPath: path.join(__dirname, "../", imagePath),
+              resize: resizeConstants.packageImageOptions,
+            });
 
             await Package.update({ image: imagePath }, { where: { id } });
           } else if (typeof image === "string") {
@@ -66,10 +69,11 @@ const packageController = {
             `${path.parse(file.originalname).name}.avif`
           );
 
-          await sharp(file.buffer)
-            .resize(195, 267, { fit: "cover" })
-            .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", imagePath));
+          await sharpHelpers.processImageToAvif({
+            buffer: file.buffer,
+            outputPath: path.join(__dirname, "../", imagePath),
+            resize: resizeConstants.packageImageOptions,
+          });
 
           newPackage.image = imagePath;
           await newPackage.save();
