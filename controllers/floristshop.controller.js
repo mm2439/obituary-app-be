@@ -87,6 +87,27 @@ const florsitShopController = {
       return res.status(500).json({ message: "Internal server error." });
     }
   },
+  getFloristShops: async (req, res) => {
+    try {
+      const city = req.query.city;
+
+      console.log(city);
+      const filter = {};
+      if (city) {
+        filter.city = city;
+      }
+
+      const shops = await FloristShop.findAll({ where: filter });
+
+      return res.status(200).json({
+        message: "Florist shops fetched successfully.",
+        shops,
+      });
+    } catch (error) {
+      console.error("Error fetching florist shops:", error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  },
 };
 
 module.exports = florsitShopController;

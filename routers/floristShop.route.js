@@ -11,5 +11,6 @@ router.post(
   [authenticationMiddleware],
   florsitShopController.addFloristShop
 );
+router.get("/", florsitShopController.getFloristShops);
 
 module.exports = router;
