@@ -17,10 +17,22 @@ function generateSlugKey() {
 function generateUniqueSlugKey(name) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
+
+  const cleanName = name
+    .split("")
+    .map((char) => {
+      if (char.toLowerCase() === "š") return "s";
+      if (char.toLowerCase() === "č") return "c";
+      if (char.toLowerCase() === "ć") return "c";
+      if (char.toLowerCase() === "ž") return "z";
+      if (char.toLowerCase() === "đ") return "dj";
+      return char;
+    })
+    .join("");
   for (let i = 0; i < 3; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return `${name}-${result}`;
+  return `${cleanName}-${result}`;
 }
 
 class User extends Model {
@@ -159,7 +171,20 @@ User.beforeValidate(async (user, options) => {
             }
           }
         } else {
-          const baseSlug = user.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+          const cleanName = user.name
+            .split("")
+            .map((char) => {
+              if (char.toLowerCase() === "š") return "s";
+              if (char.toLowerCase() === "č") return "c";
+              if (char.toLowerCase() === "ć") return "c";
+              if (char.toLowerCase() === "ž") return "z";
+              if (char.toLowerCase() === "đ") return "dj";
+              return char;
+            })
+            .join("");
+
+          const baseSlug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
           const existingWithBaseSlug = await User.findOne({
             where: { slugKey: baseSlug },
           });

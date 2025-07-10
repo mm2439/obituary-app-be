@@ -24,6 +24,19 @@ const { Cemetry } = require("../models/cemetry.model");
 const { dbUploadObituaryTemplateCardsPath } = require("../config/upload");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 
+const slugKeyFilter = (name) => {
+  return name
+    .split("")
+    .map((char) => {
+      if (char.toLowerCase() === "š") return "s";
+      if (char.toLowerCase() === "č") return "c";
+      if (char.toLowerCase() === "ć") return "c";
+      if (char.toLowerCase() === "ž") return "z";
+      if (char.toLowerCase() === "đ") return "dj";
+      return char;
+    })
+    .join("");
+};
 const obituaryController = {
   createObituary: async (req, res) => {
     try {
@@ -65,11 +78,11 @@ const obituaryController = {
           const year = String(d.getFullYear()).slice(-2);
           return `${day}${month}${year}`;
         };
-
-        slugKey = `${name}_${sirName}_${formatDate(deathDate)}`.replace(
-          /\s+/g,
-          "_"
-        );
+        const cleanFirstName = slugKeyFilter(name);
+        const cleanSirName = slugKeyFilter(sirName);
+        slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(
+          deathDate
+        )}`.replace(/\s+/g, "_");
       }
 
       // Ensure slugKey is unique, append number if needed
