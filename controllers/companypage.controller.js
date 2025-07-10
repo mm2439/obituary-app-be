@@ -9,6 +9,7 @@ const { Package } = require("../models/package.model");
 const { FloristSlide } = require("../models/florist_slide.model");
 const { FloristShop } = require("../models/florist_shop.model");
 const { Cemetry } = require("../models/cemetry.model");
+const { resizeConstants } = require("../constants/resize");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -48,10 +49,11 @@ const companyController = {
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", optimizedPicturePath));
+        await sharpHelpers.processImageToAvif({
+          buffer: pictureFile.buffer,
+          outputPath: path.join(__dirname, "../", optimizedPicturePath),
+          resize: resizeConstants.companyPageCoverImageOptions,
+        });
 
         picturePath = optimizedPicturePath;
       } else if (typeof background === "string") {
