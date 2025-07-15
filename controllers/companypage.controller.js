@@ -186,7 +186,7 @@ const companyController = {
   },
   getFuneralCompany: async (req, res) => {
     try {
-      const { userId, id } = req.query;
+      const { userId, id, slugKey } = req.query;
       const whereClause = {};
 
       if (id) whereClause.id = id;
@@ -391,7 +391,7 @@ const companyController = {
       }
 
       const user = await User.findByPk(userId, {
-        attributes: ["id", "name", "email", "city", "secondaryCity"],
+        attributes: ["id", "name", "email", "city", "secondaryCity", "company"],
         include: [
           {
             model: CompanyPage,
