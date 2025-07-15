@@ -10,6 +10,7 @@ const { FloristSlide } = require("../models/florist_slide.model");
 const { FloristShop } = require("../models/florist_shop.model");
 const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
+const { sharpHelpers } = require("../helpers/sharp");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -111,10 +112,16 @@ const companyController = {
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", optimizedPicturePath));
+        await sharpHelpers.processImageToAvif({
+          buffer: pictureFile.buffer,
+          outputPath: path.join(__dirname, "../", optimizedPicturePath),
+          resize: resizeConstants.funeralBackgroundSize,
+          avifOptions: {
+            quality: 60,
+            effort: 5,
+            chromaSubsampling: "4:4:4",
+          },
+        });
 
         picturePath = optimizedPicturePath;
       } else if (typeof background === "string") {
@@ -129,10 +136,36 @@ const companyController = {
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", optimizedPicturePath));
+        // Always fit the image inside a 200x80 box, preserving aspect ratio, never exceeding either dimension.
+        {
+          const maxWidth = 200;
+          const maxHeight = 80;
+          const image = sharp(pictureFile.buffer);
+          const metadata = await image.metadata();
+          let resizeWidth = maxWidth;
+          let resizeHeight = maxHeight;
+
+          if (metadata.width && metadata.height) {
+            const { width, height } = resizeConstants.getTargetResizeDimensions(
+              maxWidth,
+              maxHeight,
+              metadata
+            );
+            resizeWidth = width;
+            resizeHeight = height;
+          }
+
+          await sharpHelpers.processImageToAvif({
+            buffer: pictureFile.buffer,
+            outputPath: path.join(__dirname, "../", optimizedPicturePath),
+            resize: {
+              width: resizeWidth,
+              height: resizeHeight,
+              fit: "contain",
+              background: { r: 255, g: 255, b: 255, alpha: 0 },
+            },
+          });
+        }
 
         logoPath = optimizedPicturePath;
       }
@@ -159,7 +192,23 @@ const companyController = {
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
       whereClause.type = "FUNERAL";
-      const company = await CompanyPage.findOne({ where: whereClause });
+      const company = await CompanyPage.findOne({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            attributes: [
+              "id",
+              "name",
+              "email",
+              "city",
+              "secondaryCity",
+              "company",
+              "region",
+            ],
+          },
+        ],
+      });
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
@@ -241,8 +290,24 @@ const companyController = {
       }
 
       const fileFields = [
-        { field: "background", resize: [1280, 420] },
-        { field: "logo", resize: [370, 240] },
+        {
+          field: "background",
+          resize: resizeConstants.funeralBackgroundSize,
+          avifOptions: {
+            quality: 60,
+            effort: 5,
+            chromaSubsampling: "4:4:4",
+          },
+        },
+        {
+          field: "logo",
+          resize: {
+            width: 200,
+            height: 80,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        },
         { field: "secondary_image", resize: [195, 267] },
         { field: "funeral_section_one_image_one", resize: [195, 267] },
         { field: "funeral_section_one_image_two", resize: [195, 267] },
@@ -261,10 +326,12 @@ const companyController = {
             `${fileField.field}.avif`
           );
 
-          await sharp(file.buffer)
-            .resize(...fileField.resize, { fit: "cover" })
-            .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", optimizedPath));
+          await sharpHelpers.processImageToAvif({
+            buffer: file.buffer,
+            outputPath: path.join(__dirname, "../", optimizedPath),
+            resize: fileField.resize,
+            ...(fileField.avifOptions || {}),
+          });
 
           updateData[fileField.field] = optimizedPath;
         } else if (req.body[fileField.field]) {

@@ -298,20 +298,18 @@ const obituaryController = {
         .status(httpStatus.NOT_FOUND)
         .json({ error: "Memory not found" });
     }
+
     const obituary = await Obituary.findOne({
       where: { id: baseObituary.id },
       include: [
         {
           model: User,
         },
-
         {
           model: Keeper,
-
           required: false,
           limit: 1000,
         },
-
         {
           model: Cemetry,
           required: false,
@@ -346,42 +344,48 @@ const obituaryController = {
           limit: 1000,
           order: [["createdTimestamp", "DESC"]],
         },
-        {
-          model: Candle,
-          as: "candles",
-          attributes: [
-            [
-              Sequelize.fn("COUNT", Sequelize.col("candles.id")),
-              "totalCandles",
-            ],
-            [
-              Sequelize.literal(
-                "(SELECT `id` FROM `candles` WHERE `candles`.`obituaryId` = Obituary.id ORDER BY `createdTimestamp` DESC LIMIT 1)"
-              ),
-              "lastBurnedCandleId",
-            ],
-            [
-              Sequelize.literal(
-                "(SELECT `createdTimestamp` FROM `candles` WHERE `candles`.`obituaryId` = Obituary.id ORDER BY `createdTimestamp` DESC LIMIT 1)"
-              ),
-              "lastBurnedCandleTime",
-            ],
-            [
-              Sequelize.literal(
-                `(SELECT createdTimestamp FROM candles 
-                  WHERE candles.obituaryId = Obituary.id 
-                  AND ( candles.ipAddress = '${ipAddress}') 
-                  ORDER BY createdTimestamp DESC 
-                  LIMIT 1)`
-              ),
-              "myLastBurntCandleTime",
-            ],
-          ],
-          required: false,
-        },
+        // Do NOT include Candle with aggregate attributes here
       ],
-      // group: ["Obituary.id"],
     });
+
+    if (obituary) {
+      // Fetch candle aggregates in separate queries
+      const obituaryId = obituary.id;
+
+      // Total candles
+      const totalCandles = await Candle.count({
+        where: { obituaryId },
+      });
+
+      // Last burned candle (id and createdTimestamp)
+      const lastBurnedCandle = await Candle.findOne({
+        where: { obituaryId },
+        order: [["createdTimestamp", "DESC"]],
+        attributes: ["id", "createdTimestamp"],
+      });
+
+      // My last burnt candle time (by IP)
+      const myLastBurntCandle = await Candle.findOne({
+        where: {
+          obituaryId,
+          ipAddress: ipAddress,
+        },
+        order: [["createdTimestamp", "DESC"]],
+        attributes: ["createdTimestamp"],
+      });
+
+      // Attach candle aggregate info to the result
+      obituary.dataValues.candles = {
+        totalCandles,
+        lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
+        lastBurnedCandleTime: lastBurnedCandle
+          ? lastBurnedCandle.createdTimestamp
+          : null,
+        myLastBurntCandleTime: myLastBurntCandle
+          ? myLastBurntCandle.createdTimestamp
+          : null,
+      };
+    }
 
     if (!obituary) {
       return res
@@ -689,40 +693,6 @@ const obituaryController = {
             model: Cemetry,
             required: false,
           },
-
-          {
-            model: Candle,
-            as: "candles",
-            attributes: [
-              [
-                Sequelize.fn("COUNT", Sequelize.col("candles.id")),
-                "totalCandles",
-              ],
-              [
-                Sequelize.literal(
-                  "(SELECT `id` FROM `candles` WHERE `candles`.`obituaryId` = Obituary.id ORDER BY `createdTimestamp` DESC LIMIT 1)"
-                ),
-                "lastBurnedCandleId",
-              ],
-              [
-                Sequelize.literal(
-                  "(SELECT `createdTimestamp` FROM `candles` WHERE `candles`.`obituaryId` = Obituary.id ORDER BY `createdTimestamp` DESC LIMIT 1)"
-                ),
-                "lastBurnedCandleTime",
-              ],
-              [
-                Sequelize.literal(
-                  `(SELECT createdTimestamp FROM candles 
-                    WHERE candles.obituaryId = Obituary.id 
-                    AND (  candles.ipAddress = '${ipAddress}') 
-                    ORDER BY createdTimestamp DESC 
-                    LIMIT 1)`
-                ),
-                "myLastBurntCandleTime",
-              ],
-            ],
-            required: false,
-          },
         ],
 
         // group: ["Obituary.id"],
@@ -734,6 +704,24 @@ const obituaryController = {
           .status(httpStatus.NOT_FOUND)
           .json({ error: "Obituary not found" });
       }
+
+      const totalCandles = await Candle.count({
+        where: { obituaryId: obituary.id },
+      });
+
+      const lastBurnedCandle = await Candle.findOne({
+        where: { obituaryId: obituary.id },
+        order: [["createdTimestamp", "DESC"]],
+        attributes: ["id", "createdTimestamp"],
+      });
+
+      obituary.dataValues.candles = {
+        totalCandles,
+        lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
+        lastBurnedCandleTime: lastBurnedCandle
+          ? lastBurnedCandle.createdTimestamp
+          : null,
+      };
 
       // Calculate the start of the current week (Monday)
       const startOfWeek = new Date();
