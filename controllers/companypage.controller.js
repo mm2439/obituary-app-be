@@ -346,6 +346,58 @@ const companyController = {
       res.status(500).json({ error: "Something went wrong" });
     }
   },
+
+  getCompanies: async (req, res) => {
+    try {
+      const { type, region } = req.query;
+
+      console.log(req.query);
+
+      let dynamicInclude = [];
+      let whereClause = {};
+      let companyWhereClause = {};
+      if (type) {
+        companyWhereClause.type = type;
+        if (type === "FLORIST") {
+          dynamicInclude.push({
+            model: FloristShop,
+          });
+        } else if (type === "FUNERAL") {
+          dynamicInclude.push({
+            model: Cemetry,
+          });
+        }
+      }
+
+      if (region) {
+        whereClause.region = region;
+      }
+
+      const users = await User.findAll({
+        where: whereClause,
+        attributes: ["id", "name", "email", "city", "secondaryCity"],
+        include: [
+          {
+            model: CompanyPage,
+            include: dynamicInclude,
+            where: companyWhereClause,
+          },
+        ],
+      });
+
+      if (!users) {
+        return res.status(404).json({ message: "No Company Found" });
+      }
+
+      return res.status(200).json({
+        message: "success",
+        companies: users,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Something went wrong" });
+    }
+  },
 };
 
 module.exports = companyController;

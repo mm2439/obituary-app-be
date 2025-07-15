@@ -186,78 +186,92 @@ const obituaryController = {
   },
   //test
   getObituary: async (req, res) => {
-    const { id, userId, name, region, city, obituaryId, slugKey, date, days } =
-      req.query;
+    try {
+      const {
+        id,
+        userId,
+        name,
+        region,
+        city,
+        obituaryId,
+        slugKey,
+        date,
+        days,
+      } = req.query;
 
-    const whereClause = {};
+      const whereClause = {};
 
-    if (id) whereClause.id = id;
-    if (userId) whereClause.userId = userId;
-    if (obituaryId) whereClause.id = obituaryId;
-    if (slugKey) whereClause.slugKey = slugKey;
-    let totalDays = parseInt(days) || 30;
+      if (id) whereClause.id = id;
+      if (userId) whereClause.userId = userId;
+      if (obituaryId) whereClause.id = obituaryId;
+      if (slugKey) whereClause.slugKey = slugKey;
+      let totalDays = parseInt(days) || 30;
 
-    console.log(days, date, city);
-    if (date) {
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
-      const startDate = new Date(endDate);
-      startDate.setDate(endDate.getDate() - (totalDays - 1));
-      startDate.setHours(0, 0, 0, 0);
+      console.log(days, date, city);
+      if (date) {
+        const endDate = new Date(date);
+        endDate.setHours(23, 59, 59, 999);
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - (totalDays - 1));
+        startDate.setHours(0, 0, 0, 0);
 
-      whereClause.createdTimestamp = {
-        [Op.between]: [startDate, endDate],
-      };
-    }
+        whereClause.createdTimestamp = {
+          [Op.between]: [startDate, endDate],
+        };
+      }
 
-    if (name) {
-      whereClause[Op.or] = [
-        { name: { [Op.like]: `%${name}%` } },
-        { sirName: { [Op.like]: `%${name}%` } },
-      ];
-    }
+      if (name) {
+        whereClause[Op.or] = [
+          { name: { [Op.like]: `%${name}%` } },
+          { sirName: { [Op.like]: `%${name}%` } },
+        ];
+      }
 
-    if (city) {
-      whereClause.city = city;
-    } else if (region) {
-      whereClause.region = region;
-    }
+      if (city) {
+        whereClause.city = city;
+      } else if (region) {
+        whereClause.region = region;
+      }
 
-    // Main obituary query
-    const obituaries = await Obituary.findAndCountAll({
-      where: whereClause,
-      order: [["createdTimestamp", "DESC"]],
-      include: [
-        {
-          model: User,
+      // Main obituary query
+      const obituaries = await Obituary.findAndCountAll({
+        where: whereClause,
+        order: [["createdTimestamp", "DESC"]],
+        include: [
+          {
+            model: User,
+          },
+          {
+            model: Cemetry,
+          },
+        ],
+      });
+
+      // Count funerals between today and tomorrow
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+
+      const funeralCount = await Obituary.count({
+        where: {
+          ...(city && { funeralLocation: city }),
+          funeralTimestamp: {
+            [Op.between]: [today, tomorrow],
+          },
         },
-        {
-          model: Cemetry,
-        },
-      ],
-    });
+      });
 
-    // Count funerals between today and tomorrow
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-    tomorrow.setHours(23, 59, 59, 999);
-
-    const funeralCount = await Obituary.count({
-      where: {
-        ...(city && { funeralLocation: city }),
-        funeralTimestamp: {
-          [Op.between]: [today, tomorrow],
-        },
-      },
-    });
-
-    res.status(httpStatus.OK).json({
-      total: obituaries.count,
-      obituaries: obituaries.rows,
-      funeralCount: funeralCount,
-    });
+      res.status(httpStatus.OK).json({
+        total: obituaries.count,
+        obituaries: obituaries.rows,
+        funeralCount: funeralCount,
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
   },
 
   getMemory: async (req, res) => {

@@ -42,6 +42,8 @@ router.get(
   companyController.getFloristCompany
 );
 
+router.get("/", companyController.getCompanies);
+
 router.get(
   "/details",
   [authenticationMiddleware],
