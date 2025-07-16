@@ -8,6 +8,7 @@ const florsitShopController = {
     try {
       const { shops, companyId } = req.body;
       const city = req.user.city;
+      console.log(req.body);
       console.log(city);
       const createdOrUpdatedShops = [];
 

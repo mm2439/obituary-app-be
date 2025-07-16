@@ -1,7 +1,11 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const { Op } = require("sequelize");
-
+const fs = require("fs");
+const path = require("path");
 const { User, validateUser } = require("../models/user.model");
+const { CompanyPage } = require("../models/company_page.model");
+const sharp = require("sharp");
+const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 
 const userController = {
   register: async (req, res) => {
@@ -163,6 +167,78 @@ const userController = {
       message: "SlugKey updated successfully",
       updatedUser: user.toSafeObject(),
     });
+  },
+
+  updateUserAndCompanyPage: async (req, res) => {
+    try {
+      const userId = req.params.id;
+
+      const { address, website, email, name } = req.body;
+      let logoPath = null;
+
+      if (!userId) {
+        return res.status(400).json({ message: "Bad Request" });
+      }
+
+      const userExists = await User.findByPk(userId);
+      if (!userExists) {
+        return res.status(404).json({ message: "No Such User Found" });
+      }
+      if (email) userExists.email = email;
+      if (name) userExists.name = name;
+      await userExists.save();
+
+      const companyPage = await CompanyPage.findOne({
+        where: { userId: userExists.id },
+      });
+
+      if (!companyPage) {
+        return res
+          .status(200)
+          .json({ message: "Could not update company related data" });
+      }
+
+      const companyFolder = path.join(
+        COMPANY_FOLDER_UPLOAD,
+        String(companyPage.id)
+      );
+      if (!fs.existsSync(companyFolder)) {
+        fs.mkdirSync(companyFolder, { recursive: true });
+      }
+
+      if (req.files?.picture) {
+        const pictureFile = req.files.picture[0];
+        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
+
+        const localPath = path.join(
+          "companyUploads",
+          String(companyPage.id),
+          fileName
+        );
+
+        await sharp(pictureFile.buffer)
+          .resize(195, 267, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toFile(path.join(__dirname, "../", localPath));
+
+        logoPath = `${localPath.replace(/\\/g, "/")}`;
+      }
+
+      if (website) companyPage.website = website;
+      if (address) companyPage.address = address;
+      if (logoPath) companyPage.logo = logoPath;
+
+      await companyPage.save();
+
+      return res.status(200).json({
+        message: "Updated Successfully",
+        user: userExists,
+        company: companyPage,
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
   },
 };
 
