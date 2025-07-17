@@ -2,22 +2,14 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("photos", {
+    await queryInterface.createTable("cards", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
-      },
-      fileUrl: {
-        type: Sequelize.STRING(500),
         allowNull: false,
       },
-      status: {
-        type: Sequelize.ENUM("pending", "approved", "rejected"),
-        allowNull: false,
-        defaultValue: "pending",
-      },
+
       userId: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -28,6 +20,17 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
+
+      email: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+
+      cardId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
+
       obituaryId: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -38,20 +41,22 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
       },
+
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
+
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("photos");
+    await queryInterface.dropTable("cards");
   },
 };

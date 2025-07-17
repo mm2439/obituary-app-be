@@ -2,12 +2,21 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("keepers", {
+    await queryInterface.createTable("photos", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
+      },
+      fileUrl: {
+        type: Sequelize.STRING(500),
+        allowNull: false,
+      },
+      status: {
+        type: Sequelize.ENUM("pending", "approved", "rejected"),
+        allowNull: false,
+        defaultValue: "pending",
       },
       userId: {
         type: Sequelize.INTEGER,
@@ -34,10 +43,6 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.NOW,
       },
-      expiry: {
-        type: Sequelize.DATE,
-        allowNull: false,
-      },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
@@ -47,6 +52,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("keepers");
+    await queryInterface.dropTable("photos");
   },
 };

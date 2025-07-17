@@ -1,25 +1,34 @@
 "use strict";
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("visits", {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable("dedications", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
-        primaryKey: true,
         autoIncrement: true,
+        primaryKey: true,
+        allowNull: false,
       },
-      expiry: {
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
-      ipAddress: {
+      name: {
         type: Sequelize.STRING(100),
         allowNull: false,
       },
+      title: {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+      },
+      message: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      status: {
+        type: Sequelize.ENUM("pending", "approved", "rejected"),
+        allowNull: false,
+        defaultValue: "pending",
+      },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: "users",
           key: "id",
@@ -40,17 +49,17 @@ module.exports = {
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
-  down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("visits");
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable("dedications");
   },
 };

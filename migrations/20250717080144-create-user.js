@@ -34,6 +34,10 @@ module.exports = {
         type: Sequelize.STRING(100),
         allowNull: true,
       },
+      secondaryCity: {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+      },
       role: {
         type: Sequelize.ENUM(
           process.env.USER_ROLE,
@@ -42,6 +46,11 @@ module.exports = {
         ),
         allowNull: false,
         defaultValue: process.env.USER_ROLE,
+      },
+      slugKey: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        unique: true,
       },
       createdTimestamp: {
         type: Sequelize.DATE,

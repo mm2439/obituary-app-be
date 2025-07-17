@@ -19,35 +19,91 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
+      heading: {
+        type: Sequelize.STRING(250),
+        allowNull: true,
+      },
       type: {
         type: Sequelize.ENUM("FLORIST", "FUNERAL"),
         allowNull: false,
+      },
+      status: {
+        type: Sequelize.ENUM("PENDING", "DRAFT", "PUBLISHED"),
+        allowNull: false,
+        defaultValue: "PENDING",
       },
       name: {
         type: Sequelize.STRING(250),
         allowNull: true,
       },
-
-      /* numeric(15,0) matches DataTypes.NUMBER(15) in your model */
+      glassFrameState: {
+        type: Sequelize.BOOLEAN,
+        allowNull: true,
+        defaultValue: true,
+      },
+      showBoxBackground: {
+        type: Sequelize.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
       phone: {
-        type: Sequelize.DECIMAL(15, 0),
+        type: Sequelize.STRING(15),
+        allowNull: true,
+      },
+      address: {
+        type: Sequelize.STRING(250),
+        allowNull: true,
+      },
+      email: {
+        type: Sequelize.STRING(250),
+        allowNull: true,
+      },
+      facebook: {
+        type: Sequelize.STRING(250),
+        allowNull: true,
+      },
+      instagram: {
+        type: Sequelize.STRING(250),
+        allowNull: true,
+      },
+      website: {
+        type: Sequelize.STRING(250),
         allowNull: true,
       },
       emergencyPhone: {
-        type: Sequelize.DECIMAL(15, 0),
+        type: Sequelize.STRING(15),
         allowNull: true,
       },
-
       workingHours: {
         type: Sequelize.STRING(20),
         allowNull: true,
       },
-      backgroundImage: {
+      working_hour_highlight_text: {
+        type: Sequelize.STRING(150),
+        allowNull: true,
+      },
+      background: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      boxBackgroundImage: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      logo: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      highlightText: {
         type: Sequelize.STRING(500),
         allowNull: true,
       },
       title: {
         type: Sequelize.STRING(150),
+        allowNull: true,
+      },
+      city: {
+        type: Sequelize.STRING(100),
         allowNull: true,
       },
       description: {
@@ -90,6 +146,18 @@ module.exports = {
         type: Sequelize.STRING(100),
         allowNull: true,
       },
+      offer_one_image: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      offer_two_image: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      offer_three_image: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
       box_one_icon: {
         type: Sequelize.STRING(250),
         allowNull: true,
@@ -98,19 +166,11 @@ module.exports = {
         type: Sequelize.STRING(250),
         allowNull: true,
       },
-      box_three_icon: {
-        type: Sequelize.STRING(250),
-        allowNull: true,
-      },
       box_one_text: {
         type: Sequelize.STRING(100),
         allowNull: true,
       },
       box_two_text: {
-        type: Sequelize.STRING(100),
-        allowNull: true,
-      },
-      box_three_text: {
         type: Sequelize.STRING(100),
         allowNull: true,
       },
@@ -129,9 +189,5 @@ module.exports = {
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable("companypages");
-    // remove the ENUM type as well so you can re-run migrations cleanly
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_companypages_type";'
-    );
   },
 };

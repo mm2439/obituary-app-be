@@ -2,37 +2,27 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("condolences", {
+    await queryInterface.createTable("candles", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
       },
-      name: {
+
+      expiry: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+
+      ipAddress: {
         type: Sequelize.STRING(100),
         allowNull: false,
       },
-      message: {
-        type: Sequelize.TEXT,
-        allowNull: true,
-      },
-      relation: {
-        type: Sequelize.STRING(100),
-        allowNull: true,
-      },
-      status: {
-        type: Sequelize.ENUM("pending", "approved", "rejected"),
-        allowNull: false,
-        defaultValue: "pending",
-      },
-      isCustomMessage: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-      },
+
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: "users",
           key: "id",
@@ -40,6 +30,7 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
+
       obituaryId: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -50,20 +41,22 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
       },
+
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
+
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("condolences");
+    await queryInterface.dropTable("candles");
   },
 };

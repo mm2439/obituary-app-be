@@ -5,9 +5,13 @@ module.exports = {
     await queryInterface.createTable("obituaries", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
       },
       name: {
         type: Sequelize.STRING(100),
@@ -51,8 +55,14 @@ module.exports = {
         allowNull: true,
       },
       funeralCemetery: {
-        type: Sequelize.STRING(100),
+        type: Sequelize.INTEGER,
         allowNull: true,
+        references: {
+          model: "cemetries",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+        onUpdate: "RESTRICT",
       },
       funeralTimestamp: {
         type: Sequelize.DATE,
@@ -101,22 +111,32 @@ module.exports = {
       lastWeeklyReset: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       slugKey: {
         type: Sequelize.STRING(150),
         allowNull: false,
         unique: true,
+      },
+      cardImages: {
+        type: Sequelize.JSON,
+        allowNull: true,
+        defaultValue: [],
+      },
+      cardPdfs: {
+        type: Sequelize.JSON,
+        allowNull: true,
+        defaultValue: [],
       },
     });
   },

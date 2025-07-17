@@ -2,28 +2,30 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("events", {
+    await queryInterface.createTable("sorrowBooks", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
       },
       name: {
         type: Sequelize.STRING(100),
         allowNull: false,
       },
-      location: {
+      relation: {
         type: Sequelize.STRING(100),
-        allowNull: false,
+        allowNull: true,
       },
-      date: {
-        type: Sequelize.DATEONLY,
+      userId: {
+        type: Sequelize.INTEGER,
         allowNull: false,
-      },
-      time: {
-        type: Sequelize.TIME,
-        allowNull: false,
+        references: {
+          model: "users",
+          key: "id",
+        },
+        onDelete: "CASCADE",
+        onUpdate: "RESTRICT",
       },
       obituaryId: {
         type: Sequelize.INTEGER,
@@ -38,17 +40,17 @@ module.exports = {
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("events");
+    await queryInterface.dropTable("sorrowBooks");
   },
 };

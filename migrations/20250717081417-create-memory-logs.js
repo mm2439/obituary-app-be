@@ -5,9 +5,9 @@ module.exports = {
     await queryInterface.createTable("memorylogs", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
       },
       obituaryId: {
         type: Sequelize.INTEGER,
@@ -41,7 +41,8 @@ module.exports = {
           "sorrowbook",
           "candle",
           "keeper_activation",
-          "keeper_deactivation"
+          "keeper_deactivation",
+          "card"
         ),
         allowNull: false,
       },
@@ -52,7 +53,12 @@ module.exports = {
           "Posvetilo",
           "Žalna knjiga",
           "Dnevna sveča",
-          "Skrbnik"
+          "Skrbnik",
+          "MOBI Pogreb 1",
+          "MOBI Pogreb 2",
+          "MOBI Pogreb 3",
+          "MOBI Pogreb 4",
+          "MOBI Pogreb 5"
         ),
         allowNull: false,
       },
@@ -68,12 +74,12 @@ module.exports = {
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.fn("NOW"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.fn("NOW"),
       },
     });
   },

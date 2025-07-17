@@ -9,6 +9,7 @@ module.exports = {
         autoIncrement: true,
         allowNull: false,
       },
+
       companyId: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -19,19 +20,23 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
+
       question: {
-        type: Sequelize.STRING(250),
-        allowNull: false,
-      },
-      answer: {
         type: Sequelize.STRING(500),
         allowNull: false,
       },
+
+      answer: {
+        type: Sequelize.STRING(2500),
+        allowNull: false,
+      },
+
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
+
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,

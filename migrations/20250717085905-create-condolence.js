@@ -2,24 +2,37 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("candles", {
+    await queryInterface.createTable("condolences", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
       },
-      expiry: {
-        type: Sequelize.DATE,
+      name: {
+        type: Sequelize.STRING(100),
+        allowNull: false,
+      },
+      message: {
+        type: Sequelize.TEXT,
         allowNull: true,
       },
-      ipAddress: {
+      relation: {
         type: Sequelize.STRING(100),
+        allowNull: true,
+      },
+      status: {
+        type: Sequelize.ENUM("pending", "approved", "rejected"),
+        allowNull: false,
+        defaultValue: "pending",
+      },
+      isCustomMessage: {
+        type: Sequelize.BOOLEAN,
         allowNull: false,
       },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: "users",
           key: "id",
@@ -40,17 +53,17 @@ module.exports = {
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("candles");
+    await queryInterface.dropTable("condolences");
   },
 };

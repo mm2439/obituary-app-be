@@ -9,20 +9,18 @@ module.exports = {
         autoIncrement: true,
         allowNull: false,
       },
+
       companyId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "companypages",
+          model: "companypages", // Make sure this table exists
           key: "id",
         },
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
-      name: {
-        type: Sequelize.STRING(250),
-        allowNull: false,
-      },
+
       shopName: {
         type: Sequelize.STRING(250),
         allowNull: false,
@@ -31,34 +29,39 @@ module.exports = {
         type: Sequelize.STRING(250),
         allowNull: false,
       },
-      workingHours: {
+      hours: {
         type: Sequelize.STRING(20),
-        allowNull: false,
+        allowNull: true,
+      },
+      city: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      logo: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      secondaryHours: {
+        type: Sequelize.STRING(20),
+        allowNull: true,
+      },
+      tertiaryHours: {
+        type: Sequelize.STRING(20),
+        allowNull: true,
+      },
+      quaternaryHours: {
+        type: Sequelize.STRING(20),
+        allowNull: true,
       },
       email: {
         type: Sequelize.STRING(250),
         allowNull: false,
       },
       telephone: {
-        type: Sequelize.STRING(15), // Changed from NUMBER to STRING for compatibility
+        type: Sequelize.STRING(15),
         allowNull: false,
       },
-      logo: {
-        type: Sequelize.STRING(500),
-        allowNull: false,
-      },
-      highlightText: {
-        type: Sequelize.STRING(250),
-        allowNull: false,
-      },
-      facebook: {
-        type: Sequelize.STRING(250),
-        allowNull: false,
-      },
-      instagram: {
-        type: Sequelize.STRING(250),
-        allowNull: false,
-      },
+
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,

@@ -1,8 +1,8 @@
 "use strict";
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("packages", {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable("floristslides", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -25,10 +25,10 @@ module.exports = {
       },
       image: {
         type: Sequelize.STRING(500),
-        allowNull: false,
+        allowNull: true,
       },
-      price: {
-        type: Sequelize.FLOAT, // Changed from NUMBER to FLOAT (Sequelize doesn't support NUMBER)
+      description: {
+        type: Sequelize.STRING(1000),
         allowNull: false,
       },
       createdTimestamp: {
@@ -44,7 +44,7 @@ module.exports = {
     });
   },
 
-  down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("packages");
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable("floristslides");
   },
 };

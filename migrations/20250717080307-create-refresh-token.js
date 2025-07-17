@@ -5,9 +5,9 @@ module.exports = {
     await queryInterface.createTable("refreshTokens", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
       },
       userId: {
         type: Sequelize.INTEGER,

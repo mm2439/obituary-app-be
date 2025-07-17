@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("floristslides", {
+    await queryInterface.createTable("packages", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -25,26 +25,26 @@ module.exports = {
       },
       image: {
         type: Sequelize.STRING(500),
-        allowNull: false,
+        allowNull: true,
       },
-      description: {
-        type: Sequelize.STRING(1000),
-        allowNull: false,
+      price: {
+        type: Sequelize.STRING(10),
+        allowNull: true,
       },
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: Sequelize.fn("NOW"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: Sequelize.fn("NOW"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("floristslides");
+    await queryInterface.dropTable("packages");
   },
 };

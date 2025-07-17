@@ -2,12 +2,12 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable("reports", {
+    await queryInterface.createTable("cemetries", {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
+        allowNull: false,
       },
       userId: {
         type: Sequelize.INTEGER,
@@ -19,38 +19,50 @@ module.exports = {
         onDelete: "CASCADE",
         onUpdate: "RESTRICT",
       },
-      obituaryId: {
+      companyId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
-          model: "obituaries",
+          model: "companypages",
           key: "id",
         },
         onDelete: "CASCADE",
-        onUpdate: "CASCADE",
+        onUpdate: "RESTRICT",
+      },
+      address: {
+        type: Sequelize.STRING(500),
+        allowNull: false,
       },
       name: {
         type: Sequelize.STRING(100),
         allowNull: false,
       },
-      message: {
-        type: Sequelize.STRING(1000),
+      city: {
+        type: Sequelize.STRING(100),
         allowNull: false,
+      },
+      image: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      enrolled: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
       },
       createdTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       modifiedTimestamp: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable("reports");
+    await queryInterface.dropTable("cemetries");
   },
 };

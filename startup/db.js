@@ -12,10 +12,10 @@ const sequelize = new Sequelize(
     logging: false,
   }
 );
-
+const shouldForceSync = process.env.FORCE_DB_SYNC === "true";
 const connectToDB = () => {
   sequelize
-    .sync({ force: false })
+    .sync({ force: shouldForceSync })
     .then(() => {
       console.log("Database and tables synced");
     })
