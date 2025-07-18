@@ -116,7 +116,7 @@ const obituaryController = {
         birthDate,
         deathDate,
         funeralLocation,
-        funeralCemetery,
+        ...(funeralCemetery ? { funeralCemetery } : {}),
         funeralTimestamp: funeralTimestamp || null,
         events: JSON.parse(events || "[]"),
         deathReportExists,
