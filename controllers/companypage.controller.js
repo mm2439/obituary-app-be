@@ -418,21 +418,15 @@ const companyController = {
     try {
       const { type, region } = req.query;
 
-      console.log(req.query);
-
       let dynamicInclude = [];
       let whereClause = {};
       let companyWhereClause = {};
       if (type) {
         companyWhereClause.type = type;
         if (type === "FLORIST") {
-          dynamicInclude.push({
-            model: FloristShop,
-          });
+          dynamicInclude.push({ model: FloristShop, required: false });
         } else if (type === "FUNERAL") {
-          dynamicInclude.push({
-            model: Cemetry,
-          });
+          dynamicInclude.push({ model: Cemetry, required: false });
         }
       }
 
@@ -442,7 +436,19 @@ const companyController = {
 
       const users = await User.findAll({
         where: whereClause,
-        attributes: ["id", "name", "email", "city", "secondaryCity"],
+        attributes: [
+          "id",
+          "name",
+          "email",
+          "city",
+          "region",
+          "secondaryCity",
+          "sendMobilePermission",
+          "sendGiftsPermission",
+          "assignKeeperPermission",
+          "createObituaryPermission",
+          "createdTimestamp",
+        ],
         include: [
           {
             model: CompanyPage,

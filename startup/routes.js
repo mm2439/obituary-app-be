@@ -28,7 +28,16 @@ const report = require("../routers/report.route");
 const corsOptions = {
   // origin:
   //   process.env.CORS_ORIGIN === "*" ? "*" : process.env.CORS_ORIGIN?.split(","),
-  origin: process.env.CORS_ORIGIN,
+  origin: (origin, callback) => {
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [];
+    allowedOrigins.push("http://localhost:3000");
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: "POST,GET,PATCH,DELETE",
   allowedHeaders: ["Content-Type", "access-token", "refresh-token"],
   exposedHeaders: ["access-token", "refresh-token"],

@@ -68,7 +68,17 @@ const userController = {
   },
 
   updateMyUser: async (req, res) => {
-    const { email, company, region, city, secondaryCity } = req.body;
+    const {
+      email,
+      company,
+      region,
+      city,
+      secondaryCity,
+      sendGiftsPermission,
+      sendMobilePermission,
+      createObitaryPermission,
+      assignKeeperPermission,
+    } = req.body;
 
     const user = await User.findByPk(req.user.id);
     console.log(req.body);
@@ -93,6 +103,12 @@ const userController = {
     if (company) user.company = company;
     if (region) user.region = region;
     if (city) user.city = city;
+    if (assignKeeperPermission)
+      user.assignKeeperPermission = assignKeeperPermission;
+    if (sendGiftsPermission) user.sendGiftsPermission = sendGiftsPermission;
+    if (sendMobilePermission) user.sendMobilePermission = sendMobilePermission;
+    if (createObitaryPermission)
+      user.createObitaryPermission = createObitaryPermission;
     if (req.body.hasOwnProperty("secondaryCity")) {
       user.secondaryCity = secondaryCity;
     }
@@ -145,7 +161,6 @@ const userController = {
           "Invalid slug key format. Only lowercase letters, numbers, and hyphens are allowed.",
       });
     }
-    console.log(slugKey, "============");
     // Check if the slug key already exists for another user
     const existingUser = await User.findOne({
       where: {

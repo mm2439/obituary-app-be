@@ -118,6 +118,23 @@ User.init(
       allowNull: true,
       unique: true,
     },
+    createObituaryPermission: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    assignKeeperPermission: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    sendGiftsPermission: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    sendMobilePermission: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
