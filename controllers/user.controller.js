@@ -120,6 +120,118 @@ const userController = {
       updatedUser: user.toSafeObject(),
     });
   },
+  updateMyUser: async (req, res) => {
+    const {
+      email,
+      company,
+      region,
+      city,
+      secondaryCity,
+      sendGiftsPermission,
+      sendMobilePermission,
+      createObitaryPermission,
+      assignKeeperPermission,
+    } = req.body;
+
+    const user = await User.findByPk(req.user.id);
+    console.log(req.body);
+    if (!user) {
+      console.warn("User not found");
+
+      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+    }
+
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ where: { email } });
+
+      if (existingUser) {
+        console.warn("Email is already in use");
+        return res
+          .status(httpStatus.CONFLICT)
+          .json({ error: "Email is already in use" });
+      }
+    }
+
+    if (email) user.email = email;
+    if (company) user.company = company;
+    if (region) user.region = region;
+    if (city) user.city = city;
+    if (assignKeeperPermission)
+      user.assignKeeperPermission = assignKeeperPermission;
+    if (sendGiftsPermission) user.sendGiftsPermission = sendGiftsPermission;
+    if (sendMobilePermission) user.sendMobilePermission = sendMobilePermission;
+    if (createObitaryPermission)
+      user.createObitaryPermission = createObitaryPermission;
+    if (req.body.hasOwnProperty("secondaryCity")) {
+      user.secondaryCity = secondaryCity;
+    }
+
+    await user.save();
+
+    res.status(httpStatus.OK).json({
+      message: "User updated successfully",
+      updatedUser: user.toSafeObject(),
+    });
+  },
+  updateUser: async (req, res) => {
+    const {
+      id,
+      email,
+      company,
+      region,
+      city,
+      secondaryCity,
+      sendGiftsPermission,
+      sendMobilePermission,
+      createObitaryPermission,
+      assignKeeperPermission,
+    } = req.body;
+
+    console.log(req.body);
+
+    if (!id) {
+      return res.status(400).json({ message: "Invalid Data" });
+    }
+    const user = await User.findByPk(id);
+    console.log(req.body);
+    if (!user) {
+      console.warn("User not found");
+
+      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+    }
+
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ where: { email } });
+
+      if (existingUser) {
+        console.warn("Email is already in use");
+        return res
+          .status(httpStatus.CONFLICT)
+          .json({ error: "Email is already in use" });
+      }
+    }
+
+    if (email) user.email = email;
+    if (company) user.company = company;
+    if (region) user.region = region;
+    if (city) user.city = city;
+    if (assignKeeperPermission)
+      user.assignKeeperPermission = assignKeeperPermission;
+    if (sendGiftsPermission) user.sendGiftsPermission = sendGiftsPermission;
+    if (sendMobilePermission) user.sendMobilePermission = sendMobilePermission;
+    if (createObitaryPermission)
+      user.createObitaryPermission = createObitaryPermission;
+    if (req.body.hasOwnProperty("secondaryCity")) {
+      user.secondaryCity = secondaryCity;
+    }
+
+    await user.save();
+
+    res.status(httpStatus.OK).json({
+      message: "User updated successfully",
+      updatedUser: user.toSafeObject(),
+    });
+  },
 
   deleteMyUser: async (req, res) => {
     const user = await User.findByPk(req.user.id);

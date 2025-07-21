@@ -14,6 +14,7 @@ const uploadFields = upload.fields([{ name: "picture", maxCount: 1 }]);
 router.post("/", userController.register);
 router.get("/me", authenticationMiddleware, userController.getMyUser);
 router.patch("/me", authenticationMiddleware, userController.updateMyUser);
+router.patch("/", authenticationMiddleware, userController.updateUser);
 router.delete("/me", authenticationMiddleware, userController.deleteMyUser);
 router.patch(
   "/me/slug-key",
