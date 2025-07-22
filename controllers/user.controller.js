@@ -174,65 +174,58 @@ const userController = {
     });
   },
   updateUser: async (req, res) => {
-    const {
-      id,
-      email,
-      company,
-      region,
-      city,
-      secondaryCity,
-      sendGiftsPermission,
-      sendMobilePermission,
-      createObitaryPermission,
-      assignKeeperPermission,
-    } = req.body;
+    try {
+      const { id, userData } = req.body;
 
-    console.log(req.body);
-
-    if (!id) {
-      return res.status(400).json({ message: "Invalid Data" });
-    }
-    const user = await User.findByPk(id);
-    console.log(req.body);
-    if (!user) {
-      console.warn("User not found");
-
-      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
-    }
-
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ where: { email } });
-
-      if (existingUser) {
-        console.warn("Email is already in use");
-        return res
-          .status(httpStatus.CONFLICT)
-          .json({ error: "Email is already in use" });
+      if (!id || !userData) {
+        return res.status(400).json({ message: "Invalid Data" });
       }
+
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (userData.email && userData.email !== user.email) {
+        const existingUser = await User.findOne({
+          where: { email: userData.email },
+        });
+        if (existingUser) {
+          return res.status(409).json({ error: "Email is already in use" });
+        }
+      }
+
+      const keysToUpdate = [
+        "email",
+        "company",
+        "region",
+        "city",
+        "secondaryCity",
+        "createObituaryPermission",
+        "assignKeeperPermission",
+        "sendMobilePermission",
+        "sendGiftsPermission",
+      ];
+
+      for (const key of keysToUpdate) {
+        if (userData.hasOwnProperty(key)) {
+          user[key] = userData[key];
+        }
+      }
+
+      await user.save();
+
+      return res.status(200).json({
+        message: "User updated successfully",
+        updatedUser: user.toSafeObject(),
+      });
+    } catch (error) {
+      console.error("Update error:", error);
+      return res
+        .status(500)
+        .json({ message: "Server error", error: error.message });
     }
-
-    if (email) user.email = email;
-    if (company) user.company = company;
-    if (region) user.region = region;
-    if (city) user.city = city;
-    if (assignKeeperPermission)
-      user.assignKeeperPermission = assignKeeperPermission;
-    if (sendGiftsPermission) user.sendGiftsPermission = sendGiftsPermission;
-    if (sendMobilePermission) user.sendMobilePermission = sendMobilePermission;
-    if (createObitaryPermission)
-      user.createObitaryPermission = createObitaryPermission;
-    if (req.body.hasOwnProperty("secondaryCity")) {
-      user.secondaryCity = secondaryCity;
-    }
-
-    await user.save();
-
-    res.status(httpStatus.OK).json({
-      message: "User updated successfully",
-      updatedUser: user.toSafeObject(),
-    });
   },
-
   deleteMyUser: async (req, res) => {
     const user = await User.findByPk(req.user.id);
 

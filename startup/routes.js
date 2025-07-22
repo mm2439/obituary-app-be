@@ -24,13 +24,11 @@ const company = require("../routers/company.route");
 const card = require("../routers/card.route");
 
 const report = require("../routers/report.route");
-const allowedOrigins = [
-  "http://localhost:3000",
-  process.env.CORS_ORIGIN,
-].filter(Boolean); // removes undefined/null
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin:
+    process.env.CORS_ORIGIN === "*" ? "*" : process.env.CORS_ORIGIN?.split(","),
+
   methods: "POST,GET,PATCH,DELETE",
   allowedHeaders: ["Content-Type", "access-token", "refresh-token"],
   exposedHeaders: ["access-token", "refresh-token"],

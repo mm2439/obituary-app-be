@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+const { Request, Response, NextFunction } = require("express");
 
-export const checkPermission = (permissionKey) => {
+const checkPermission = (permissionKey) => {
   return (req, res, next) => {
     const user = req.user;
 
@@ -11,3 +11,5 @@ export const checkPermission = (permissionKey) => {
     next();
   };
 };
+
+module.exports = checkPermission;

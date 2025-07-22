@@ -48,7 +48,13 @@ class User extends Model {
       slugKey,
       createdTimestamp,
       modifiedTimestamp,
+
+      createObituaryPermission,
+      assignKeeperPermission,
+      sendGiftsPermission,
+      sendMobilePermission,
     } = this;
+
     return {
       id,
       name,
@@ -60,6 +66,11 @@ class User extends Model {
       slugKey,
       createdTimestamp,
       modifiedTimestamp,
+
+      createObituaryPermission,
+      assignKeeperPermission,
+      sendGiftsPermission,
+      sendMobilePermission,
     };
   }
 }

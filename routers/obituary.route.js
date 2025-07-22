@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const authenticationMiddleware = require("../middlewares/authentication");
-
+const checkPermission = require("../middlewares/checkPermission");
 const router = express.Router();
 const obituaryController = require("../controllers/obituary.controller");
 const { obituaryUploadsFields } = require("../config/upload");
@@ -18,7 +18,7 @@ const uploadFields = upload.fields([
 
 router.post(
   "/",
-  [authenticationMiddleware, uploadFields],
+  [authenticationMiddleware, checkPermission, uploadFields],
   obituaryController.createObituary
 );
 
