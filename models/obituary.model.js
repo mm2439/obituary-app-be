@@ -129,7 +129,7 @@ Obituary.init(
       defaultValue: DataTypes.NOW,
     },
     slugKey: {
-      type: DataTypes.STRING(150),
+      type: DataTypes.STRING(500),
       allowNull: false,
       unique: true,
     },

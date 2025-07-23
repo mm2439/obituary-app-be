@@ -125,7 +125,7 @@ User.init(
       defaultValue: process.env.USER_ROLE,
     },
     slugKey: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.STRING(500),
       allowNull: true,
       unique: true,
     },
