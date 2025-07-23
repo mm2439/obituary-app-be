@@ -175,7 +175,7 @@ const obituaryController = {
       newObituary.image = picturePath;
       newObituary.deathReport = deathReportPath;
       await newObituary.save();
-
+      console.log("this is the new obituary", newObituary);
       return res.status(httpStatus.CREATED).json(newObituary);
     } catch (err) {
       console.error("Error in createObituary:", err);
