@@ -58,6 +58,7 @@ const obituaryController = {
         symbol,
         slugKey: providedSlugKey,
       } = req.body;
+      console.log("obituaryStarted", newObituary);
 
       const { error } = validateObituary(req.body);
       if (error) {
