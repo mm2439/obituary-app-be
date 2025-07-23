@@ -58,8 +58,8 @@ const obituaryController = {
         symbol,
         slugKey: providedSlugKey,
       } = req.body;
-      console.log("obituaryStarted", newObituary);
-
+      console.log("obituaryStarted");
+      //
       const { error } = validateObituary(req.body);
       if (error) {
         console.warn(`Invalid data format: ${error}`);
