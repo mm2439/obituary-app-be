@@ -311,9 +311,12 @@ const companyController = {
         { field: "secondary_image", resize: [195, 267] },
         { field: "funeral_section_one_image_one", resize: [195, 267] },
         { field: "funeral_section_one_image_two", resize: [195, 267] },
-        { field: "offer_one_image", resize: [195, 267] },
-        { field: "offer_two_image", resize: [195, 267] },
-        { field: "offer_three_image", resize: [195, 267] },
+        { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
+        { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
+        {
+          field: "offer_three_image",
+          resize: resizeConstants.offerImageOptions,
+        },
         { field: "boxBackgroundImage", resize: [1280, 420] },
       ];
 
