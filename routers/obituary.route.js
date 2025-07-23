@@ -18,7 +18,11 @@ const uploadFields = upload.fields([
 
 router.post(
   "/",
-  [authenticationMiddleware, checkPermission, uploadFields],
+  [
+    authenticationMiddleware,
+    checkPermission("createObituaryPermission"),
+    uploadFields,
+  ],
   obituaryController.createObituary
 );
 
