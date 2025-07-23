@@ -416,7 +416,7 @@ const companyController = {
 
   getCompanies: async (req, res) => {
     try {
-      const { type, region } = req.query;
+      const { type, region, city } = req.query; // Added city parameter
 
       let dynamicInclude = [];
       let whereClause = {};
@@ -430,7 +430,11 @@ const companyController = {
         }
       }
 
-      if (region) {
+      // Updated to filter by city instead of region
+      if (city) {
+        whereClause.city = city;
+      } else if (region) {
+        // Keep region filtering as fallback
         whereClause.region = region;
       }
 
@@ -458,8 +462,11 @@ const companyController = {
         ],
       });
 
-      if (!users) {
-        return res.status(404).json({ message: "No Company Found" });
+      if (!users || users.length === 0) {
+        return res.status(404).json({
+          message: "No Company Found",
+          companies: [],
+        });
       }
 
       return res.status(200).json({
