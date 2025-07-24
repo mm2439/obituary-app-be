@@ -6,18 +6,35 @@ const FLORIST_SHOP_UPLOADS_PATH = path.join(__dirname, "../floristShopUploads");
 const florsitShopController = {
   addFloristShop: async (req, res) => {
     try {
-      const { shops, companyId } = req.body;
+      const { shops, userId } = req.body; // Get userId from request body
+      const userIdToUse = userId || req.user.dataValues.id; // Use userId from body or from auth
       const city = req.user.city;
-      console.log(req.body);
-      console.log(city);
       const createdOrUpdatedShops = [];
 
-      const company = await CompanyPage.findOne({
+      console.log("user id from request:", userIdToUse);
+
+      // Find or create company page for this user
+      let company = await CompanyPage.findOne({
         where: {
-          userId: req.user.id,
+          userId: userIdToUse,
         },
       });
-      const logo = company.logo;
+
+      console.log("existing company:", company);
+
+      // If no company exists, create one first
+      if (!company) {
+        company = await CompanyPage.create({
+          userId: userIdToUse,
+          type: "FLORIST", // Set appropriate type
+          name: shops[0]?.shopName || "Default Florist", // Use shop name as default
+          // Add other required fields as needed
+        });
+        console.log("created new company:", company);
+      }
+
+      const companyId = company.id;
+      console.log("using company id:", companyId);
 
       for (let i = 0; i < shops.length; i++) {
         const {
@@ -46,7 +63,6 @@ const florsitShopController = {
               tertiaryHours,
               quaternaryHours,
               city,
-              logo,
             },
             { where: { id } }
           );
@@ -60,7 +76,7 @@ const florsitShopController = {
 
         // === Create new shop ===
         const newShop = await FloristShop.create({
-          companyId,
+          companyId, // Use the valid company ID
           shopName,
           address,
           hours,
@@ -70,7 +86,6 @@ const florsitShopController = {
           tertiaryHours,
           quaternaryHours,
           city,
-          logo,
         });
 
         createdOrUpdatedShops.push(newShop);
@@ -81,24 +96,57 @@ const florsitShopController = {
 
       return res.status(201).json({
         message: "Shops processed successfully.",
-        shops: allShops, // Send all shops instead of only created/updated
+        shops: allShops,
       });
     } catch (error) {
       console.error("Error processing shops:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({
+        message: "Internal server error.",
+        error: error.message
+      });
     }
   },
   getFloristShops: async (req, res) => {
     try {
-      const city = req.query.city;
+      const { city, companyId, userId } = req.query;
 
-      console.log(city);
+      console.log("Query params:", { city, companyId, userId });
+
       const filter = {};
+
       if (city) {
         filter.city = city;
       }
 
-      const shops = await FloristShop.findAll({ where: filter });
+      if (companyId) {
+        filter.companyId = companyId;
+      }
+
+      // If userId is provided, find the company first and then get shops
+      if (userId) {
+        const company = await CompanyPage.findOne({
+          where: { userId: userId }
+        });
+
+        if (company) {
+          filter.companyId = company.id;
+        } else {
+          return res.status(404).json({
+            message: "No company found for this user.",
+            shops: [],
+          });
+        }
+      }
+
+      const shops = await FloristShop.findAll({
+        where: filter,
+        include: [
+          {
+            model: CompanyPage,
+            attributes: ['id', 'name', 'type', 'userId'],
+          }
+        ],
+      });
 
       return res.status(200).json({
         message: "Florist shops fetched successfully.",
@@ -106,7 +154,10 @@ const florsitShopController = {
       });
     } catch (error) {
       console.error("Error fetching florist shops:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({
+        message: "Internal server error.",
+        error: error.message
+      });
     }
   },
 };
