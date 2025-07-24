@@ -210,14 +210,15 @@ const obituaryController = {
 
       console.log(days, date, city);
       if (date) {
-        const endDate = new Date(date);
-        endDate.setHours(23, 59, 59, 999);
-        const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - (totalDays - 1));
-        startDate.setHours(0, 0, 0, 0);
+        // Filter for exact date only
+        const targetDate = new Date(date);
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
 
         whereClause.createdTimestamp = {
-          [Op.between]: [startDate, endDate],
+          [Op.between]: [startOfDay, endOfDay],
         };
       }
 
@@ -491,6 +492,7 @@ const obituaryController = {
       finalObituaries,
     });
   },
+
   getFunerals: async (req, res) => {
     const { id, startDate, endDate, region, city } = req.query;
 
@@ -501,19 +503,28 @@ const obituaryController = {
     if (city) {
       whereClause.city = city;
     }
-    if (region) {
-      whereClause.region = region;
-    }
+    // if (region) {
+    //   whereClause.region = region;
+    // }
+
     if (startDate && endDate) {
+      // Convert the date strings to proper date range for filtering
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
       whereClause.funeralTimestamp = {
-        [Op.between]: [new Date(startDate), new Date(endDate)],
+        [Op.between]: [startOfDay, endOfDay],
       };
     }
-    console.log(city, whereClause);
+
+    console.log('getFunerals whereClause:', whereClause);
+
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
-
-      order: [["funeralTimestamp"]],
+      order: [["funeralTimestamp", "ASC"]], // Order by time ascending
       include: [
         {
           model: User,
@@ -523,7 +534,6 @@ const obituaryController = {
 
     res.status(httpStatus.OK).json({
       total: obituaries.count,
-
       obituaries: obituaries.rows,
     });
   },

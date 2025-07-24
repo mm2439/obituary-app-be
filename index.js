@@ -1,11 +1,27 @@
 const express = require("express");
 const path = require("path");
+const cors = require("cors");
 const { connectToDB } = require("./startup/db");
 const listEndpoints = require("express-list-endpoints");
 
 const app = express();
 
 connectToDB();
+
+// CORS configuration
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:3001"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "refresh-token", // Add this line
+      "access-token", // Add this too if you're using it
+    ],
+  })
+);
 
 app.use(
   "/obituaryUploads",

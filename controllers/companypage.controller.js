@@ -11,6 +11,7 @@ const { FloristShop } = require("../models/florist_shop.model");
 const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
 const { sharpHelpers } = require("../helpers/sharp");
+const { Obituary } = require("../models/obituary.model"); // Add this import
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -416,11 +417,13 @@ const companyController = {
 
   getCompanies: async (req, res) => {
     try {
-      const { type, region } = req.query;
+      const { type, region, city } = req.query;
+      console.log("Request query params:", req.query);
 
       let dynamicInclude = [];
       let whereClause = {};
       let companyWhereClause = {};
+
       if (type) {
         companyWhereClause.type = type;
         if (type === "FLORIST") {
@@ -433,6 +436,8 @@ const companyController = {
       if (region) {
         whereClause.region = region;
       }
+
+      console.log("Where clause:", whereClause);
 
       const users = await User.findAll({
         where: whereClause,
@@ -458,8 +463,40 @@ const companyController = {
         ],
       });
 
-      if (!users) {
-        return res.status(404).json({ message: "No Company Found" });
+      console.log("Found users count:", users.length);
+
+      // If it's a funeral company, fetch obituary counts
+      if (type === "FUNERAL" && users.length > 0) {
+        for (let user of users) {
+          // Count total obituaries for this user/company
+          const totalObituaryCount = await Obituary.count({
+            where: {
+              userId: user.id,
+            },
+          });
+
+          // Count obituaries in the selected region (if region filter is applied)
+          let regionObituaryCount = totalObituaryCount;
+          if (region) {
+            regionObituaryCount = await Obituary.count({
+              where: {
+                userId: user.id,
+                region: region,
+              },
+            });
+          }
+
+          // Add obituary counts to user data
+          user.dataValues.totalObituaryCount = totalObituaryCount;
+          user.dataValues.regionObituaryCount = regionObituaryCount;
+        }
+      }
+
+      if (!users || users.length === 0) {
+        return res.status(404).json({
+          message: "No Company Found",
+          companies: [],
+        });
       }
 
       return res.status(200).json({
