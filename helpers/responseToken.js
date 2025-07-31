@@ -17,7 +17,7 @@ const responseToken = {
       sameSite: isProd ? "None" : "Lax",
       maxAge: 365 * 24 * 60 * 60 * 1000,
       path: "/",
-      domain: isProd ? ".osmrtnica.com" : undefined,
+      // domain: isProd ? ".osmrtnica.com" : undefined,
     });
 
     response.cookie("role", user.role, {
@@ -26,7 +26,7 @@ const responseToken = {
       sameSite: isProd ? "None" : "Lax",
       maxAge: 365 * 24 * 60 * 60 * 1000,
       path: "/",
-      domain: isProd ? ".osmrtnica.com" : undefined,
+      // domain: isProd ? ".osmrtnica.com" : undefined,
     });
     response.cookie("slugKey", user.slugKey, {
       httpOnly: false,
@@ -34,7 +34,7 @@ const responseToken = {
       sameSite: isProd ? "None" : "Lax",
       maxAge: 365 * 24 * 60 * 60 * 1000,
       path: "/",
-      domain: isProd ? ".osmrtnica.com" : undefined,
+      // domain: isProd ? ".osmrtnica.com" : undefined,
     });
   },
 
@@ -43,7 +43,7 @@ const responseToken = {
 
     const expirationDate = new Date(
       new Date().getTime() +
-        Number(process.env.REFRESH_TOKEN_EXPIRY_SECONDS) * 1000
+      Number(process.env.REFRESH_TOKEN_EXPIRY_SECONDS) * 1000
     );
 
     await RefreshToken.upsert(
