@@ -12,6 +12,7 @@ const upload = multer({
 
 const uploadFields = upload.fields([{ name: "picture", maxCount: 1 }]);
 router.post("/", userController.register);
+router.post("/create-superadmin", userController.createSuperadmin);
 router.get("/me", authenticationMiddleware, userController.getMyUser);
 router.patch("/me", authenticationMiddleware, userController.updateMyUser);
 router.patch("/", authenticationMiddleware, userController.updateUser);

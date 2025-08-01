@@ -22,6 +22,7 @@ const faq = require("../routers/faq.route");
 const package = require("../routers/package.route");
 const company = require("../routers/company.route");
 const card = require("../routers/card.route");
+const admin = require("../routers/admin.route");
 
 const report = require("../routers/report.route");
 
@@ -88,5 +89,6 @@ module.exports = (app) => {
   app.use("/api/keeper", keeper);
   app.use("/api/report", report);
   app.use("/api/card", card);
+  app.use("/api/admin", admin);
   app.use(error);
 };
