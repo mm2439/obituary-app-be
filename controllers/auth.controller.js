@@ -66,21 +66,24 @@ const authController = {
         httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".osmrtnica.com" : undefined,
+        maxAge: 0,
+        expires: new Date(0),
       });
       res.clearCookie("role", {
         path: "/",
         httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".osmrtnica.com" : undefined,
+        maxAge: 0,
+        expires: new Date(0),
       });
       res.clearCookie("slugKey", {
         path: "/",
         httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".osmrtnica.com" : undefined,
+        maxAge: 0,
+        expires: new Date(0),
       });
       res.status(httpStatus.OK).json({
         message: "Logged out successfully!",
