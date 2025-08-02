@@ -56,32 +56,42 @@ const authController = {
 
   logout: async (req, res) => {
     try {
+      // Invalidate refresh token
       await RefreshToken.update(
         { isValid: false },
         { where: { userId: req.user.id } }
       );
+      
       const isProd = process.env.NODE_ENV === "production";
+      
+      // Clear cookies with exact same options as when they were set
       res.clearCookie("accessToken", {
         path: "/",
         httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".osmrtnica.com" : undefined,
+        maxAge: 0,
+        expires: new Date(0),
       });
+      
       res.clearCookie("role", {
         path: "/",
         httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".osmrtnica.com" : undefined,
+        maxAge: 0,
+        expires: new Date(0),
       });
+      
       res.clearCookie("slugKey", {
         path: "/",
         httpOnly: false,
         secure: isProd,
         sameSite: isProd ? "None" : "Lax",
-        domain: isProd ? ".osmrtnica.com" : undefined,
+        maxAge: 0,
+        expires: new Date(0),
       });
+      
       res.status(httpStatus.OK).json({
         message: "Logged out successfully!",
       });
