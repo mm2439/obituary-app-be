@@ -1,36 +1,38 @@
-const bcrypt = require('bcrypt');
-const { sequelize } = require('../startup/db');
+import bcrypt from "bcrypt"
+import { sequelize } from "../startup/db.js";
+import { User } from "../models/user.model.js";
 
-async function createSuperadmin() {
+export async function createSuperadmin() {
   try {
     // Connect to database
     await sequelize.authenticate();
     console.log('✅ Database connection established');
 
-    // Import User model
-    const { User } = require('../models/user.model');
-
     // Check if superadmin already exists
     const existingSuperadmin = await User.findOne({ 
       where: { email: 'gamspob@yahoo.com' } 
     });
+
+    if (existingSuperadmin) {
+      console.log('⚠️  Superadmin account already exists! Updating password...');
+
+      await existingSuperadmin.update({
+        password: 'trbovlj3:142o',
+      });
+
+      console.log('✅ Password updated successfully.');
+      return;
+    }
     
     if (existingSuperadmin) {
       console.log('⚠️  Superadmin account already exists!');
-      console.log('Email:', existingSuperadmin.email);
-      console.log('Role:', existingSuperadmin.role);
       return;
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('trbovlj3:142o', salt);
-
-    // Create superadmin user
     const superadmin = await User.create({
       name: 'Super Admin',
       email: 'gamspob@yahoo.com',
-      password: hashedPassword,
+      password: 'trbovlj3:142o',
       role: 'SUPERADMIN',
       createObituaryPermission: true,
       assignKeeperPermission: true,
@@ -48,12 +50,5 @@ async function createSuperadmin() {
     if (error.name === 'SequelizeConnectionError') {
       console.error('💡 Make sure your database is running and connection details are correct');
     }
-  } finally {
-    // Close database connection
-    await sequelize.close();
-    console.log('🔌 Database connection closed');
   }
 }
-
-// Run the script
-createSuperadmin(); 
