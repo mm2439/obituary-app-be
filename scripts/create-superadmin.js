@@ -1,6 +1,5 @@
-import bcrypt from "bcrypt"
-import { sequelize } from "../startup/db.js";
-import { User } from "../models/user.model.js";
+const { sequelize } = require('../startup/db');
+const { User } = require('../models/user.model');
 
 export async function createSuperadmin() {
   try {
