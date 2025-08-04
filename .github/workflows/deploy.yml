@@ -23,4 +23,4 @@ jobs:
           cd /home/jenkins/deployment/obituary-app/obituary-fe
           sleep 3
           npm install
-          pm2 restart obituary-be
+          /root/.nvm/versions/node/v21.7.3/bin/pm2 restart obituary-be
