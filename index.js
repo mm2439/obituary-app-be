@@ -3,7 +3,6 @@ const path = require("path");
 const cors = require("cors");
 const { connectToDB } = require("./startup/db");
 const listEndpoints = require("express-list-endpoints");
-const { createSuperadmin } = require("./scripts/create-superadmin");
 
 const app = express();
 
@@ -51,5 +50,4 @@ app.listen(port, () => {
       console.log(`🟢 ${method} ${baseUrl}${ep.path}`);
     });
   });
-  createSuperadmin();
 });

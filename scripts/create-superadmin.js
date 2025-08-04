@@ -1,30 +1,21 @@
 const { sequelize } = require('../startup/db');
 const { User } = require('../models/user.model');
 
-export async function createSuperadmin() {
+async function createSuperadmin() {
   try {
-    // Connect to database
     await sequelize.authenticate();
     console.log('✅ Database connection established');
 
-    // Check if superadmin already exists
-    const existingSuperadmin = await User.findOne({ 
-      where: { email: 'gamspob@yahoo.com' } 
+    const existingSuperadmin = await User.findOne({
+      where: { email: 'gamspob@yahoo.com' }
     });
 
     if (existingSuperadmin) {
       console.log('⚠️  Superadmin account already exists! Updating password...');
-
       await existingSuperadmin.update({
         password: 'trbovlj3:142o',
       });
-
       console.log('✅ Password updated successfully.');
-      return;
-    }
-    
-    if (existingSuperadmin) {
-      console.log('⚠️  Superadmin account already exists!');
       return;
     }
 
@@ -51,3 +42,6 @@ export async function createSuperadmin() {
     }
   }
 }
+
+// Immediately invoke
+createSuperadmin();
