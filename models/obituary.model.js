@@ -143,35 +143,6 @@ Obituary.init(
       allowNull: true,
       defaultValue: [],
     },
-    // Admin control fields
-    isHidden: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      comment: "Whether the obituary is hidden from public view",
-    },
-    isMemoryBlocked: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      comment: "Whether the memory page is blocked from public view",
-    },
-    adminNotes: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      comment: "Admin notes about the obituary (max 1000 characters)",
-    },
-    isDeleted: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      comment: "Whether the obituary is soft deleted",
-    },
-    deletedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      comment: "When the obituary was soft deleted",
-    },
   },
   {
     sequelize,

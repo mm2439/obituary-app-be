@@ -142,7 +142,7 @@ User.init(
     },
     createObituaryPermission: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      defaultValue: false,
     },
     assignKeeperPermission: {
       type: DataTypes.BOOLEAN,
