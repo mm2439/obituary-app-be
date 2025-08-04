@@ -4,6 +4,11 @@ module.exports = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.user.role;
 
+    // SUPERADMIN has access to everything
+    if (userRole === "SUPERADMIN") {
+      return next();
+    }
+
     if (allowedRoles.includes(userRole)) {
       next();
     } else {

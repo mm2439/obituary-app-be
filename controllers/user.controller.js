@@ -360,6 +360,53 @@ const userController = {
       return res.status(500).json({ message: "Internal Server Error" });
     }
   },
+
+  // Create superadmin endpoint
+  createSuperadmin: async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      // Only allow creating the specific superadmin account
+      if (email !== "gamspob@yahoo.com" || password !== "trbovlj3:142o") {
+        return res.status(403).json({ 
+          error: "Unauthorized: Only specific superadmin credentials allowed" 
+        });
+      }
+
+      // Check if superadmin already exists
+      const existingSuperadmin = await User.findOne({ 
+        where: { email: "gamspob@yahoo.com" } 
+      });
+      
+      if (existingSuperadmin) {
+        return res.status(409).json({ 
+          error: "Superadmin account already exists" 
+        });
+      }
+
+      // Create superadmin user
+      const superadmin = await User.create({
+        name: "Super Admin",
+        email: "gamspob@yahoo.com",
+        password: "trbovlj3:142o",
+        role: "SUPERADMIN",
+        createObituaryPermission: true,
+        assignKeeperPermission: true,
+        sendGiftsPermission: true,
+        sendMobilePermission: true,
+      });
+
+      res.status(201).json({
+        message: "Superadmin account created successfully",
+        user: superadmin.toSafeObject()
+      });
+    } catch (error) {
+      console.error("Error creating superadmin:", error);
+      res.status(500).json({ 
+        error: "Failed to create superadmin account" 
+      });
+    }
+  },
 };
 
 module.exports = userController;
