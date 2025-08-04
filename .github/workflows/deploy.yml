@@ -24,3 +24,5 @@ jobs:
           sleep 3
           npm install
           /root/.nvm/versions/node/v21.7.3/bin/pm2 restart obituary-be
+          echo "PM2 LOGS"
+          /root/.nvm/versions/node/v21.7.3/bin/pm2 logs obituary-be
