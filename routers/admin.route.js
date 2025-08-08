@@ -212,6 +212,7 @@ router.get("/funeral-companies", async (req, res) => {
           company: company.company || company.name || 'Unknown',
           city: company.city || 'Unknown',
           region: company.region || 'Unknown',
+          createdTimestamp: company.createdTimestamp,
           totalObituaries,
           lastMonthObituaries,
           prevMonthObituaries,
@@ -232,6 +233,7 @@ router.get("/funeral-companies", async (req, res) => {
             sendGifts: company.sendGiftsPermission,
             sendMobile: company.sendMobilePermission
           },
+          isBlocked: company.isBlocked,
           notes: company.notes,
           adminRating: company.adminRating,
           hasFlorist: company.hasFlorist,
@@ -315,6 +317,7 @@ router.get("/florist-companies", async (req, res) => {
       company: company.company || company.name || 'Unknown',
       city: company.city || 'Unknown',
       region: company.region || 'Unknown',
+      createdTimestamp: company.createdTimestamp,
       totalGifts: Math.floor(Math.random() * 200),
       lastMonthGifts: Math.floor(Math.random() * 50),
       prevMonthGifts: Math.floor(Math.random() * 50),
