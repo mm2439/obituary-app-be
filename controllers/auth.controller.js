@@ -34,7 +34,17 @@ const authController = {
         .json({ error: "Invalid Email" });
     }
 
+    // Check if user is blocked
+    if (user.isBlocked) {
+      console.warn("User account is blocked");
+
+      return res
+        .status(httpStatus.FORBIDDEN)
+        .json({ error: "Your account has been blocked. Please contact administrator." });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password);
+
 
     if (!validPassword) {
       console.warn("Invalid Password");

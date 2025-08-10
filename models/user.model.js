@@ -53,6 +53,11 @@ class User extends Model {
       assignKeeperPermission,
       sendGiftsPermission,
       sendMobilePermission,
+      isBlocked,
+      notes,
+      adminRating,
+      hasFlorist,
+      isPaid,
     } = this;
 
     return {
@@ -71,6 +76,11 @@ class User extends Model {
       assignKeeperPermission,
       sendGiftsPermission,
       sendMobilePermission,
+      isBlocked,
+      notes,
+      adminRating,
+      hasFlorist,
+      isPaid,
     };
   }
 }
@@ -119,7 +129,8 @@ User.init(
       type: DataTypes.ENUM(
         process.env.USER_ROLE,
         process.env.FUNERAL_COMPANY_ROLE,
-        process.env.FLORIST_ROLE
+        process.env.FLORIST_ROLE,
+        "SUPERADMIN"
       ),
       allowNull: false,
       defaultValue: process.env.USER_ROLE,
@@ -131,7 +142,7 @@ User.init(
     },
     createObituaryPermission: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      defaultValue: false,
     },
     assignKeeperPermission: {
       type: DataTypes.BOOLEAN,
@@ -143,6 +154,35 @@ User.init(
     },
     sendMobilePermission: {
       type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    isBlocked: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: {
+        len: [0, 500] // Maximum 500 characters
+      }
+    },
+    adminRating: {
+      type: DataTypes.STRING(1),
+      allowNull: true,
+      validate: {
+        len: [0, 1] // Maximum 1 character
+      }
+    },
+    hasFlorist: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    isPaid: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
       defaultValue: false,
     },
 
@@ -266,6 +306,15 @@ User.beforeValidate(async (user, options) => {
             }
           }
         }
+      } else if (user.role === "SUPERADMIN") {
+        // For superadmin - use "admin" prefix with random code
+        while (!isUnique) {
+          slugKey = `admin-${generateSlugKey()}`;
+          const existing = await User.findOne({ where: { slugKey } });
+          if (!existing) {
+            isUnique = true;
+          }
+        }
       }
 
       user.slugKey = slugKey;
@@ -314,7 +363,8 @@ function validateUser(user) {
       .valid(
         process.env.USER_ROLE,
         process.env.FUNERAL_COMPANY_ROLE,
-        process.env.FLORIST_ROLE
+        process.env.FLORIST_ROLE,
+        "SUPERADMIN"
       )
       .default(process.env.USER_ROLE),
   });

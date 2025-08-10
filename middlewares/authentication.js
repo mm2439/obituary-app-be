@@ -18,6 +18,16 @@ async function verifyUser(id) {
     };
   }
 
+  // Check if user is blocked
+  if (user.isBlocked) {
+    console.warn("Access denied. User account is blocked");
+
+    return {
+      success: false,
+      error: "Your account has been blocked. Please contact administrator.",
+    };
+  }
+
   return {
     success: true,
     user,
@@ -30,10 +40,9 @@ module.exports = async (req, res, next) => {
 
   if (!accessToken && !refreshToken) {
     console.warn("Access denied. No token provided");
-    return next();
-    // return res
-    //   .status(httpStatus.UNAUTHORIZED)
-    //   .json({ error: "Access denied. No token provided" });
+    return res
+      .status(httpStatus.UNAUTHORIZED)
+      .json({ error: "Access denied. No token provided" });
   }
 
   let response;
