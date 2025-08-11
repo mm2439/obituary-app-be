@@ -1,14 +1,44 @@
 const express = require("express");
 const authenticationMiddleware = require("../middlewares/authentication");
 const adminAuth = require("../middlewares/adminAuth");
+const adminController = require("../controllers/admin.controller");
+const notificationController = require("../controllers/notification.controller");
+const activityLogController = require("../controllers/activityLog.controller");
+const giftController = require("../controllers/gift.controller");
 const router = express.Router();
 
 // Admin routes - all protected with authentication and admin role
 router.use(authenticationMiddleware);
 router.use(adminAuth);
 
-// Get all users (admin only)
-router.get("/users", async (req, res) => {
+// Dashboard and statistics
+router.get("/dashboard/stats", adminController.getDashboardStats);
+
+// User management
+router.get("/users", adminController.getAllUsers);
+router.put("/users/:id", adminController.updateUser);
+
+// Content moderation
+router.get("/pending-content", adminController.getPendingContent);
+router.post("/moderate", adminController.moderateContent);
+
+// System settings
+router.get("/settings", adminController.getSystemSettings);
+router.put("/settings", adminController.updateSystemSettings);
+
+// Activity logs (admin view)
+router.get("/activity-logs", activityLogController.getAdminActivityLogs);
+router.get("/activity-stats", activityLogController.getActivityStats);
+router.get("/recent-activities", activityLogController.getRecentActivities);
+
+// Gift management
+router.get("/gifts/statistics", giftController.getGiftStatistics);
+
+// Notification management
+router.post("/notifications/bulk", notificationController.sendBulkNotifications);
+
+// Legacy routes (keeping for backward compatibility)
+router.get("/users-legacy", async (req, res) => {
   try {
     const { User } = require("../models/user.model");
     

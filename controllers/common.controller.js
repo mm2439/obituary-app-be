@@ -1,11 +1,13 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const { Op } = require("sequelize");
 const moment = require("moment");
+const supabaseService = require("../services/supabaseService");
+const { supabaseAdmin } = require("../config/supabase");
 const {
   memoryLogsController,
 } = require("../controllers/memoryLogs.controller");
 
-// Import all models
+// Import all models (keeping for backward compatibility)
 const { Condolence } = require("../models/condolence.model");
 const { Dedication } = require("../models/dedication.model");
 const { SorrowBook } = require("../models/sorrow_book.model");

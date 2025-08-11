@@ -1,28 +1,41 @@
-const { Sequelize } = require("sequelize");
+const { supabaseAdmin } = require("../config/supabase");
 require("dotenv").config();
 
-const sequelize = new Sequelize(
-  process.env.DB_DATABASE,
-  process.env.DB_USERNAME,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: process.env.DB_DIALECT,
-    logging: false,
+// Legacy Sequelize setup (keeping for backward compatibility with existing models)
+const { Sequelize } = require("sequelize");
+
+// Create a dummy sequelize instance for models that still use it
+const sequelize = new Sequelize('sqlite::memory:', {
+  logging: false,
+  define: {
+    timestamps: false
   }
-);
-const shouldForceSync = process.env.FORCE_DB_SYNC === "true";
-const connectToDB = () => {
-  sequelize
-    .sync({ force: shouldForceSync })
-    .then(() => {
-      console.log("Database and tables synced");
-    })
-    .catch((error) => {
-      console.error("Error syncing database:", error);
-      process.exit(1);
-    });
+});
+
+const connectToDB = async () => {
+  try {
+    // Test Supabase connection
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('count')
+      .limit(1);
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned (table might be empty)
+      throw error;
+    }
+
+    console.log("✅ Supabase connection successful");
+    console.log("📊 Using Supabase as primary database");
+
+    // Initialize dummy sequelize for legacy models
+    await sequelize.sync();
+    console.log("✅ Legacy Sequelize models initialized");
+
+  } catch (error) {
+    console.error("❌ Database connection failed:", error.message);
+    console.error("Please check your Supabase configuration in .env file");
+    process.exit(1);
+  }
 };
 
 module.exports = { sequelize, connectToDB };
