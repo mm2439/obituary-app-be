@@ -58,8 +58,6 @@ const obituaryController = {
         symbol,
         slugKey: providedSlugKey,
       } = req.body;
-      console.log("obituaryStarted");
-      //
       const { error } = validateObituary(req.body);
       if (error) {
         console.warn(`Invalid data format: ${error}`);
@@ -176,7 +174,6 @@ const obituaryController = {
       newObituary.image = picturePath;
       newObituary.deathReport = deathReportPath;
       await newObituary.save();
-      console.log("this is the new obituary", newObituary);
       return res.status(httpStatus.CREATED).json(newObituary);
     } catch (err) {
       console.error("Error in createObituary:", err);
@@ -198,6 +195,8 @@ const obituaryController = {
         slugKey,
         date,
         days,
+        startDate,
+        endDate,
       } = req.query;
 
       const whereClause = {};
@@ -208,13 +207,12 @@ const obituaryController = {
       if (slugKey) whereClause.slugKey = slugKey;
       let totalDays = parseInt(days) || 30;
 
-      console.log(days, date, city);
-      if (date) {
-        // Filter for exact date only
-        const targetDate = new Date(date);
-        const startOfDay = new Date(targetDate);
+      if (startDate && endDate) {
+        // Convert the date strings to proper date range for filtering
+        const startOfDay = new Date(startDate);
         startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(targetDate);
+
+        const endOfDay = new Date(endDate);
         endOfDay.setHours(23, 59, 59, 999);
 
         whereClause.createdTimestamp = {
@@ -234,6 +232,7 @@ const obituaryController = {
       } else if (region) {
         whereClause.region = region;
       }
+
 
       // Main obituary query
       const obituaries = await Obituary.findAndCountAll({
@@ -271,7 +270,7 @@ const obituaryController = {
         funeralCount: funeralCount,
       });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return res.status(500).json({ message: "Internal Server Error" });
     }
   },
@@ -520,7 +519,6 @@ const obituaryController = {
       };
     }
 
-    console.log('getFunerals whereClause:', whereClause);
 
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
@@ -541,15 +539,12 @@ const obituaryController = {
   updateObituary: async (req, res) => {
     const obituaryId = req.params.id;
     const userId = req.user.id;
-    console.log(req.body);
     const existingObituary = await Obituary.findOne({
       where: {
         id: obituaryId,
         userId,
       },
     });
-
-    console.log("it exists:", existingObituary);
 
     if (!existingObituary) {
       return res
@@ -1159,7 +1154,7 @@ const obituaryController = {
         data: getTotal(obituaries),
       });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
@@ -1251,7 +1246,6 @@ const obituaryController = {
           },
         ],
       });
-      console.log(req.user.id, "==============");
       let approvedCounts = {
         dedication: 0,
         photo: 0,
@@ -1285,7 +1279,7 @@ const obituaryController = {
         .status(httpStatus.OK)
         .json({ logs, totalContirbutions, approvedCounts, obitsTotalCount });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
@@ -1295,7 +1289,6 @@ const obituaryController = {
   getMemoryId: async (req, res) => {
     try {
       const { date, city, type } = req.query;
-      console.log(req.query);
       if (!date || !city || !type) {
         return res.status(400).json({ message: "Missing required fields." });
       }
