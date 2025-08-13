@@ -3,6 +3,7 @@ const path = require("path");
 const cors = require("cors");
 const { connectToDB } = require("./startup/db");
 const listEndpoints = require("express-list-endpoints");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
@@ -22,6 +23,8 @@ app.use(
     ],
   })
 );
+
+app.use(cookieParser());
 
 app.use(
   "/obituaryUploads",
