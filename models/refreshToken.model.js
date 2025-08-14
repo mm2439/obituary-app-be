@@ -7,7 +7,7 @@ class RefreshToken extends Model {}
 RefreshToken.init(
   {
     id: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
       allowNull: false,
