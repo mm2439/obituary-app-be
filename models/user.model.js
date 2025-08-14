@@ -48,7 +48,6 @@ class User extends Model {
       slugKey,
       createdTimestamp,
       modifiedTimestamp,
-
       createObituaryPermission,
       assignKeeperPermission,
       sendGiftsPermission,
@@ -338,17 +337,12 @@ function generateAccessToken(user) {
   return accessToken;
 }
 
-function generateRefreshToken(user) {
-  const refreshToken = jwt.sign(
-    {
-      id: user.id,
-    },
+function generateRefreshToken(user, jti) {
+  return jwt.sign(
+    { id: user.id, rt: jti },
     process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRY_SECONDS),
-    }
+    { expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRY_SECONDS) }
   );
-  return refreshToken;
 }
 
 function validateUser(user) {
