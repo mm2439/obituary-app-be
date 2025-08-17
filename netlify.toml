@@ -1,0 +1,34 @@
+[build]
+  # Build command for your Node.js backend
+  command = "npm install && npm run build"
+  # Functions directory for serverless functions
+  functions = "netlify/functions"
+  # Publish directory (not used for backend, but required)
+  publish = "public"
+
+[build.environment]
+  NODE_ENV = "production"
+
+# Redirect all API routes to Netlify Functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Handle SPA routing (if you have a frontend in the same repo)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for CORS
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+
+# Environment variables (these will be set in Netlify dashboard)
+[context.production.environment]
+  NODE_ENV = "production"

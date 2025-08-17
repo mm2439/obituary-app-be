@@ -1,51 +1,97 @@
-# Obituary App - Collaboration Instructions
+# 🕊️ Obituary App Backend - Now Serverless!
 
-### How to Run Locally
+## 🚀 **MAJOR UPDATE: Migrated to Netlify Functions + Supabase**
 
-1. PreReqs
-    - Node and npm
-    - Docker
+This backend has been completely modernized:
+- ✅ **Serverless Architecture** - No more Docker needed!
+- ✅ **Supabase Database** - Fully migrated from MySQL
+- ✅ **Netlify Functions** - Auto-scaling serverless deployment
+- ✅ **GitHub Integration** - Deploy on every push
 
-2. Clone the project (both frontend and backend)
+## 📋 Quick Start (New Way)
 
-3. If you already have it, then take a pull from main to update your code
-
-4. Run the following commands:
-
-``` 
-cd obituar-app-fe
-npm i
-npm run build
-npm start
-```
-This will start your frontend with the production backend.
-
-#### Backend
-
-If you want to connect backend locally then do the following. 
-
-1. In **obituary-app-fe/config/apiConfig** change ```isDev = false``` to ```isDev = true```
-
-2. Create .env file in obituary-app-be
-
-3. Start Docker
-4. Run the following commands:
-
-```
+### Local Development
+```bash
+# 1. Clone and install
+git clone <repo-url>
 cd obituary-app-be
-docker-compose up --build
-npm start
+npm install
+
+# 2. Set up environment (no Docker needed!)
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+# 3. Start development server
+npm run dev
 ```
 
-### Getting your code Merged
+### Deploy to Production
+```bash
+# 1. Push to GitHub
+git add .
+git commit -m "Deploy to production"
+git push origin main
 
-1. Make sure that there are no build error. Run your frontend with ```npm run build``` and look for build failures. DON'T PUSH IF YOU ENCOUNTER BUILD FAILURES
+# 2. Connect to Netlify (one-time setup)
+# - Go to netlify.com
+# - Connect your GitHub repo
+# - Set environment variables
+# - Deploy automatically!
+```
 
-2. Run your backend,  and make sure all apis are functional.
+## 🎯 **For Frontend Developers**
 
-3. Make sure to set ```isDev = false``` in apiConfig file.
+Your API is now available at: `https://your-site.netlify.app`
 
-4. Create a new branch, and commit your changes  and publish the branch
-5. Raise a Pull Request, and add ```mm2439``` as a reviewer. 
+Update your frontend config:
+```javascript
+// Replace old backend URL with:
+const API_BASE_URL = 'https://your-site.netlify.app';
+```
 
-All devs must read the following instruction carefully. They must abide by it, otherwise they will be dropped from the project immediately.
+## 📚 Complete Documentation
+
+- [**🚀 Netlify Deployment Guide**](docs/NETLIFY_GITHUB_DEPLOYMENT.md) - Complete deployment instructions
+- [**📱 Frontend Integration**](docs/FRONTEND_AUTH_API_GUIDE.md) - How to use the API
+- [**🔐 Supabase Session Management**](docs/SUPABASE_SESSION_MANAGEMENT.md) - Advanced auth features
+
+## 🧪 Testing
+
+```bash
+# Test auth flow
+npm run auth:smoke
+
+# Test Netlify functions (after deployment)
+npm run test:netlify
+```
+
+## 📋 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| POST | `/api/user` | Register user |
+| POST | `/api/auth-login` | Login |
+| POST | `/api/auth-logout` | Logout |
+| GET | `/api/user/me` | Get profile |
+| PATCH | `/api/user/me` | Update profile |
+
+## 🔧 Environment Variables (Netlify)
+
+Set these in Netlify Dashboard:
+```
+NODE_ENV=production
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_ANON_KEY=your_anon_key
+```
+
+## 🤝 Contributing (Updated Process)
+
+1. **No more Docker setup needed!**
+2. Test with: `npm run auth:smoke`
+3. Create branch and push to GitHub
+4. Netlify auto-deploys on merge
+5. Add `mm2439` as reviewer
+
+**🚀 Your backend is now production-ready with serverless architecture!**

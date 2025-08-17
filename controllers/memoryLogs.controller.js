@@ -1,16 +1,6 @@
 const httpStatus = require("http-status-codes").StatusCodes;
+const { supabaseAdmin } = require("../config/supabase");
 
-const { Op } = require("sequelize");
-
-const { User } = require("../models/user.model");
-const { MemoryLog } = require("../models/memory_logs.model");
-
-const { Condolence } = require("../models/condolence.model");
-const { Dedication } = require("../models/dedication.model");
-const { Photo } = require("../models/photo.model");
-const { Obituary } = require("../models/obituary.model");
-
-const models = { condolence: Condolence, dedication: Dedication, photo: Photo };
 const memoryLogsController = {
   createLog: async (
     type,
@@ -27,7 +17,7 @@ const memoryLogsController = {
         return null;
       }
 
-      const log = await MemoryLog.create({
+      const payload = {
         type,
         status,
         userId,
@@ -35,7 +25,19 @@ const memoryLogsController = {
         interactionId: interactionId || null,
         userName: name || null,
         typeInSL: typeInSl,
-      });
+        createdTimestamp: new Date().toISOString(),
+      };
+
+      const { data: log, error } = await supabaseAdmin
+        .from('memorylogs')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('createLog error:', error);
+        return null;
+      }
 
       return log;
     } catch (error) {
@@ -46,44 +48,48 @@ const memoryLogsController = {
 
   getLogsWithInteraction: async (req, res) => {
     try {
-      const obituaryId = req.params.id;
+      const obituaryId = parseInt(req.params.id);
 
-      const memoryLogs = await MemoryLog.findAll({ where: { obituaryId } });
+      const { data: memoryLogs, error } = await supabaseAdmin
+        .from('memorylogs')
+        .select('*')
+        .eq('obituaryId', obituaryId);
+      if (error) {
+        console.error('getLogsWithInteraction error:', error);
+        return res.status(500).json({ message: 'Failed to get memory logs' });
+      }
 
+      // Group logs by type and fetch related items in bulk
       const logsByType = {};
-      memoryLogs.forEach((log) => {
-        if (!logsByType[log.type]) {
-          logsByType[log.type] = [];
-        }
+      (memoryLogs || []).forEach((log) => {
+        if (!logsByType[log.type]) logsByType[log.type] = [];
         logsByType[log.type].push(log);
       });
 
+      // Fetch related interaction data by type
       const interactionDataMap = {};
+      if (logsByType['condolence']) {
+        const ids = logsByType['condolence'].map((l) => l.interactionId);
+        const { data } = await supabaseAdmin.from('condolences').select('*').in('id', ids);
+        interactionDataMap['condolence'] = {};
+        (data || []).forEach((d) => { interactionDataMap['condolence'][d.id] = d; });
+      }
+      if (logsByType['dedication']) {
+        const ids = logsByType['dedication'].map((l) => l.interactionId);
+        const { data } = await supabaseAdmin.from('dedications').select('*').in('id', ids);
+        interactionDataMap['dedication'] = {};
+        (data || []).forEach((d) => { interactionDataMap['dedication'][d.id] = d; });
+      }
+      if (logsByType['photo']) {
+        const ids = logsByType['photo'].map((l) => l.interactionId);
+        const { data } = await supabaseAdmin.from('photos').select('*').in('id', ids);
+        interactionDataMap['photo'] = {};
+        (data || []).forEach((d) => { interactionDataMap['photo'][d.id] = d; });
+      }
 
-      await Promise.all(
-        Object.keys(logsByType).map(async (type) => {
-          const model = models[type];
-          if (!model) return;
-
-          const ids = logsByType[type].map((log) => log.interactionId);
-          const interactions = await model.findAll({
-            where: { id: ids },
-          });
-
-          interactionDataMap[type] = {};
-          interactions.forEach((data) => {
-            interactionDataMap[type][data.id] = data;
-          });
-        })
-      );
-
-      const detailedLogs = memoryLogs.map((log) => {
-        const interactionData =
-          interactionDataMap[log.type]?.[log.interactionId] || null;
-        return {
-          ...log.get({ plain: true }),
-          interactionData,
-        };
+      const detailedLogs = (memoryLogs || []).map((log) => {
+        const interactionData = interactionDataMap[log.type]?.[log.interactionId] || null;
+        return { ...log, interactionData };
       });
 
       return res.status(200).json({ detailedLogs });
@@ -93,56 +99,31 @@ const memoryLogsController = {
     }
   },
 
-  // getMemoryLogs: async (req, res) => {
-  //   try {
-  //     const userId = req.user.id;
-
-  //     if (!userId) {
-  //       return res.status(400).json({ message: "userId is required" });
-  //     }
-
-  //     const memoryLogs = await MemoryLog.findAll({ where: { userId } });
-
-  //     return res.status(200).json({ memoryLogs });
-  //   } catch (error) {
-  //     console.error("Error fetching memory logs:", error);
-  //     res.status(500).json({ message: "Failed to get memory logs" });
-  //   }
-  // },
   getUserCardAndKeeperLogs: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.profile?.id;
 
-      const userObituaries = await Obituary.findAll({
-        where: { userId },
-        attributes: ["id"],
-      });
-
-      if (!userObituaries.length) {
+      const { data: userObituaries } = await supabaseAdmin
+        .from('obituaries')
+        .select('id')
+        .eq('userId', userId);
+      if (!userObituaries || userObituaries.length === 0) {
         return res.status(200).json({ logs: [] });
       }
+      const obituaryIds = userObituaries.map((o) => o.id);
 
-      const obituaryIds = userObituaries.map((obit) => obit.id);
+      const { data: logs } = await supabaseAdmin
+        .from('memorylogs')
+        .select('*, Obituary:obituaries(city, name, sirName)')
+        .in('obituaryId', obituaryIds)
+        .in('type', ['card', 'keeper_activation', 'keeper_deactivation'])
+        .eq('status', 'approved')
+        .order('createdTimestamp', { ascending: false });
 
-      const logs = await MemoryLog.findAll({
-        where: {
-          obituaryId: obituaryIds,
-          type: ["card", "keeper_activation", "keeper_deactivation"],
-          status: "approved",
-        },
-        include: [
-          {
-            model: Obituary,
-            attributes: ["city", "name", "sirName"],
-          },
-        ],
-        order: [["createdTimestamp", "DESC"]],
-      });
-
-      const formattedLogs = logs.map((log) => ({
-        city: log.Obituary.city,
-        name: log.Obituary.name,
-        sirName: log.Obituary.sirName,
+      const formattedLogs = (logs || []).map((log) => ({
+        city: log.Obituary?.city,
+        name: log.Obituary?.name,
+        sirName: log.Obituary?.sirName,
         giftedTo: log.userName,
         createdAt: log.createdTimestamp,
         typeInSL: log.typeInSL,

@@ -1,148 +1,50 @@
-const { Card } = require("../models/card.model");
-const { User } = require("../models/user.model");
+const { supabaseAdmin } = require("../config/supabase");
 const memoryLogsController = require("./memoryLogs.controller");
-const pdfService = require("../services/pdfService");
-const emailService = require("../services/emailService");
-const supabaseService = require("../services/supabaseService");
-const notificationController = require("./notification.controller");
-
 const httpStatus = require("http-status-codes").StatusCodes;
 
 const cardController = {
   createCard: async (req, res) => {
     try {
       const { email, obituaryId, cardId } = req.body;
-      const UserExists = await User.findOne({ where: { email } });
-      const cardExists = await Card.findOne({
-        where: { email, obituaryId, cardId },
-      });
-      if (cardExists) {
-        return res
-          .status(httpStatus.CONFLICT)
-          .json({ message: "User Already has this card" });
-      }
-      if (!UserExists) {
-        return res
-          .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Such User Found" });
+
+      // Verify user exists
+      const { data: user, error: userErr } = await supabaseAdmin
+        .from('users')
+        .select('id, name')
+        .eq('email', email)
+        .single();
+      if (userErr || !user) {
+        return res.status(httpStatus.NOT_FOUND).json({ message: 'No Such User Found' });
       }
 
-      const card = await Card.create({
-        email,
-        userId: UserExists.id,
-        obituaryId,
-        cardId,
-      });
+      // Check duplicate card
+      const { data: existing } = await supabaseAdmin
+        .from('cards')
+        .select('id')
+        .eq('email', email)
+        .eq('obituaryId', obituaryId)
+        .eq('cardId', cardId)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        return res.status(httpStatus.CONFLICT).json({ message: 'User Already has this card' });
+      }
 
-      await memoryLogsController.createLog(
-        "card",
-        obituaryId,
-        UserExists.id,
-        card.id,
-        "approved",
-        UserExists.name,
-        `MOBI Pogreb ${cardId}`
-      );
+      const payload = { email, userId: user.id, obituaryId: parseInt(obituaryId), cardId };
+      const { data: card, error } = await supabaseAdmin
+        .from('cards')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) return res.status(500).json({ error: 'Something went wrong' });
+
+      await memoryLogsController.createLog('card', obituaryId, user.id, card.id, 'approved', user.name, `MOBI Pogreb ${cardId}`);
 
       res.status(httpStatus.CREATED).json(card);
     } catch (error) {
-      console.error("Error generating card:", error);
-      res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+      console.error('Error generating card:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Something went wrong' });
     }
   },
-
-  // Generate and send digital card as PDF
-  generateDigitalCard: async (req, res) => {
-    try {
-      const {
-        obituaryId,
-        recipientEmail,
-        message,
-        cardType = 'memorial',
-        senderName
-      } = req.body;
-
-      const senderId = req.user.id;
-
-      // Get obituary details
-      const obituary = await supabaseService.findOne('obituaries', obituaryId);
-      if (!obituary) {
-        return res.status(httpStatus.NOT_FOUND).json({
-          success: false,
-          error: 'Obituary not found'
-        });
-      }
-
-      // Get recipient details
-      const recipient = await supabaseService.findByField('profiles', 'email', recipientEmail, { single: true });
-      if (!recipient) {
-        return res.status(httpStatus.NOT_FOUND).json({
-          success: false,
-          error: 'Recipient not found'
-        });
-      }
-
-      // Prepare card data
-      const cardData = {
-        obituaryName: obituary.name,
-        obituarySirName: obituary.sirName,
-        senderName: senderName || req.user.name,
-        recipientName: recipient.name,
-        message,
-        cardType,
-        obituaryImage: obituary.image
-      };
-
-      // Generate PDF
-      const pdfResult = await pdfService.generateAndUploadCard(cardData, senderId);
-
-      if (!pdfResult.success) {
-        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          error: 'Failed to generate PDF card'
-        });
-      }
-
-      // Create card record
-      const card = await Card.create({
-        email: recipientEmail,
-        userId: recipient.id,
-        obituaryId,
-        cardId: Date.now(),
-        pdfUrl: pdfResult.pdfUrl,
-        message,
-        senderName,
-        senderId
-      });
-
-      // Send notification to recipient
-      await notificationController.createNotification(
-        recipient.id,
-        'digital_card_received',
-        'You received a digital memorial card',
-        `${senderName} sent you a digital memorial card for ${obituary.name} ${obituary.sirName}`,
-        card.id,
-        { cardType, obituaryName: `${obituary.name} ${obituary.sirName}` }
-      );
-
-      res.status(httpStatus.CREATED).json({
-        success: true,
-        message: "Digital card created and sent successfully",
-        card: {
-          ...card.toJSON(),
-          pdfUrl: pdfResult.pdfUrl
-        }
-      });
-    } catch (error) {
-      console.error("Error generating digital card:", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        error: "Failed to generate digital card"
-      });
-    }
-  }
 };
 
 module.exports = cardController;

@@ -1,0 +1,30 @@
+{
+  "name": "obituary-supabase-migration",
+  "version": "1.0.0",
+  "description": "Migration script to transfer data from MySQL to Supabase for the Obituary App",
+  "main": "supabase-migration.js",
+  "scripts": {
+    "check": "node check-setup.js",
+    "setup-schema": "node setup-schema.js",
+    "migrate": "node supabase-migration.js",
+    "migrate-updated": "node supabase-migration-updated.js",
+    "validate": "node validate-migration.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "mysql2": "^3.12.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "keywords": [
+    "migration",
+    "supabase",
+    "mysql",
+    "postgresql",
+    "obituary"
+  ],
+  "author": "",
+  "license": "ISC"
+}
