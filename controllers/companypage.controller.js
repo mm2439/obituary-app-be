@@ -137,36 +137,50 @@ const companyController = {
           `${path.parse(pictureFile.originalname).name}.avif`
         );
 
-        // Always fit the image inside a 200x80 box, preserving aspect ratio, never exceeding either dimension.
-        {
-          const maxWidth = 200;
-          const maxHeight = 80;
-          const image = sharp(pictureFile.buffer);
-          const metadata = await image.metadata();
-          let resizeWidth = maxWidth;
-          let resizeHeight = maxHeight;
+        const maxWidth = 200;
+        const maxHeight = 80;
+        const image = sharp(pictureFile.buffer);
+        const metadata = await image.metadata();
+        const { width, height } = resizeConstants.getTargetResizeDimensions(
+          maxWidth,
+          maxHeight,
+          metadata
+        );
 
-          if (metadata.width && metadata.height) {
-            const { width, height } = resizeConstants.getTargetResizeDimensions(
-              maxWidth,
-              maxHeight,
-              metadata
-            );
-            resizeWidth = width;
-            resizeHeight = height;
-          }
+        await sharpHelpers.processImageToAvif({
+          buffer: pictureFile.buffer,
+          outputPath: path.join(__dirname, "../", optimizedPicturePath),
+          resize: {
+            width,
+            height,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        });
 
-          await sharpHelpers.processImageToAvif({
-            buffer: pictureFile.buffer,
-            outputPath: path.join(__dirname, "../", optimizedPicturePath),
-            resize: {
-              width: resizeWidth,
-              height: resizeHeight,
-              fit: "contain",
-              background: { r: 255, g: 255, b: 255, alpha: 0 },
-            },
-          });
-        }
+        logoPath = optimizedPicturePath;
+      }
+      if (req.files?.picture) {
+        const pictureFile = req.files.picture[0];
+
+        const optimizedPicturePath = path.join(
+          "companyUploads",
+          String(funeralCompany.id),
+          `picture.avif`
+        );
+
+        await sharpHelpers.processImageToAvif({
+          buffer: pictureFile.buffer,
+          outputPath: path.join(__dirname, "../", optimizedPicturePath),
+          resize: {
+            width: 195,
+            height: 267,
+            fit: "cover",
+          },
+          avifOptions: {
+            quality: 50,
+          },
+        });
 
         logoPath = optimizedPicturePath;
       }
@@ -314,11 +328,20 @@ const companyController = {
         { field: "funeral_section_one_image_two", resize: [195, 267] },
         { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
         { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
-        {
-          field: "offer_three_image",
-          resize: resizeConstants.offerImageOptions,
-        },
+        { field: "offer_three_image", resize: resizeConstants.offerImageOptions },
         { field: "boxBackgroundImage", resize: [1280, 420] },
+        {
+          field: "picture",
+          resize: {
+            width: 195,
+            height: 267,
+            fit: "cover",
+          },
+          avifOptions: {
+            quality: 50
+          }
+        }
+
       ];
 
       for (const fileField of fileFields) {
@@ -337,7 +360,11 @@ const companyController = {
             ...(fileField.avifOptions || {}),
           });
 
-          updateData[fileField.field] = optimizedPath;
+          if (fileField.field === "picture") {
+            updateData.logo = optimizedPath;
+          } else {
+            updateData[fileField.field] = optimizedPath;
+          }
         } else if (req.body[fileField.field]) {
           updateData[fileField.field] = req.body[fileField.field];
         }
