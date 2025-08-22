@@ -5,8 +5,8 @@
 // Exits with code 0 on success, non-zero otherwise. Prints concise results.
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-const TEST_EMAIL = process.env.TEST_EMAIL || 'muzammilsiddidsda21@gmail.com';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || '123456';
+const TEST_EMAIL = 'muzammilsididsda2122@gmail.com';
+const TEST_PASSWORD = process.env.TEST_PASSWORD || '123333333333';
 
 console.log(`[auth-smoke] Testing with BASE_URL=${BASE_URL}, EMAIL=${TEST_EMAIL}`);
 

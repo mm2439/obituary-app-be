@@ -2,8 +2,8 @@
 // This bypasses Supabase Auth signup issues and tests the full auth flow
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
-const TEST_EMAIL = `test-${Date.now()}@example.com`;
-const TEST_PASSWORD = 'testpassword123';
+const TEST_EMAIL = `test-${Date.now()}@gmail.com`;
+const TEST_PASSWORD = 'testpassword1232';
 
 const log = (...args) => console.log("[auth-complete]", ...args);
 

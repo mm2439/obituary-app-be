@@ -92,7 +92,7 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Create user profile
+      // Create user profile with complete schema
       const payload = {
         id: signup.user.id,
         name: name,
@@ -102,6 +102,13 @@ exports.handler = async (event, context) => {
         region,
         city,
         "slugKey": email.split('@')[0] + '-' + Date.now(),
+        "createObituaryPermission": false,
+        "assignKeeperPermission": false,
+        "sendGiftsPermission": false,
+        "sendMobilePermission": false,
+        "isBlocked": false,
+        "hasFlorist": false,
+        "isPaid": false,
         "createdTimestamp": new Date().toISOString(),
         "modifiedTimestamp": new Date().toISOString()
       };
@@ -212,7 +219,10 @@ exports.handler = async (event, context) => {
       if (company !== undefined) update.company = company;
       if (region !== undefined) update.region = region;
       if (city !== undefined) update.city = city;
-      if (secondaryCity !== undefined) update.secondaryCity = secondaryCity;
+      if (secondaryCity !== undefined) update["secondaryCity"] = secondaryCity;
+
+      // Always update modifiedTimestamp
+      update["modifiedTimestamp"] = new Date().toISOString();
 
       const { data: updated, error } = await supabaseAdmin
         .from('profiles')

@@ -45,14 +45,21 @@ const userController = {
       }
 
       const payload = {
-        id: signup.user.id, // Use the auth user ID - FIXED VARIABLE NAME
-        name: name, // Use 'name' to match your schema
+        id: signup.user.id, // Use the auth user ID
+        name: name, // Match your schema exactly
         email,
         role: role || 'USER',
         company,
         region,
         city,
-        "slugKey": email.split('@')[0] + '-' + Date.now(), // Match your schema
+        "slugKey": email.split('@')[0] + '-' + Date.now(),
+        "createObituaryPermission": false, // Match exact schema
+        "assignKeeperPermission": false,
+        "sendGiftsPermission": false,
+        "sendMobilePermission": false,
+        "isBlocked": false, // Match exact schema
+        "hasFlorist": false,
+        "isPaid": false,
         "createdTimestamp": new Date().toISOString(),
         "modifiedTimestamp": new Date().toISOString()
       };
@@ -123,7 +130,7 @@ const userController = {
       // Check email uniqueness if changing
       if (email) {
         const { data: existing } = await supabaseAdmin
-          .from('users')
+          .from('profiles')
           .select('id')
           .eq('email', email)
           .neq('id', id)
@@ -138,11 +145,14 @@ const userController = {
       if (company !== undefined) update.company = company;
       if (region !== undefined) update.region = region;
       if (city !== undefined) update.city = city;
-      if (assignKeeperPermission !== undefined) update.assignKeeperPermission = assignKeeperPermission;
-      if (sendGiftsPermission !== undefined) update.sendGiftsPermission = sendGiftsPermission;
-      if (sendMobilePermission !== undefined) update.sendMobilePermission = sendMobilePermission;
-      if (createObitaryPermission !== undefined) update.createObitaryPermission = createObitaryPermission;
-      if (secondaryCity !== undefined) update.secondaryCity = secondaryCity;
+      if (assignKeeperPermission !== undefined) update["assignKeeperPermission"] = assignKeeperPermission;
+      if (sendGiftsPermission !== undefined) update["sendGiftsPermission"] = sendGiftsPermission;
+      if (sendMobilePermission !== undefined) update["sendMobilePermission"] = sendMobilePermission;
+      if (createObitaryPermission !== undefined) update["createObituaryPermission"] = createObitaryPermission; // Fixed typo
+      if (secondaryCity !== undefined) update["secondaryCity"] = secondaryCity;
+
+      // Always update modifiedTimestamp
+      update["modifiedTimestamp"] = new Date().toISOString();
 
       const { data: updated, error } = await supabaseAdmin
         .from('profiles')
@@ -169,7 +179,7 @@ const userController = {
 
       // Check existing
       const { data: existingUser, error: fetchErr } = await supabaseAdmin
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', id)
         .single();
@@ -177,7 +187,7 @@ const userController = {
 
       if (userData.email && userData.email !== existingUser.email) {
         const { data: dup } = await supabaseAdmin
-          .from('users')
+          .from('profiles')
           .select('id')
           .eq('email', userData.email)
           .neq('id', id)
@@ -194,8 +204,11 @@ const userController = {
         if (Object.prototype.hasOwnProperty.call(userData, key)) update[key] = userData[key];
       }
 
+      // Always update modifiedTimestamp
+      update["modifiedTimestamp"] = new Date().toISOString();
+
       const { data: updated, error } = await supabaseAdmin
-        .from('users')
+        .from('profiles')
         .update(update)
         .eq('id', id)
         .select()
