@@ -8,16 +8,46 @@ const florsitShopController = {
       const city = req.profile?.city || null;
       if (!userIdToUse) return res.status(401).json({ message: 'Unauthorized' });
 
+      // Convert UUID to integer for legacy table compatibility (use smaller hash to avoid overflow)
+      const userIntId = Math.abs(userIdToUse.replace(/-/g, '').substring(0, 6).split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a; // Convert to 32bit integer
+      }, 0)) % 2147483647;
+
       // Find or create company page for this user
-      let { data: company } = await supabaseAdmin.from('companypages').select('*').eq('userId', userIdToUse).single();
+      let { data: company } = await supabaseAdmin
+        .from('companypages')
+        .select('*')
+        .eq('userId', userIntId)
+        .single();
+
       if (!company) {
-        const { data: createdCompany } = await supabaseAdmin
+        const { data: createdCompany, error: createError } = await supabaseAdmin
           .from('companypages')
-          .insert({ userId: userIdToUse, type: 'FLORIST', name: shops?.[0]?.shopName || 'Default Florist' })
+          .insert({
+            userId: userIntId,
+            type: 'FLORIST',
+            name: shops?.[0]?.shopName || 'Default Florist'
+          })
           .select()
           .single();
+
+        if (createError || !createdCompany) {
+          console.error('Error creating company:', createError);
+          return res.status(500).json({
+            message: 'Failed to create company page',
+            error: createError?.message
+          });
+        }
         company = createdCompany;
       }
+
+      if (!company || !company.id) {
+        return res.status(500).json({
+          message: 'Failed to get or create company page'
+        });
+      }
+
       const companyId = company.id;
 
       for (let i = 0; i < shops.length; i++) {
@@ -26,7 +56,17 @@ const florsitShopController = {
         if (id && updated) {
           await supabaseAdmin
             .from('floristshops')
-            .update({ shopName, address, hours, email, telephone, secondaryHours, tertiaryHours, quaternaryHours, city })
+            .update({
+              shopName,
+              address,
+              hours,
+              email,
+              telephone,
+              secondaryHours,
+              tertiaryHours,
+              quaternaryHours,
+              city
+            })
             .eq('id', id);
           continue;
         }
@@ -34,7 +74,18 @@ const florsitShopController = {
 
         await supabaseAdmin
           .from('floristshops')
-          .insert({ companyId, shopName, address, hours, email, telephone, secondaryHours, tertiaryHours, quaternaryHours, city });
+          .insert({
+            companyId,
+            shopName,
+            address,
+            hours,
+            email,
+            telephone,
+            secondaryHours,
+            tertiaryHours,
+            quaternaryHours,
+            city
+          });
       }
 
       const { data: allShops } = await supabaseAdmin.from('floristshops').select('*').eq('companyId', companyId);
@@ -55,7 +106,11 @@ const florsitShopController = {
       let cid = companyId;
 
       if (userId) {
-        const { data: company } = await supabaseAdmin.from('companypages').select('id').eq('userId', userId).single();
+        const userIntId = Math.abs(userId.replace(/-/g, '').substring(0, 6).split('').reduce((a, b) => {
+          a = ((a << 5) - a) + b.charCodeAt(0);
+          return a & a; // Convert to 32bit integer
+        }, 0)) % 2147483647;
+        const { data: company } = await supabaseAdmin.from('companypages').select('id').eq('userId', userIntId).single();
         if (company) cid = company.id; else return res.status(404).json({ message: 'No company found for this user.', shops: [] });
       }
       let query = supabaseAdmin.from('floristshops').select('*, company:companypages(id, name, type, userId)');

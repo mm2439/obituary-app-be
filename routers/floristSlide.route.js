@@ -23,4 +23,10 @@ router.post(
   florsitSlideController.addFloristSlide
 );
 
+router.get(
+  "/",
+  [authenticationMiddleware],
+  florsitSlideController.getFloristSlide
+);
+
 module.exports = router;

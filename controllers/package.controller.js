@@ -9,7 +9,29 @@ const packageController = {
   addPackages: async (req, res) => {
     try {
       const { packages, companyId } = req.body;
+      const userIdToUse = req.profile?.id;
+
       if (!Array.isArray(packages)) return res.status(400).json({ message: 'Invalid payload' });
+
+      let finalCompanyId = companyId;
+
+      // If no companyId provided, try to get it from user's company
+      if (!finalCompanyId && userIdToUse) {
+        const userIntId = parseInt(userIdToUse.replace(/-/g, '').substring(0, 8), 16);
+        const { data: company } = await supabaseAdmin
+          .from('companypages')
+          .select('id')
+          .eq('userId', userIntId)
+          .single();
+
+        if (company) {
+          finalCompanyId = company.id;
+        }
+      }
+
+      if (!finalCompanyId) {
+        return res.status(400).json({ message: 'Company ID is required' });
+      }
 
       for (let i = 0; i < packages.length; i++) {
         const { id, updated, title, price, image } = packages[i];
@@ -35,7 +57,7 @@ const packageController = {
 
         const { data: created, error } = await supabaseAdmin
           .from('packages')
-          .insert({ companyId, title, price })
+          .insert({ companyId: finalCompanyId, title, price })
           .select()
           .single();
         if (error) return res.status(500).json({ message: 'Internal server error.' });
@@ -52,8 +74,8 @@ const packageController = {
         }
       }
 
-      const { data: allPackages } = await supabaseAdmin.from('packages').select('*').eq('companyId', companyId).limit(3);
-      const { data: company } = await supabaseAdmin.from('companypages').select('*').eq('id', companyId).single();
+      const { data: allPackages } = await supabaseAdmin.from('packages').select('*').eq('companyId', finalCompanyId).limit(3);
+      const { data: company } = await supabaseAdmin.from('companypages').select('*').eq('id', finalCompanyId).single();
 
       return res.status(201).json({ message: 'Packages processed successfully.', packages: allPackages || [], company });
     } catch (error) {
@@ -65,8 +87,30 @@ const packageController = {
   getPackages: async (req, res) => {
     try {
       const { companyId } = req.query;
-      const { data: allPackages } = await supabaseAdmin.from('packages').select('*').eq('companyId', companyId).limit(3);
-      const { data: company } = await supabaseAdmin.from('companypages').select('*').eq('id', companyId).single();
+      const userIdToUse = req.profile?.id;
+
+      let finalCompanyId = companyId;
+
+      // If no companyId provided, try to get it from user's company
+      if (!finalCompanyId && userIdToUse) {
+        const userIntId = parseInt(userIdToUse.replace(/-/g, '').substring(0, 8), 16);
+        const { data: company } = await supabaseAdmin
+          .from('companypages')
+          .select('id')
+          .eq('userId', userIntId)
+          .single();
+
+        if (company) {
+          finalCompanyId = company.id;
+        }
+      }
+
+      if (!finalCompanyId) {
+        return res.status(400).json({ message: 'Company ID is required' });
+      }
+
+      const { data: allPackages } = await supabaseAdmin.from('packages').select('*').eq('companyId', finalCompanyId).limit(3);
+      const { data: company } = await supabaseAdmin.from('companypages').select('*').eq('id', finalCompanyId).single();
       return res.status(200).json({ message: 'Packages retrieved successfully.', packages: allPackages || [], company });
     } catch (error) {
       console.error('Error processing packages:', error);

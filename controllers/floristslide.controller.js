@@ -8,6 +8,34 @@ const florsitSlideController = {
   addFloristSlide: async (req, res) => {
     try {
       const { slides, companyId } = req.body;
+      const userIdToUse = req.profile?.id;
+
+      if (!slides || !Array.isArray(slides)) {
+        return res.status(400).json({ message: 'Slides array is required' });
+      }
+
+      let finalCompanyId = companyId;
+
+      // If no companyId provided, try to get it from user's company
+      if (!finalCompanyId && userIdToUse) {
+        const userIntId = Math.abs(userIdToUse.replace(/-/g, '').substring(0, 6).split('').reduce((a, b) => {
+          a = ((a << 5) - a) + b.charCodeAt(0);
+          return a & a; // Convert to 32bit integer
+        }, 0)) % 2147483647;
+        const { data: company } = await supabaseAdmin
+          .from('companypages')
+          .select('id')
+          .eq('userId', userIntId)
+          .single();
+
+        if (company) {
+          finalCompanyId = company.id;
+        }
+      }
+
+      if (!finalCompanyId) {
+        return res.status(400).json({ message: 'Company ID is required' });
+      }
 
       for (let i = 0; i < slides.length; i++) {
         const { id, updated, title, description, image } = slides[i];
@@ -33,10 +61,10 @@ const florsitSlideController = {
 
         const { data: newSlide, error } = await supabaseAdmin
           .from('floristslides')
-          .insert({ companyId, title, description })
+          .insert({ companyId: finalCompanyId, title, description })
           .select()
           .single();
-        if (error) return res.status(500).json({ message: 'Internal server error.' });
+        if (error) return res.status(500).json({ message: 'Internal server error.', error: error.message });
 
         const slideFolder = path.join(FLORIST_SLIDE_UPLOADS_PATH, String(newSlide.id));
         if (!fs.existsSync(slideFolder)) fs.mkdirSync(slideFolder, { recursive: true });
@@ -50,12 +78,53 @@ const florsitSlideController = {
         }
       }
 
-      const { data: allSlides } = await supabaseAdmin.from('floristslides').select('*').eq('companyId', companyId);
+      const { data: allSlides } = await supabaseAdmin.from('floristslides').select('*').eq('companyId', finalCompanyId);
 
       return res.status(201).json({ message: 'Slides processed successfully.', slides: allSlides || [] });
     } catch (error) {
       console.error('Error processing slides:', error);
       return res.status(500).json({ message: 'Internal server error.' });
+    }
+  },
+
+  getFloristSlide: async (req, res) => {
+    try {
+      const { companyId } = req.query;
+      const userIdToUse = req.profile?.id;
+
+      let finalCompanyId = companyId;
+
+      // If no companyId provided, try to get it from user's company
+      if (!finalCompanyId && userIdToUse) {
+        const userIntId = parseInt(userIdToUse.replace(/-/g, '').substring(0, 8), 16);
+        const { data: company } = await supabaseAdmin
+          .from('companypages')
+          .select('id')
+          .eq('userId', userIntId)
+          .single();
+
+        if (company) {
+          finalCompanyId = company.id;
+        }
+      }
+
+      if (!finalCompanyId) {
+        return res.status(400).json({ message: 'Company ID is required' });
+      }
+
+      const { data: slides, error } = await supabaseAdmin
+        .from('floristslides')
+        .select('*')
+        .eq('companyId', finalCompanyId);
+
+      if (error) {
+        return res.status(500).json({ message: 'Internal server error.', error: error.message });
+      }
+
+      return res.status(200).json({ slides: slides || [] });
+    } catch (error) {
+      console.error('Error getting slides:', error);
+      return res.status(500).json({ message: 'Internal server error.', error: error.message });
     }
   },
 };
