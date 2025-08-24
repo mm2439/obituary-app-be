@@ -1,26 +1,35 @@
 const { Sequelize } = require("sequelize");
 require("dotenv").config();
 
+// Get the current environment
+const env = process.env.NODE_ENV || 'development';
+
+// Import the config
+const config = require('../config/config')[env];
+
 const sequelize = new Sequelize(
-  process.env.DB_DATABASE,
-  process.env.DB_USERNAME,
-  process.env.DB_PASSWORD,
+  config.database,
+  config.username,
+  config.password,
   {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: process.env.DB_DIALECT,
+    host: config.host,
+    port: config.port,
+    dialect: config.dialect,
     logging: false,
+    dialectOptions: config.dialectOptions || {},
   }
 );
+
 const shouldForceSync = process.env.FORCE_DB_SYNC === "true";
 const connectToDB = () => {
   sequelize
     .sync({ force: shouldForceSync })
     .then(() => {
-      console.log("Database and tables synced");
+      console.log(`✅ Database connected successfully in ${env} mode`);
+      console.log(`📊 Database: ${config.database} on ${config.host}:${config.port}`);
     })
     .catch((error) => {
-      console.error("Error syncing database:", error);
+      console.error("❌ Error connecting to database:", error);
       process.exit(1);
     });
 };

@@ -8,10 +8,34 @@ const app = express();
 
 connectToDB();
 
-// CORS configuration
+// CORS configuration - environment aware
+const getCorsOrigins = () => {
+  const env = process.env.NODE_ENV || 'development';
+  
+  if (env === 'development') {
+    return ["http://localhost:3000", "http://localhost:3001"];
+  } else if (env === 'staging') {
+    const stagingOrigins = process.env.CORS_ORIGIN?.split(',') || [];
+    return [
+      "https://dev111.osmrtnica.com", 
+      "https://mark-project-nine.vercel.app",
+      ...stagingOrigins
+    ];
+  } else if (env === 'production') {
+    const productionOrigins = process.env.CORS_ORIGIN?.split(',') || [];
+    return [
+      "https://dev111.osmrtnica.com", 
+      "https://mark-project-nine.vercel.app",
+      ...productionOrigins
+    ];
+  }
+  
+  return ["http://localhost:3000", "http://localhost:3001"];
+};
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001", "https://dev111.osmrtnica.com", "https://mark-project-nine.vercel.app"],
+    origin: getCorsOrigins(),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [

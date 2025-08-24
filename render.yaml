@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: obituary-app-backend-staging
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run staging
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: APP_PORT
+        value: 10000
+      - key: SUPABASE_DB_USERNAME
+        sync: false
+      - key: SUPABASE_DB_PASSWORD
+        sync: false
+      - key: SUPABASE_DB_DATABASE
+        sync: false
+      - key: SUPABASE_DB_HOST
+        sync: false
+      - key: SUPABASE_DB_PORT
+        value: 5432
+      - key: ACCESS_TOKEN_SECRET
+        sync: false
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
+      - key: ACCESS_TOKEN_EXPIRY_SECONDS
+        value: 3600
+      - key: REFRESH_TOKEN_EXPIRY_SECONDS
+        value: 604800
+      - key: USER_ROLE
+        value: user
+      - key: FUNERAL_COMPANY_ROLE
+        value: funeral_company
+      - key: FLORIST_ROLE
+        value: florist
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FORCE_DB_SYNC
+        value: false
