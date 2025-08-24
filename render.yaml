@@ -10,16 +10,22 @@ services:
         value: staging
       - key: APP_PORT
         value: 10000
-      - key: SUPABASE_DB_USERNAME
+      - key: DB_USERNAME
         sync: false
-      - key: SUPABASE_DB_PASSWORD
+      - key: DB_PASSWORD
         sync: false
-      - key: SUPABASE_DB_DATABASE
+      - key: DB_DATABASE
         sync: false
-      - key: SUPABASE_DB_HOST
+      - key: DB_HOST
         sync: false
-      - key: SUPABASE_DB_PORT
-        value: 5432
+      - key: DB_PORT
+        value: 3306
+      - key: DB_DIALECT
+        value: mysql
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
       - key: ACCESS_TOKEN_SECRET
         sync: false
       - key: REFRESH_TOKEN_SECRET
