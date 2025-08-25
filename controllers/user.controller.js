@@ -74,6 +74,7 @@ const userController = {
       region,
       city,
       secondaryCity,
+      thirdCity,
       sendGiftsPermission,
       sendMobilePermission,
       createObitaryPermission,
@@ -111,6 +112,9 @@ const userController = {
       user.createObitaryPermission = createObitaryPermission;
     if (req.body.hasOwnProperty("secondaryCity")) {
       user.secondaryCity = secondaryCity;
+    }
+    if (req.body.hasOwnProperty("thirdCity")) {
+      user.thirdCity = thirdCity;
     }
 
     await user.save();
@@ -127,6 +131,7 @@ const userController = {
       region,
       city,
       secondaryCity,
+      thirdCity,
       sendGiftsPermission,
       sendMobilePermission,
       createObitaryPermission,
@@ -164,6 +169,9 @@ const userController = {
       user.createObitaryPermission = createObitaryPermission;
     if (req.body.hasOwnProperty("secondaryCity")) {
       user.secondaryCity = secondaryCity;
+    }
+    if (req.body.hasOwnProperty("thirdCity")) {
+      user.thirdCity = thirdCity;
     }
 
     await user.save();
@@ -201,6 +209,7 @@ const userController = {
         "region",
         "city",
         "secondaryCity",
+        "thirdCity",
         "createObituaryPermission",
         "assignKeeperPermission",
         "sendMobilePermission",

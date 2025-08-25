@@ -218,6 +218,7 @@ const companyController = {
               "email",
               "city",
               "secondaryCity",
+              "thirdCity",
               "company",
               "region",
             ],
@@ -317,8 +318,8 @@ const companyController = {
         {
           field: "logo",
           resize: {
-            width: 200,
-            height: 80,
+            width: 228,
+            height: 138,
             fit: "contain",
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
@@ -333,8 +334,8 @@ const companyController = {
         {
           field: "picture",
           resize: {
-            width: 195,
-            height: 267,
+            width: 228,
+            height: 138,
             fit: "cover",
           },
           avifOptions: {
@@ -422,7 +423,7 @@ const companyController = {
       }
 
       const user = await User.findByPk(userId, {
-        attributes: ["id", "name", "email", "city", "secondaryCity", "company"],
+        attributes: ["id", "name", "email", "city", "secondaryCity", "thirdCity", "company"],
         include: [
           {
             model: CompanyPage,
@@ -478,6 +479,7 @@ const companyController = {
           "city",
           "region",
           "secondaryCity",
+          "thirdCity",
           "sendMobilePermission",
           "sendGiftsPermission",
           "assignKeeperPermission",
