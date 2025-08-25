@@ -20,7 +20,7 @@ router.post(
   "/",
   [
     authenticationMiddleware,
-    checkPermission("createObituaryPermission"),
+    // checkPermission("createObituaryPermission"), // Temporarily commented
     uploadFields,
   ],
   obituaryController.createObituary

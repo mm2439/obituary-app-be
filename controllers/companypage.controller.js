@@ -217,7 +217,8 @@ const companyController = {
               "name",
               "email",
               "city",
-              "secondaryCity",
+              "secondaryCity", 
+              "thirdCity", 
               "company",
               "region",
             ],
@@ -422,7 +423,7 @@ const companyController = {
       }
 
       const user = await User.findByPk(userId, {
-        attributes: ["id", "name", "email", "city", "secondaryCity", "company"],
+        attributes: ["id", "name", "email", "city", "secondaryCity", "thirdCity", "company"],
         include: [
           {
             model: CompanyPage,
@@ -478,6 +479,7 @@ const companyController = {
           "city",
           "region",
           "secondaryCity",
+          "thirdCity",
           "sendMobilePermission",
           "sendGiftsPermission",
           "assignKeeperPermission",
