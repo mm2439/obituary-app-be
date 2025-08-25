@@ -2,14 +2,18 @@ const path = require("path");
 const { FloristShop } = require("../models/florist_shop.model");
 const { CompanyPage } = require("../models/company_page.model");
 const FLORIST_SHOP_UPLOADS_PATH = path.join(__dirname, "../floristShopUploads");
+const { sharpHelpers } = require("../helpers/sharp");
+const fs = require("fs");
 
 const florsitShopController = {
   addFloristShop: async (req, res) => {
     try {
-      const { shops, userId } = req.body; // Get userId from request body
+      const { userId } = req.body; // Get userId from request body
       const userIdToUse = userId || req.user.dataValues.id; // Use userId from body or from auth
-      const city = req.user.city;
+      const city = req?.body?.city || req.user.city;
       const createdOrUpdatedShops = [];
+
+      const shops = JSON.parse(req.body.shops);
 
       console.log("user id from request:", userIdToUse);
 
@@ -74,6 +78,49 @@ const florsitShopController = {
           continue;
         }
 
+        const logoId = i + 1 + Math.floor(Date.now() * Math.random());
+        const companyFolder = path.join(FLORIST_SHOP_UPLOADS_PATH, String(logoId));
+        if (!fs.existsSync(companyFolder)) {
+          fs.mkdirSync(companyFolder, { recursive: true });
+        }
+
+        const fileFields = [
+          {
+            field: "picture",
+            resize: {
+              width: 140,
+              height: 116,
+              fit: "cover",
+            },
+            avifOptions: {
+              quality: 50
+            }
+          }
+        ];
+
+        let logo = '';
+        for (const fileField of fileFields) {
+          const file = req.files?.[fileField.field]?.[0];
+          if (file) {
+            const optimizedPath = path.join(
+              "floristShopUploads",
+              String(logoId),
+              `${fileField.field}.avif`
+            );
+
+            await sharpHelpers.processImageToAvif({
+              buffer: file.buffer,
+              outputPath: path.join(__dirname, "../", optimizedPath),
+              resize: fileField.resize,
+              ...(fileField.avifOptions || {}),
+            });
+
+            if (fileField.field === "picture") {
+              logo = optimizedPath;
+            }
+          }
+        }
+
         // === Create new shop ===
         const newShop = await FloristShop.create({
           companyId, // Use the valid company ID
@@ -86,6 +133,7 @@ const florsitShopController = {
           tertiaryHours,
           quaternaryHours,
           city,
+          logo
         });
 
         createdOrUpdatedShops.push(newShop);
