@@ -319,7 +319,16 @@ const companyController = {
           field: "logo",
           resize: {
             width: 228,
-            height: 138,
+            height: 140,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        },
+        {
+          field: "company_logo",
+          resize: {
+            width: 228,
+            height: 140,
             fit: "contain",
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
@@ -335,7 +344,7 @@ const companyController = {
           field: "picture",
           resize: {
             width: 228,
-            height: 138,
+            height: 140,
             fit: "cover",
           },
           avifOptions: {

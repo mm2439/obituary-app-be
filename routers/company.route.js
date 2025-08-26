@@ -8,6 +8,7 @@ const upload = multer({ storage: storage });
 const uploadFields = upload.fields([
   { name: "background", maxCount: 1 },
   { name: "logo", maxCount: 1 },
+  { name: "company_logo", maxCount: 1 },
   { name: "secondary_image", maxCount: 1 },
   { name: "funeral_section_one_image_one", maxCount: 1 },
   { name: "funeral_section_one_image_two", maxCount: 1 },

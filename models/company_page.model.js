@@ -106,6 +106,10 @@ CompanyPage.init(
       type: DataTypes.STRING(500),
       allowNull: true,
     },
+    company_logo: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
     highlightText: {
       type: DataTypes.STRING(500),
       allowNull: true,
