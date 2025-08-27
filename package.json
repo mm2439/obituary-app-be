@@ -21,7 +21,15 @@
     "test:business": "npm run test:obituary && npm run test:florist && npm run test:package",
     "auth:smoke": "node scripts/auth-smoke.mjs",
     "test:core": "node scripts/test-core-auth.mjs",
-    "diagnose": "node scripts/diagnose-supabase-error.mjs"
+    "test:authcomplete": "node scripts/test-auth-complete.mjs", 
+    "diagnose": "node scripts/diagnose-supabase-error.mjs",
+    "staging": "NODE_ENV=staging npx sequelize-cli db:migrate && NODE_ENV=staging node index.js",
+    "test:staging": "node scripts/test-staging.js",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo:all"
   },
   "keywords": [],
   "author": "",
