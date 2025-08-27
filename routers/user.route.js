@@ -28,4 +28,7 @@ router.patch(
   userController.updateUserAndCompanyPage
 );
 
+router.get("/me/cards", authenticationMiddleware, userController.getMyCards);
+router.patch("/me/download/:cardId", authenticationMiddleware, userController.downloadCard);
+
 module.exports = router;
