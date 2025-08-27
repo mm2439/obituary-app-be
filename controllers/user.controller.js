@@ -439,17 +439,19 @@ const userController = {
       await userCard.save();
     }
 
-    const fileName = userCard.cardPdf;
-    const filePath = path.resolve(__dirname, '..', 'obituaryUploads', 'user-cards', fileName);
+    const fileName = path.basename(userCard.cardPdf);
+    const filePath = path.resolve(__dirname, '..', userCard.cardPdf); 
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ message: "File not found." });
     }
 
-    res.download(filePath, fileName, (err) => {
+    return res.download(filePath, fileName, (err) => {
       if (err) {
-        console.error("File download error:", err);
-        res.status(500).json({ message: "Error in downloading the file." });
+        console.error("Download error:", err);
+        if (!res.headersSent) {
+          return res.status(500).json({ message: "File download failed." });
+        }
       }
     });
   },
