@@ -9,18 +9,21 @@ const cardController = {
     try {
       const { email, obituaryId, cardId } = req.body;
       const UserExists = await User.findOne({ where: { email } });
-      const cardExists = await Card.findOne({
-        where: { email, obituaryId, cardId },
-      });
-      if (cardExists) {
-        return res
-          .status(httpStatus.CONFLICT)
-          .json({ message: "User Already has this card" });
-      }
+
       if (!UserExists) {
         return res
           .status(httpStatus.NOT_FOUND)
           .json({ message: "No Such User Found" });
+      }
+
+      const cardExists = await Card.findOne({
+        where: { email, obituaryId, cardId },
+      });
+      
+      if (cardExists) {
+        return res
+          .status(httpStatus.CONFLICT)
+          .json({ message: "User Already has this card" });
       }
 
       const card = await Card.create({
