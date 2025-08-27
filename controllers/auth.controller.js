@@ -1,115 +1,62 @@
 const httpStatus = require("http-status-codes").StatusCodes;
-const bcrypt = require("bcrypt");
-
-const { User } = require("../models/user.model");
-const Auth = require("../models/auth.model");
-const { RefreshToken } = require("../models/refreshToken.model");
-const responseToken = require("../helpers/responseToken");
+const { supabase, supabaseAdmin } = require("../config/supabase");
 
 const authController = {
   login: async (req, res) => {
-    const { email, password } = req.body;
+    try {
+      const { email, password } = req.body;
 
-    const { error } = Auth.validateAuth(req.body);
+      if (!email || !password) {
+        return res.status(httpStatus.BAD_REQUEST).json({ error: 'Email and password are required' });
+      }
 
-    if (error) {
-      console.warn(`Invalid data format: ${error}`);
+      // Authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json({ error: `Invalid data format: ${error}` });
+      if (authError) {
+        return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Invalid credentials' });
+      }
+
+      // Fetch user profile from your profiles table
+      const { data: userProfile, error: userError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (userError || !userProfile) {
+        return res.status(httpStatus.NOT_FOUND).json({ error: 'User profile not found' });
+      }
+
+      if (userProfile.isBlocked) {
+        return res.status(httpStatus.FORBIDDEN).json({ error: 'Your account has been blocked. Please contact administrator.' });
+      }
+
+      res.status(httpStatus.OK).json({
+        message: 'Login Successful!',
+        user: userProfile,
+        session: authData.session,
+        access_token: authData.session?.access_token
+      });
+    } catch (e) {
+      console.error('Auth login error:', e);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Login failed' });
     }
-
-    const user = await User.findOne({
-      where: {
-        email: email,
-      },
-    });
-
-    if (!user) {
-      console.warn("Invalid email or password");
-
-      return res
-        .status(httpStatus.UNAUTHORIZED)
-        .json({ error: "Invalid Email" });
-    }
-
-    // Check if user is blocked
-    if (user.isBlocked) {
-      console.warn("User account is blocked");
-
-      return res
-        .status(httpStatus.FORBIDDEN)
-        .json({ error: "Your account has been blocked. Please contact administrator." });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-
-
-    if (!validPassword) {
-      console.warn("Invalid Password");
-
-      return res
-        .status(httpStatus.UNAUTHORIZED)
-        .json({ error: "Invalid   password" });
-    }
-
-    responseToken.setAccessToken(user, res);
-
-    await responseToken.setRefreshToken(user, res);
-
-    res.status(httpStatus.OK).json({
-      message: "Login Successful!",
-      user: user.toSafeObject(),
-    });
   },
 
   logout: async (req, res) => {
     try {
-      // Invalidate refresh token
-      await RefreshToken.update(
-        { isValid: false },
-        { where: { userId: req.user.id } }
-      );
-      
-      const isProd = process.env.NODE_ENV === "production";
-      
-      // Clear cookies with exact same options as when they were set
-      res.clearCookie("accessToken", {
-        path: "/",
-        httpOnly: false,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        maxAge: 0,
-        expires: new Date(0),
-      });
-      
-      res.clearCookie("role", {
-        path: "/",
-        httpOnly: false,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        maxAge: 0,
-        expires: new Date(0),
-      });
-      
-      res.clearCookie("slugKey", {
-        path: "/",
-        httpOnly: false,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        maxAge: 0,
-        expires: new Date(0),
-      });
-      
-      res.status(httpStatus.OK).json({
-        message: "Logged out successfully!",
-      });
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      }
+      res.status(httpStatus.OK).json({ message: "Logged out successfully!" });
     } catch (error) {
       console.error("Logout error:", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Failed to log out",
-      });
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Failed to log out" });
     }
   },
 };

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obituary API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { color: #fff; margin-bottom: 1rem; }
+        .endpoint {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .method {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .post { background: #4CAF50; }
+        .get { background: #2196F3; }
+        .patch { background: #FF9800; }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 5px;
+            border: 1px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕊️ Obituary API</h1>
+        <p>Backend API deployed on Netlify Functions with Supabase integration</p>
+        
+        <div class="status">
+            <h3>✅ API Status: Online</h3>
+            <p>All endpoints are ready for your frontend integration!</p>
+        </div>
+
+        <h2>📋 Available Endpoints</h2>
+        
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/api/health</code>
+            <p>Health check endpoint</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/api/user</code>
+            <p>Register new user</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/api/auth-login</code>
+            <p>User login with Supabase session management</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <code>/api/auth-logout</code>
+            <p>User logout</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <code>/api/user/me</code>
+            <p>Get current user profile (requires Authorization header)</p>
+        </div>
+
+        <div class="endpoint">
+            <span class="method patch">PATCH</span>
+            <code>/api/user/me</code>
+            <p>Update current user profile (requires Authorization header)</p>
+        </div>
+
+        <h2>🔗 Integration</h2>
+        <p>Your API base URL: <code id="api-url"></code></p>
+        <p>Use this URL in your frontend configuration.</p>
+
+        <h2>🔐 Authentication</h2>
+        <p>This API uses Supabase authentication with JWT tokens.</p>
+        <p>Include the token in the Authorization header: <code>Bearer YOUR_TOKEN</code></p>
+
+        <script>
+            // Set the API URL dynamically
+            document.getElementById('api-url').textContent = window.location.origin;
+            
+            // Test the health endpoint
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Health check:', data);
+                })
+                .catch(error => {
+                    console.error('Health check failed:', error);
+                });
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,279 @@
+{
+  "timestamp": "2025-08-08T17:53:36.552Z",
+  "totalLogs": 41,
+  "totalErrors": 8,
+  "success": false,
+  "logs": [
+    {
+      "timestamp": "2025-08-08T17:53:33.628Z",
+      "message": "Starting complete migration process...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:33.629Z",
+      "message": "Starting migration step: Schema Creation",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:33.629Z",
+      "message": "Creating Supabase schema...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:35.101Z",
+      "message": "Schema created successfully",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:35.702Z",
+      "message": "Schema created successfully",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:35.947Z",
+      "message": "Schema created successfully",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.537Z",
+      "message": "Schema created successfully",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.538Z",
+      "message": "Completed migration step: Schema Creation",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.538Z",
+      "message": "Starting migration step: Users",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.538Z",
+      "message": "Migrating users...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.546Z",
+      "message": "Failed to migrate users: Table 'obituary-db.users' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.546Z",
+      "message": "Completed migration step: Users",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.547Z",
+      "message": "Starting migration step: Refresh Tokens",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.547Z",
+      "message": "Migrating refresh tokens...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.547Z",
+      "message": "Failed to migrate refresh tokens: Table 'obituary-db.refreshTokens' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.547Z",
+      "message": "Completed migration step: Refresh Tokens",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.548Z",
+      "message": "Starting migration step: Cemetries",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.548Z",
+      "message": "Migrating cemetries...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.548Z",
+      "message": "Failed to migrate cemetries: Table 'obituary-db.cemetries' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.548Z",
+      "message": "Completed migration step: Cemetries",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.548Z",
+      "message": "Starting migration step: Obituaries",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.549Z",
+      "message": "Migrating obituaries...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.549Z",
+      "message": "Failed to migrate obituaries: Table 'obituary-db.obituaries' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.549Z",
+      "message": "Completed migration step: Obituaries",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.549Z",
+      "message": "Starting migration step: Candles",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.549Z",
+      "message": "Migrating candles...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.550Z",
+      "message": "Failed to migrate candles: Table 'obituary-db.candles' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.550Z",
+      "message": "Completed migration step: Candles",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.550Z",
+      "message": "Starting migration step: Visits",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.550Z",
+      "message": "Migrating visits...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.551Z",
+      "message": "Failed to migrate visits: Table 'obituary-db.visits' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.551Z",
+      "message": "Completed migration step: Visits",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.551Z",
+      "message": "Starting migration step: Photos",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.551Z",
+      "message": "Migrating photos...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.551Z",
+      "message": "Failed to migrate photos: Table 'obituary-db.photos' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.552Z",
+      "message": "Completed migration step: Photos",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.552Z",
+      "message": "Starting migration step: Condolences",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.552Z",
+      "message": "Migrating condolences...",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.552Z",
+      "message": "Failed to migrate condolences: Table 'obituary-db.condolences' doesn't exist",
+      "type": "error"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.552Z",
+      "message": "Completed migration step: Condolences",
+      "type": "info"
+    },
+    {
+      "timestamp": "2025-08-08T17:53:36.552Z",
+      "message": "Generating migration report...",
+      "type": "info"
+    }
+  ],
+  "errors": [
+    {
+      "message": "Table 'obituary-db.users' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM users ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.users' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.refreshTokens' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM refreshTokens ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.refreshTokens' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.cemetries' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM cemetries ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.cemetries' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.obituaries' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM obituaries ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.obituaries' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.candles' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM candles ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.candles' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.visits' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM visits ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.visits' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.photos' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM photos ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.photos' doesn't exist"
+    },
+    {
+      "message": "Table 'obituary-db.condolences' doesn't exist",
+      "code": "ER_NO_SUCH_TABLE",
+      "errno": 1146,
+      "sql": "SELECT * FROM condolences ORDER BY id",
+      "sqlState": "42S02",
+      "sqlMessage": "Table 'obituary-db.condolences' doesn't exist"
+    }
+  ]
+}

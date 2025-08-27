@@ -1,28 +1,8 @@
 const httpStatus = require("http-status-codes").StatusCodes;
-const fs = require("fs");
-const path = require("path");
-const sharp = require("sharp");
-const { Op } = require("sequelize");
-const { Sequelize } = require("sequelize");
-const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
 const moment = require("moment");
-const { FloristShop } = require("../models/florist_shop.model");
-
-const { Obituary, validateObituary } = require("../models/obituary.model");
-const { User } = require("../models/user.model");
-const { Keeper } = require("../models/keeper.model");
-const { SorrowBook } = require("../models/sorrow_book.model");
-const { Dedication } = require("../models/dedication.model");
-const { Photo } = require("../models/photo.model");
-const { Condolence } = require("../models/condolence.model");
-const { Candle } = require("../models/candle.model");
-const { MemoryLog } = require("../models/memory_logs.model");
-const { CompanyPage } = require("../models/company_page.model");
-const { Visit } = require("../models/visit.model");
+const { supabaseAdmin } = require("../config/supabase");
+const { uploadToSupabase } = require("../config/upload-supabase");
 const visitController = require("./visit.controller");
-const { Cemetry } = require("../models/cemetry.model");
-const { dbUploadObituaryTemplateCardsPath } = require("../config/upload");
-const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 
 const slugKeyFilter = (name) => {
   return name
@@ -46,29 +26,31 @@ const obituaryController = {
         location,
         region,
         city,
-        gender,
+        gender = 'Male',
         birthDate,
         deathDate,
         funeralLocation,
         funeralCemetery,
         funeralTimestamp,
         events,
-        deathReportExists,
+        deathReportExists = true,
         obituary,
         symbol,
+        verse,
         slugKey: providedSlugKey,
       } = req.body;
-      const { error } = validateObituary(req.body);
-      if (error) {
-        console.warn(`Invalid data format: ${error}`);
-        return res
-          .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+
+      if (!name || !sirName || !location || !region || !city || !birthDate || !deathDate || !obituary) {
+        return res.status(httpStatus.BAD_REQUEST).json({ error: "Missing required fields" });
+      }
+
+      const userId = req.profile?.id;
+      if (!userId) {
+        return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
       }
 
       // Generate slugKey if not provided
       let slugKey = providedSlugKey;
-
       if (!slugKey) {
         const formatDate = (date) => {
           const d = new Date(date);
@@ -79,33 +61,54 @@ const obituaryController = {
         };
         const cleanFirstName = slugKeyFilter(name);
         const cleanSirName = slugKeyFilter(sirName);
-        slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(
-          deathDate
-        )}`.replace(/\s+/g, "_");
+        slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(deathDate)}`.replace(/\s+/g, "_");
       }
 
-      // Ensure slugKey is unique, append number if needed
+      // Ensure slugKey is unique
       let uniqueSlugKey = slugKey;
       let counter = 1;
-      while (await Obituary.findOne({ where: { slugKey: uniqueSlugKey } })) {
-        uniqueSlugKey = `${slugKey}_${counter}`;
-        counter++;
+      while (true) {
+        const { data: existing, error } = await supabaseAdmin
+          .from('obituaries')
+          .select('id')
+          .eq('slugKey', uniqueSlugKey)
+          .limit(1);
+        if (!error && (!existing || existing.length === 0)) break;
+        uniqueSlugKey = `${slugKey}_${counter++}`;
       }
       slugKey = uniqueSlugKey;
 
-      const existingObituary = await Obituary.findOne({
-        where: { name, sirName, deathDate },
-      });
-
-      if (existingObituary) {
-        console.warn("Duplicate obituary detected");
-        return res.status(httpStatus.CONFLICT).json({
-          error:
-            "An obituary with the same name, and death date already exists for this user.",
-        });
+      // Check duplicate by name, sirName, deathDate
+      const { data: dup, error: dupErr } = await supabaseAdmin
+        .from('obituaries')
+        .select('id')
+        .eq('name', name)
+        .eq('sirName', sirName)
+        .eq('deathDate', deathDate)
+        .limit(1);
+      if (!dupErr && dup && dup.length > 0) {
+        return res.status(httpStatus.CONFLICT).json({ error: 'An obituary with the same name and death date already exists.' });
       }
 
-      const newObituary = await Obituary.create({
+      // Upload files
+      let picturePath = null;
+      let deathReportPath = null;
+      if (req.files?.picture) {
+        try {
+          const pictureFile = req.files.picture[0];
+          const upload = await uploadToSupabase(pictureFile, 'obituary-images', `obituary-${slugKey}`);
+          picturePath = upload.publicUrl;
+        } catch (e) { console.error('picture upload error', e); }
+      }
+      if (req.files?.deathReport) {
+        try {
+          const deathReportFile = req.files.deathReport[0];
+          const upload = await uploadToSupabase(deathReportFile, 'private-documents', `death-reports/${slugKey}`);
+          deathReportPath = upload.publicUrl;
+        } catch (e) { console.error('death report upload error', e); }
+      }
+
+      const payload = {
         name,
         sirName,
         location,
@@ -114,75 +117,47 @@ const obituaryController = {
         gender,
         birthDate,
         deathDate,
-        funeralLocation,
-        funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
+        image: picturePath,
+        funeralLocation: funeralLocation || null,
+        funeralCemetery: funeralCemetery && funeralCemetery !== '' ? parseInt(funeralCemetery) : null,
         funeralTimestamp: funeralTimestamp || null,
-        events: JSON.parse(events || "[]"),
+        events: events ? JSON.parse(events) : null,
         deathReportExists,
+        deathReport: deathReportPath,
         obituary,
-        symbol,
-        userId: req.user.id,
+        symbol: symbol || null,
+        verse: verse || null,
+        userId,
         slugKey,
-      });
+        totalCandles: 0,
+        totalVisits: 0,
+        currentWeekVisits: 0,
+        lastWeeklyReset: new Date().toISOString(),
+        createdTimestamp: new Date().toISOString(),
+        modifiedTimestamp: new Date().toISOString(),
+        isHidden: false,
+        isMemoryBlocked: false,
+        isDeleted: false
+      };
 
-      const obituaryId = newObituary.id;
-      const obituaryFolder = path.join(
-        OBITUARY_UPLOADS_PATH,
-        String(obituaryId)
-      );
-      if (!fs.existsSync(obituaryFolder)) {
-        fs.mkdirSync(obituaryFolder, { recursive: true });
+      const { data: created, error: createErr } = await supabaseAdmin
+        .from('obituaries')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (createErr) {
+        console.error('create obituary error', createErr);
+        return res.status(500).json({ error: 'Failed to create obituary' });
       }
 
-      let picturePath = null;
-      let deathReportPath = null;
-
-      if (req.files?.picture) {
-        const pictureFile = req.files.picture[0];
-        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
-
-        const localPath = path.join(
-          "obituaryUploads",
-          String(obituaryId),
-          fileName
-        );
-
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", localPath));
-
-        picturePath = `${localPath.replace(/\\/g, "/")}`;
-      }
-
-      if (req.files?.deathReport) {
-        const fileName = req.files.deathReport[0].originalname;
-        const localPath = path.join(
-          "obituaryUploads",
-          String(obituaryId),
-          fileName
-        );
-
-        fs.writeFileSync(
-          path.join(__dirname, "../", localPath),
-          req.files.deathReport[0].buffer
-        );
-
-        deathReportPath = `${localPath.replace(/\\/g, "/")}`;
-      }
-
-      newObituary.image = picturePath;
-      newObituary.deathReport = deathReportPath;
-      await newObituary.save();
-      return res.status(httpStatus.CREATED).json(newObituary);
+      return res.status(httpStatus.CREATED).json(created);
     } catch (err) {
       console.error("Error in createObituary:", err);
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Failed to create obituary. Please try again.",
-      });
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Failed to create obituary. Please try again." });
     }
   },
-  //test
+  // Get obituaries (Supabase) - keep response shape
   getObituary: async (req, res) => {
     try {
       const {
@@ -195,980 +170,794 @@ const obituaryController = {
         slugKey,
         date,
         days,
-        startDate,
-        endDate,
       } = req.query;
 
-      const whereClause = {};
+      // Build main query
+      let query = supabaseAdmin
+        .from('obituaries')
+        .select(`
+          *,
+          "users"!inner(id, name, email, role, company),
+          "cemetries"(id, name, address, city)
+        `, { count: 'exact' })
+        .order('createdTimestamp', { ascending: false });
 
-      if (id) whereClause.id = id;
-      if (userId) whereClause.userId = userId;
-      if (obituaryId) whereClause.id = obituaryId;
-      if (slugKey) whereClause.slugKey = slugKey;
-      let totalDays = parseInt(days) || 30;
+      if (id) query = query.eq('id', parseInt(id));
+      if (userId) query = query.eq('userId', parseInt(userId));
+      if (obituaryId) query = query.eq('id', parseInt(obituaryId));
+      if (slugKey) query = query.eq('slugKey', slugKey);
 
-      if (startDate && endDate) {
-        // Convert the date strings to proper date range for filtering
-        const startOfDay = new Date(startDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        whereClause.createdTimestamp = {
-          [Op.between]: [startOfDay, endOfDay],
-        };
+      if (date) {
+        const targetDate = new Date(date);
+        const startOfDay = new Date(targetDate); startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date(targetDate); endOfDay.setHours(23,59,59,999);
+        query = query.gte('createdTimestamp', startOfDay.toISOString())
+                     .lte('createdTimestamp', endOfDay.toISOString());
       }
 
       if (name) {
-        whereClause[Op.or] = [
-          { name: { [Op.like]: `%${name}%` } },
-          { sirName: { [Op.like]: `%${name}%` } },
-        ];
+        // match either first or sirName
+        query = query.or(`name.ilike.%${name}%,sirName.ilike.%${name}%`);
       }
 
-      if (city) {
-        whereClause.city = city;
-      } else if (region) {
-        whereClause.region = region;
+      if (city) query = query.eq('city', city);
+      else if (region) query = query.eq('region', region);
+
+      const { data: obits, error, count } = await query;
+      if (error) {
+        console.error('getObituary query error:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
       }
 
+      // Funeral count for today in same city (if provided)
+      const today = new Date(); today.setHours(0,0,0,0);
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1); tomorrow.setHours(23,59,59,999);
 
-      // Main obituary query
-      const obituaries = await Obituary.findAndCountAll({
-        where: whereClause,
-        order: [["createdTimestamp", "DESC"]],
-        include: [
-          {
-            model: User,
-          },
-          {
-            model: Cemetry,
-          },
-        ],
-      });
+      let funeralQuery = supabaseAdmin
+        .from('obituaries')
+        .select('id', { count: 'exact' })
+        .gte('funeralTimestamp', today.toISOString())
+        .lte('funeralTimestamp', tomorrow.toISOString());
+      if (city) funeralQuery = funeralQuery.eq('funeralLocation', city);
 
-      // Count funerals between today and tomorrow
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date();
-      tomorrow.setDate(today.getDate() + 1);
-      tomorrow.setHours(23, 59, 59, 999);
-
-      const funeralCount = await Obituary.count({
-        where: {
-          ...(city && { funeralLocation: city }),
-          funeralTimestamp: {
-            [Op.between]: [today, tomorrow],
-          },
-        },
-      });
+      const { count: funeralCount } = await funeralQuery;
 
       res.status(httpStatus.OK).json({
-        total: obituaries.count,
-        obituaries: obituaries.rows,
-        funeralCount: funeralCount,
+        total: count || (obits ? obits.length : 0),
+        obituaries: obits || [],
+        funeralCount: funeralCount || 0,
       });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Internal Server Error" });
+      console.error('getObituary error:', error);
+      return res.status(500).json({ message: 'Internal Server Error' });
     }
   },
 
+  // Get memory page using Supabase, keep response shape { obituary }
   getMemory: async (req, res) => {
-    const { id, slugKey } = req.query;
-    const whereClause = {};
+    try {
+      const { id, slugKey } = req.query;
 
-    if (id) whereClause.id = id;
-    else if (slugKey) whereClause.slugKey = slugKey;
+      // Find obituary id first
+      let lookup = supabaseAdmin.from('obituaries').select('id').limit(1);
+      if (id) lookup = lookup.eq('id', parseInt(id));
+      else if (slugKey) lookup = lookup.eq('slugKey', slugKey);
 
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0] ||
-      req.connection.remoteAddress ||
-      req.socket.remoteAddress ||
-      req.ip;
+      const { data: base, error: baseErr } = await lookup.single();
+      if (baseErr || !base) {
+        return res.status(httpStatus.NOT_FOUND).json({ error: 'Memory not found' });
+      }
 
-    const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
-    const baseObituary = await Obituary.findOne({
-      where: whereClause,
-      attributes: ["id"],
-    });
+      const obituaryId = base.id;
 
-    if (!baseObituary) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json({ error: "Memory not found" });
-    }
+      // Fetch obituary with related
+      const { data: obituary, error: obitErr } = await supabaseAdmin
+        .from('obituaries')
+        .select(`
+          *,
+          "users"!inner(*),
+          "cemetries"(*),
+          Keepers: "keepers"(*),
+          SorrowBooks: "sorrowBooks"(*),
+          Dedications: "dedications"(*),
+          Photos: "photos"(*),
+          Condolences: "condolences"(*)
+        `)
+        .eq('id', obituaryId)
+        .eq('isDeleted', false)
+        .single();
 
-    const obituary = await Obituary.findOne({
-      where: { id: baseObituary.id },
-      include: [
-        {
-          model: User,
-        },
-        {
-          model: Keeper,
-          required: false,
-          limit: 1000,
-        },
-        {
-          model: Cemetry,
-          required: false,
-        },
-        {
-          model: SorrowBook,
-          required: false,
-          limit: 1000,
-        },
-        {
-          model: Dedication,
-          where: { status: "approved" },
-          required: false,
-          limit: 1000,
-        },
-        {
-          model: MemoryLog,
-          where: { status: "approved" },
-          required: false,
-          limit: 3,
-        },
-        {
-          model: Photo,
-          where: { status: "approved" },
-          required: false,
-          limit: 1000,
-        },
-        {
-          model: Condolence,
-          where: { status: "approved" },
-          required: false,
-          limit: 1000,
-          order: [["createdTimestamp", "DESC"]],
-        },
-        // Do NOT include Candle with aggregate attributes here
-      ],
-    });
+      if (obitErr || !obituary) {
+        return res.status(httpStatus.NOT_FOUND).json({ error: 'Memory not found' });
+      }
 
-    if (obituary) {
-      // Fetch candle aggregates in separate queries
-      const obituaryId = obituary.id;
+      // Filter approved where needed
+      obituary.Dedications = (obituary.Dedications || []).filter(d => d.status === 'approved');
+      obituary.Photos = (obituary.Photos || []).filter(p => p.status === 'approved');
+      obituary.Condolences = (obituary.Condolences || []).filter(c => c.status === 'approved');
 
-      // Total candles
-      const totalCandles = await Candle.count({
-        where: { obituaryId },
-      });
+      // Candle aggregates
+      const [{ data: candlesAll }, { data: myCandles }] = await Promise.all([
+        supabaseAdmin.from('"candles"').select('id, createdTimestamp').eq('obituaryId', obituaryId).order('createdTimestamp', { ascending: false }),
+        supabaseAdmin.from('"candles"').select('createdTimestamp').eq('obituaryId', obituaryId).order('createdTimestamp', { ascending: false }).limit(1)
+      ]);
 
-      // Last burned candle (id and createdTimestamp)
-      const lastBurnedCandle = await Candle.findOne({
-        where: { obituaryId },
-        order: [["createdTimestamp", "DESC"]],
-        attributes: ["id", "createdTimestamp"],
-      });
-
-      // My last burnt candle time (by IP)
-      const myLastBurntCandle = await Candle.findOne({
-        where: {
-          obituaryId,
-          ipAddress: ipAddress,
-        },
-        order: [["createdTimestamp", "DESC"]],
-        attributes: ["createdTimestamp"],
-      });
-
-      // Attach candle aggregate info to the result
-      obituary.dataValues.candles = {
-        totalCandles,
-        lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
-        lastBurnedCandleTime: lastBurnedCandle
-          ? lastBurnedCandle.createdTimestamp
-          : null,
-        myLastBurntCandleTime: myLastBurntCandle
-          ? myLastBurntCandle.createdTimestamp
-          : null,
+      obituary.candles = {
+        totalCandles: (candlesAll || []).length,
+        lastBurnedCandleId: candlesAll && candlesAll[0] ? candlesAll[0].id : null,
+        lastBurnedCandleTime: candlesAll && candlesAll[0] ? candlesAll[0].createdTimestamp : null,
+        myLastBurntCandleTime: myCandles && myCandles[0] ? myCandles[0].createdTimestamp : null
       };
-    }
 
-    if (!obituary) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json({ error: "Memory not found" });
+      return res.status(httpStatus.OK).json({ obituary });
+    } catch (e) {
+      console.error('getMemory error:', e);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch memory' });
     }
-
-    res.status(httpStatus.OK).json({
-      obituary,
-    });
   },
 
   getMemories: async (req, res) => {
-    const userId = req.user.id;
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0] ||
-      req.connection.remoteAddress ||
-      req.socket.remoteAddress ||
-      req.ip;
+    try {
+      const userId = req.profile?.id;
 
-    const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
+      const ip = req.headers["x-forwarded-for"]?.split(",")[0]
+        || req.connection.remoteAddress
+        || req.socket.remoteAddress
+        || req.ip;
+      const ipAddress = (ip && ip.includes("::ffff:")) ? ip.split("::ffff:")[1] : ip;
 
-    const obituaries = await Obituary.findAll({
-      attributes: [
-        "id",
-        "name",
-        "sirName",
-        "deathDate",
-        "city",
-        "birthDate",
-        "funeralTimestamp",
-        "totalVisits",
-      ],
-      include: [
-        {
-          model: Keeper,
-          required: false,
-          order: [["createdTimestamp", "DESC"]],
-        },
-        {
-          model: MemoryLog,
-          where: {
-            type: {
-              [Op.notIn]: ["candle", "visit"],
-            },
-            status: "approved",
-          },
-          required: false,
-        },
-        {
-          model: Visit,
-          as: "visits",
-          where: {
-            [Op.or]: [{ userId: userId }, { ipAddress: ipAddress }],
-          },
-          required: false,
-          attributes: ["id", "createdTimestamp"], // Keep visit ID and created timestamp
-        },
-        {
-          model: Candle,
-          as: "candles",
-          where: {
-            [Op.or]: [{ userId: userId }, { ipAddress: ipAddress }],
-          },
-          required: false,
-          attributes: ["id", "createdTimestamp"], // Keep candle ID and created timestamp
-        },
-      ],
-      where: {
-        [Op.or]: [
-          { "$Keepers.userId$": userId },
-          { "$MemoryLogs.userId$": userId },
-        ],
-      },
-    });
+      if (!userId) {
+        return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
+      }
 
-    // Process the retrieved obituaries
-    const finalObituaries = obituaries.map((obituary) => {
-      const isKeeper = obituary.Keepers.some(
-        (keeper) => keeper.userId === userId
-      );
+      // 1) Keeper obituaries for this user
+      const { data: keeperRows, error: keeperErr } = await supabaseAdmin
+        .from('"keepers"')
+        .select('obituaryId, userId')
+        .eq('userId', userId);
 
-      const totalVisits = obituary.visits.length;
-      const lastVisit =
-        totalVisits > 0 ? obituary.visits[0].createdTimestamp : null;
+      if (keeperErr) {
+        console.error('keepers query error:', keeperErr);
+        return res.status(500).json({ error: 'Failed to fetch keepers' });
+      }
 
-      const totalCandles = obituary.candles.length;
-      const lastCandleBurnt =
-        totalCandles > 0 ? obituary.candles[0].createdTimestamp : null;
+      const keeperObitIds = new Set((keeperRows || []).map(k => k.obituaryId));
 
-      return {
-        ...obituary.toJSON(),
-        isKeeper: isKeeper,
-        totalVisits,
-        lastVisit,
-        totalCandles,
-        lastCandleBurnt,
-      };
-    });
+      // 2) Memory logs by this user (exclude candle, visit)
+      const { data: myLogs, error: logsErr } = await supabaseAdmin
+        .from('"memorylogs"')
+        .select('obituaryId, type, status, userId')
+        .eq('userId', userId)
+        .neq('type', 'candle')
+        .neq('type', 'visit')
+        .eq('status', 'approved');
 
-    return res.status(httpStatus.OK).json({
-      finalObituaries,
-    });
+      if (logsErr) {
+        console.error('memorylogs query error:', logsErr);
+        return res.status(500).json({ error: 'Failed to fetch memory logs' });
+      }
+
+      const logObitIds = new Set((myLogs || []).map(l => l.obituaryId));
+
+      // Union of obituary IDs
+      const allObitIds = Array.from(new Set([...keeperObitIds, ...logObitIds]));
+      if (allObitIds.length === 0) {
+        return res.status(httpStatus.OK).json({ finalObituaries: [] });
+      }
+
+      // 3) Fetch selected fields from obituaries
+      const { data: obits, error: obitsErr } = await supabaseAdmin
+        .from('obituaries')
+        .select('id, name, sirName, deathDate, city, birthDate, funeralTimestamp, totalVisits')
+        .in('id', allObitIds)
+        .order('createdTimestamp', { ascending: false });
+
+      if (obitsErr) {
+        console.error('obituaries query error:', obitsErr);
+        return res.status(500).json({ error: 'Failed to fetch obituaries' });
+      }
+
+      // 4) Fetch visits for these obituaries by this user/ip
+      const { data: visits, error: visitsErr } = await supabaseAdmin
+        .from('"visits"')
+        .select('id, obituaryId, createdTimestamp')
+        .in('obituaryId', allObitIds)
+        .or(`userId.eq.${userId},ipAddress.eq.${ipAddress || ''}`)
+        .order('createdTimestamp', { ascending: false });
+
+      if (visitsErr) {
+        console.error('visits query error:', visitsErr);
+      }
+
+      // 5) Fetch candles for these obituaries by this user/ip
+      const { data: candles, error: candlesErr } = await supabaseAdmin
+        .from('"candles"')
+        .select('id, obituaryId, createdTimestamp')
+        .in('obituaryId', allObitIds)
+        .or(`userId.eq.${userId},ipAddress.eq.${ipAddress || ''}`)
+        .order('createdTimestamp', { ascending: false });
+
+      if (candlesErr) {
+        console.error('candles query error:', candlesErr);
+      }
+
+      // Group visits/candles by obituary
+      const visitsByObit = new Map();
+      (visits || []).forEach(v => {
+        if (!visitsByObit.has(v.obituaryId)) visitsByObit.set(v.obituaryId, []);
+        visitsByObit.get(v.obituaryId).push(v);
+      });
+
+      const candlesByObit = new Map();
+      (candles || []).forEach(c => {
+        if (!candlesByObit.has(c.obituaryId)) candlesByObit.set(c.obituaryId, []);
+        candlesByObit.get(c.obituaryId).push(c);
+      });
+
+      const keeperSet = new Set((keeperRows || []).map(k => k.obituaryId));
+
+      const finalObituaries = (obits || []).map(o => {
+        const oVisits = visitsByObit.get(o.id) || [];
+        const oCandles = candlesByObit.get(o.id) || [];
+        return {
+          ...o,
+          isKeeper: keeperSet.has(o.id),
+          totalVisits: oVisits.length,
+          lastVisit: oVisits[0]?.createdTimestamp || null,
+          totalCandles: oCandles.length,
+          lastCandleBurnt: oCandles[0]?.createdTimestamp || null,
+        };
+      });
+
+      return res.status(httpStatus.OK).json({ finalObituaries });
+    } catch (e) {
+      console.error('getMemories error:', e);
+      return res.status(500).json({ error: 'Failed to fetch memories' });
+    }
   },
 
   getFunerals: async (req, res) => {
-    const { id, startDate, endDate, region, city } = req.query;
+    try {
+      const { id, startDate, endDate, region, city, limit = 50, offset = 0 } = req.query;
 
-    const whereClause = {};
+      let query = supabaseAdmin
+        .from('obituaries')
+        .select(`
+          *,
+          "users"!inner(id, name, email)
+        `)
+        .order('funeralTimestamp', { ascending: true });
 
-    if (id) whereClause.id = id;
+      if (id) query = query.eq('id', parseInt(id));
+      if (region) query = query.eq('region', region);
+      if (city) query = query.eq('city', city);
 
-    if (city) {
-      whereClause.city = city;
+      if (startDate && endDate) {
+        const startOfDay = new Date(startDate); startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date(endDate); endOfDay.setHours(23,59,59,999);
+        query = query.gte('funeralTimestamp', startOfDay.toISOString())
+                     .lte('funeralTimestamp', endOfDay.toISOString());
+      }
+
+      // Exclude deleted
+      query = query.eq('isDeleted', false);
+
+      // Pagination
+      query = query.range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('getFunerals error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success: false, error: 'Failed to fetch funerals' });
+      }
+
+      res.status(httpStatus.OK).json({
+        total: data.length,
+        obituaries: data
+      });
+    } catch (e) {
+      console.error('getFunerals exception:', e);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ success: false, error: 'Internal Server Error' });
     }
-    // if (region) {
-    //   whereClause.region = region;
-    // }
-
-    if (startDate && endDate) {
-      // Convert the date strings to proper date range for filtering
-      const startOfDay = new Date(startDate);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(endDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      whereClause.funeralTimestamp = {
-        [Op.between]: [startOfDay, endOfDay],
-      };
-    }
-
-
-    const obituaries = await Obituary.findAndCountAll({
-      where: whereClause,
-      order: [["funeralTimestamp", "ASC"]], // Order by time ascending
-      include: [
-        {
-          model: User,
-        },
-      ],
-    });
-
-    res.status(httpStatus.OK).json({
-      total: obituaries.count,
-      obituaries: obituaries.rows,
-    });
   },
 
   updateObituary: async (req, res) => {
-    const obituaryId = req.params.id;
-    const userId = req.user.id;
-    const existingObituary = await Obituary.findOne({
-      where: {
-        id: obituaryId,
-        userId,
-      },
-    });
-
-    if (!existingObituary) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json({ error: "Obituary not found/Only Owner can update" });
-    }
-
-    const obituaryFolder = path.join(OBITUARY_UPLOADS_PATH, String(obituaryId));
-
-    if (!fs.existsSync(obituaryFolder)) {
-      fs.mkdirSync(obituaryFolder, { recursive: true });
-    }
-
-    let picturePath = existingObituary.image;
-    let deathReportPath = existingObituary.deathReport;
-
-    if (req.files?.picture) {
-      const pictureFile = req.files.picture[0];
-
-      if (
-        existingObituary.image &&
-        fs.existsSync(path.join(__dirname, "../", existingObituary.image))
-      ) {
-        fs.unlinkSync(path.join(__dirname, "../", existingObituary.image));
+    try {
+      const obituaryId = parseInt(req.params.id);
+      const userId = req.profile?.id;
+      if (!userId) {
+        return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
       }
 
-      picturePath = await optimizeAndSaveImage({
-        file: pictureFile,
-        folder: "obituaryUploads",
-        obituaryId,
-      });
-    }
+      // Fetch existing obituary
+      const { data: existingObituary, error: fetchError } = await supabaseAdmin
+        .from('obituaries')
+        .select('*')
+        .eq('id', obituaryId)
+        .eq('userId', userId)
+        .single();
 
-    if (req.files?.deathReport) {
-      deathReportPath = path.join(
-        "obituaryUploads",
-        String(obituaryId),
-        req.files.deathReport[0].originalname
-      );
-
-      if (
-        existingObituary.deathReport &&
-        fs.existsSync(path.join(__dirname, "../", existingObituary.deathReport))
-      ) {
-        fs.unlinkSync(
-          path.join(__dirname, "../", existingObituary.deathReport)
-        );
+      if (fetchError || !existingObituary) {
+        return res.status(httpStatus.NOT_FOUND).json({ error: 'Obituary not found/Only Owner can update' });
       }
 
-      fs.writeFileSync(
-        path.join(__dirname, "../", deathReportPath),
-        req.files.deathReport[0].buffer
-      );
+      const fieldsToUpdate = {};
+      const {
+        name,
+        sirName,
+        location,
+        region,
+        city,
+        gender,
+        birthDate,
+        deathDate,
+        funeralLocation,
+        funeralCemetery,
+        funeralTimestamp,
+        events,
+        deathReportExists,
+        obituary,
+        symbol,
+        verse
+      } = req.body;
+
+      if (name !== undefined) fieldsToUpdate.name = name;
+      if (sirName !== undefined) fieldsToUpdate.sirName = sirName;
+      if (location !== undefined) fieldsToUpdate.location = location;
+      if (region !== undefined) fieldsToUpdate.region = region;
+      if (city !== undefined) fieldsToUpdate.city = city;
+      if (gender !== undefined) fieldsToUpdate.gender = gender;
+      if (birthDate !== undefined) fieldsToUpdate.birthDate = birthDate;
+      if (deathDate !== undefined) fieldsToUpdate.deathDate = deathDate;
+      if (funeralLocation !== undefined) fieldsToUpdate.funeralLocation = funeralLocation;
+      if (funeralCemetery !== undefined) fieldsToUpdate.funeralCemetery = funeralCemetery === '' ? null : parseInt(funeralCemetery);
+      if (funeralTimestamp !== undefined) fieldsToUpdate.funeralTimestamp = funeralTimestamp;
+      if (verse !== undefined) fieldsToUpdate.verse = verse;
+      if (events !== undefined) { try { fieldsToUpdate.events = JSON.parse(events); } catch(_) {} }
+      if (deathReportExists !== undefined) fieldsToUpdate.deathReportExists = deathReportExists;
+      if (obituary !== undefined) fieldsToUpdate.obituary = obituary;
+      if (symbol !== undefined) fieldsToUpdate.symbol = symbol;
+
+      // Handle file uploads
+      if (req.files?.picture) {
+        try {
+          const pictureFile = req.files.picture[0];
+          const upload = await uploadToSupabase(pictureFile, 'obituary-images', `obituary-${existingObituary.slugKey}`);
+          fieldsToUpdate.image = upload.publicUrl;
+        } catch (e) { console.error('picture upload failed', e); }
+      }
+
+      if (req.files?.deathReport) {
+        try {
+          const deathReportFile = req.files.deathReport[0];
+          const upload = await uploadToSupabase(deathReportFile, 'private-documents', `death-reports/${existingObituary.slugKey}`);
+          fieldsToUpdate.deathReport = upload.publicUrl; // if private, switch to signed URLs
+        } catch (e) { console.error('death report upload failed', e); }
+      }
+
+      fieldsToUpdate.modifiedTimestamp = new Date().toISOString();
+
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from('obituaries')
+        .update(fieldsToUpdate)
+        .eq('id', obituaryId)
+        .eq('userId', userId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('updateObituary error:', updateError);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to update obituary' });
+      }
+
+      return res.status(httpStatus.OK).json(updated);
+    } catch (error) {
+      console.error('updateObituary exception:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
     }
-
-    const fieldsToUpdate = {};
-
-    if (req.body.name !== undefined) fieldsToUpdate.name = req.body.name;
-    if (req.body.sirName !== undefined)
-      fieldsToUpdate.sirName = req.body.sirName;
-    if (req.body.location !== undefined)
-      fieldsToUpdate.location = req.body.location;
-
-    if (req.body.region !== undefined) fieldsToUpdate.region = req.body.region;
-    if (req.body.city !== undefined) fieldsToUpdate.city = req.body.city;
-    if (req.body.gender !== undefined) fieldsToUpdate.gender = req.body.gender;
-    if (req.body.birthDate !== undefined)
-      fieldsToUpdate.birthDate = req.body.birthDate;
-    if (req.body.deathDate !== undefined)
-      fieldsToUpdate.deathDate = req.body.deathDate;
-    if (req.body.funeralLocation !== undefined)
-      fieldsToUpdate.funeralLocation = req.body.funeralLocation;
-    if (req.body.funeralCemetery !== undefined)
-      fieldsToUpdate.funeralCemetery = req.body.funeralCemetery;
-    if (req.body.funeralTimestamp !== undefined)
-      fieldsToUpdate.funeralTimestamp = req.body.funeralTimestamp;
-    if (req.body.verse !== undefined) fieldsToUpdate.verse = req.body.verse;
-    if (req.body.events !== undefined)
-      fieldsToUpdate.events = JSON.parse(req.body.events);
-
-    if (req.body.deathReportExists !== undefined)
-      fieldsToUpdate.deathReportExists = req.body.deathReportExists;
-    if (req.body.obituary !== undefined)
-      fieldsToUpdate.obituary = req.body.obituary;
-    if (req.body.symbol !== undefined) fieldsToUpdate.symbol = req.body.symbol;
-
-    if (picturePath !== existingObituary.image) {
-      fieldsToUpdate.image = picturePath;
-    }
-    if (deathReportPath !== existingObituary.deathReport) {
-      fieldsToUpdate.deathReport = deathReportPath;
-    }
-
-    await existingObituary.update(fieldsToUpdate);
-
-    res.status(httpStatus.OK).json(existingObituary);
   },
 
   updateVisitCounts: async (req, res) => {
     try {
-      const { id: obituaryId } = req.params;
+      const { id: obituaryIdParam } = req.params;
+      const obituaryId = parseInt(obituaryIdParam);
 
-      const ip =
-        req.headers["x-forwarded-for"]?.split(",")[0] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.ip;
-
-      const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
+      const ip = req.headers["x-forwarded-for"]?.split(",")[0]
+        || req.connection.remoteAddress
+        || req.socket.remoteAddress
+        || req.ip;
+      const ipAddress = (ip && ip.includes("::ffff:")) ? ip.split("::ffff:")[1] : ip;
       const currentTimestamp = new Date();
 
-      const obituary = await Obituary.findByPk(obituaryId, {
-        include: [
-          { model: User },
-          {
-            model: Keeper,
-            required: false,
-            limit: 1000,
-          },
-          {
-            model: SorrowBook,
-            required: false,
-            limit: 1000,
-          },
+      // Fetch obituary with related minimal fields
+      const { data: obituary, error: obitErr } = await supabaseAdmin
+        .from('obituaries')
+        .select('id, userId, city, totalVisits, currentWeekVisits, lastWeeklyReset')
+        .eq('id', obituaryId)
+        .single();
 
-          {
-            model: Dedication,
-            where: { status: "approved" },
-            required: false,
-            limit: 1000,
-          },
-          {
-            model: MemoryLog,
-            where: { status: "approved" },
-            required: false,
-            limit: 3,
-          },
-          {
-            model: Photo,
-            where: { status: "approved" },
-            required: false,
-            limit: 1000,
-          },
-          {
-            model: Condolence,
-            where: { status: "approved" },
-            required: false,
-            limit: 1000,
-            order: [["createdTimestamp", "DESC"]],
-          },
-          {
-            model: Cemetry,
-            required: false,
-          },
-        ],
-
-        // group: ["Obituary.id"],
-      });
-
-      if (!obituary) {
-        console.warn("Obituary not found");
-        return res
-          .status(httpStatus.NOT_FOUND)
-          .json({ error: "Obituary not found" });
+      if (obitErr || !obituary) {
+        return res.status(httpStatus.NOT_FOUND).json({ error: 'Obituary not found' });
       }
 
-      const totalCandles = await Candle.count({
-        where: { obituaryId: obituary.id },
-      });
+      // Candle aggregates
+      const [{ data: candleCount }, { data: lastCandle }] = await Promise.all([
+        supabaseAdmin.from('"candles"').select('id', { count: 'exact', head: true }).eq('obituaryId', obituaryId),
+        supabaseAdmin.from('"candles"').select('id, createdTimestamp').eq('obituaryId', obituaryId).order('createdTimestamp', { ascending: false }).limit(1)
+      ]);
 
-      const lastBurnedCandle = await Candle.findOne({
-        where: { obituaryId: obituary.id },
-        order: [["createdTimestamp", "DESC"]],
-        attributes: ["id", "createdTimestamp"],
-      });
-
-      obituary.dataValues.candles = {
-        totalCandles,
-        lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
-        lastBurnedCandleTime: lastBurnedCandle
-          ? lastBurnedCandle.createdTimestamp
-          : null,
-      };
-
-      // Calculate the start of the current week (Monday)
+      // Weekly reset logic
       const startOfWeek = new Date();
-      startOfWeek.setDate(
-        startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)
-      );
+      startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
       startOfWeek.setHours(0, 0, 0, 0);
 
-      const shouldResetWeek =
-        !obituary.lastWeeklyReset ||
-        new Date(obituary.lastWeeklyReset) < startOfWeek;
+      const shouldResetWeek = !obituary.lastWeeklyReset || new Date(obituary.lastWeeklyReset) < startOfWeek;
 
-      // Calculate values to update
       const updates = {
-        totalVisits: obituary.totalVisits + 1,
+        totalVisits: (obituary.totalVisits || 0) + 1,
+        currentWeekVisits: shouldResetWeek ? 1 : (obituary.currentWeekVisits || 0) + 1,
+        lastWeeklyReset: shouldResetWeek ? currentTimestamp.toISOString() : obituary.lastWeeklyReset
       };
 
-      if (shouldResetWeek) {
-        updates.currentWeekVisits = 1;
-        updates.lastWeeklyReset = currentTimestamp;
-      } else {
-        updates.currentWeekVisits = obituary.currentWeekVisits + 1;
-      }
+      const { error: updErr } = await supabaseAdmin
+        .from('obituaries')
+        .update(updates)
+        .eq('id', obituaryId);
 
-      // One single DB update call here
-      await obituary.update(updates);
-
+      // Track visit record (using your existing controller method)
       await visitController.visitMemory(1, ipAddress, obituaryId);
 
-      // 1. Get the city and user
-      const city = obituary.city;
-      const user = obituary.User;
-
-      const company = await CompanyPage.findOne({ where: { userId: user.id } });
-
-      let floristShopList = [];
-
-      if (user.role === "Florist" && company) {
-        const ownShop = await FloristShop.findOne({
-          where: {
-            companyId: company.id,
-            city: city,
-          },
-        });
-        if (ownShop) {
-          ownShop.dataValues.own = true;
+      // Attach extra fields in response (matching old shape)
+      const response = {
+        ...obituary,
+        ...updates,
+        candles: {
+          totalCandles: candleCount || 0,
+          lastBurnedCandleId: lastCandle?.[0]?.id || null,
+          lastBurnedCandleTime: lastCandle?.[0]?.createdTimestamp || null
         }
+      };
 
-        const randomShops = await FloristShop.findAll({
-          where: {
-            city: city,
-            companyId: { [Sequelize.Op.ne]: company.id },
-          },
-          order: Sequelize.literal("RAND()"),
-          limit: 5,
-        });
-
-        floristShopList = [...(ownShop ? [ownShop] : []), ...randomShops];
-      } else {
-        floristShopList = await FloristShop.findAll({
-          where: { city },
-          order: Sequelize.literal("RAND()"),
-          limit: 5,
-        });
-      }
-
-      obituary.dataValues.floristShops = floristShopList;
-      obituary.dataValues.Company = company;
-      res.status(httpStatus.OK).json(obituary);
+      return res.status(httpStatus.OK).json(response);
     } catch (error) {
-      console.error("Error updating visit counts:", error);
-      res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "An error occurred while updating visit counts" });
+      console.error('updateVisitCounts error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'An error occurred while updating visit counts' });
     }
   },
 
   getPendingData: async (req, res) => {
     try {
-      const keeperObituaries = await Keeper.findAll({
-        where: { userId: req.user.id },
-        attributes: ["obituaryId"],
-      });
+      const userId = req.profile?.id;
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
 
-      if (!keeperObituaries.length)
-        return res.status(httpStatus.OK).json({
-          pending: [],
-          others: [],
-        });
+      const { data: keepers, error: keepersErr } = await supabaseAdmin
+        .from('"keepers"')
+        .select('obituaryId')
+        .eq('userId', userId);
 
-      const obituaryIds = keeperObituaries.map((k) => k.obituaryId);
+      if (keepersErr) {
+        console.error('keepers error:', keepersErr);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch keepers' });
+      }
 
-      const interactions = await MemoryLog.findAll({
-        where: {
-          obituaryId: obituaryIds,
-          type: ["photo", "condolence", "dedication"],
-        },
-        attributes: [
-          "id",
-          "interactionId",
-          "type",
-          "status",
-          "createdTimestamp",
-          "userName",
-          "typeInSL",
-        ],
-        include: [
-          {
-            model: Obituary,
-            attributes: ["name", "sirName"],
-          },
-        ],
-        order: [["createdTimestamp", "DESC"]],
-      });
+      if (!keepers || keepers.length === 0) {
+        return res.status(httpStatus.OK).json({ pending: [], others: [] });
+      }
 
-      const result = {
-        pending: [],
-        others: [],
-        isKeeper: keeperObituaries.length > 0 ? true : false,
-      };
+      const obituaryIds = keepers.map(k => k.obituaryId);
 
-      interactions.forEach((item) => {
-        if (item.status === "pending") result.pending.push(item);
-        else result.others.push(item);
+      const { data: interactions, error: logsErr } = await supabaseAdmin
+        .from('"memorylogs"')
+        .select('id, interactionId, type, status, createdTimestamp, userName, typeInSL, obituaryId')
+        .in('obituaryId', obituaryIds)
+        .in('type', ['photo', 'condolence', 'dedication'])
+        .order('createdTimestamp', { ascending: false });
+
+      if (logsErr) {
+        console.error('memorylogs error:', logsErr);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch interactions' });
+      }
+
+      // fetch obituary names map
+      const { data: obits } = await supabaseAdmin
+        .from('obituaries')
+        .select('id, name, sirName')
+        .in('id', obituaryIds);
+      const obitMap = new Map((obits || []).map(o => [o.id, { name: o.name, sirName: o.sirName }]));
+
+      const result = { pending: [], others: [], isKeeper: true };
+      (interactions || []).forEach(item => {
+        const decorated = {
+          ...item,
+          Obituary: obitMap.get(item.obituaryId) || null
+        };
+        if (item.status === 'pending') result.pending.push(decorated);
+        else result.others.push(decorated);
       });
 
       res.status(httpStatus.OK).json(result);
     } catch (error) {
-      console.error("Error fetching interactions:", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Failed to fetch interactions",
-      });
+      console.error('getPendingData error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch interactions' });
     }
   },
 
   getKeeperObituaries: async (req, res) => {
     try {
-      const keeperObituaries = await Keeper.findAll({
-        where: { userId: req.user.id },
-        attributes: ["obituaryId", "expiry"],
-      });
+      const userId = req.profile?.id;
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
 
-      const obituaryIds = keeperObituaries.map((k) => k.obituaryId);
-      if (obituaryIds.length === 0) {
-        return res.status(httpStatus.OK).json({ obituaries: [] });
+      const { data: keeperRows, error: keeperErr } = await supabaseAdmin
+        .from('"keepers"')
+        .select('obituaryId, expiry')
+        .eq('userId', userId);
+
+      if (keeperErr) {
+        console.error('keepers error:', keeperErr);
+        return res.status(500).json({ message: 'Failed to fetch obituaries.' });
       }
-      const obituaries = await Obituary.findAll({
-        where: {
-          id: obituaryIds,
-        },
-        include: [
-          {
-            model: MemoryLog,
-            where: {
-              type: {
-                [Op.notIn]: ["candle", "visit"],
-              },
-              status: "approved",
-            },
-            required: false,
-          },
-          {
-            model: Visit,
-            as: "visits",
 
-            required: false,
-            attributes: ["id", "createdTimestamp", "userId", "ipAddress"],
-          },
-        ],
+      const obituaryIds = (keeperRows || []).map(k => k.obituaryId);
+      if (obituaryIds.length === 0) {
+        return res.status(httpStatus.OK).json({ obituaries: [], keeperObituaries: [] });
+      }
+
+      const { data: obits, error: obitsErr } = await supabaseAdmin
+        .from('obituaries')
+        .select('*, totalVisits, createdTimestamp')
+        .in('id', obituaryIds)
+        .order('createdTimestamp', { ascending: false });
+
+      if (obitsErr) {
+        console.error('obituaries error:', obitsErr);
+        return res.status(500).json({ message: 'Failed to fetch obituaries.' });
+      }
+
+      // Fetch memory logs counts per obituary (excluding candle, visit)
+      const { data: logs } = await supabaseAdmin
+        .from('"memorylogs"')
+        .select('id, obituaryId, type, status')
+        .in('obituaryId', obituaryIds)
+        .neq('type', 'candle')
+        .neq('type', 'visit')
+        .eq('status', 'approved');
+
+      const logsByObit = new Map();
+      (logs || []).forEach(l => {
+        if (!logsByObit.has(l.obituaryId)) logsByObit.set(l.obituaryId, []);
+        logsByObit.get(l.obituaryId).push(l);
       });
 
-      res.status(httpStatus.OK).json({
-        obituaries,
-        keeperObituaries,
+      const response = (obits || []).map(o => {
+        const mems = logsByObit.get(o.id) || [];
+        return {
+          ...o,
+          MemoryLogs: mems,
+        };
       });
+
+      return res.status(httpStatus.OK).json({ obituaries: response, keeperObituaries: keeperRows });
     } catch (error) {
-      console.error("Error fetching keeper obituaries:", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        message: "Failed to fetch obituaries.",
-      });
+      console.error('getKeeperObituaries error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Failed to fetch obituaries.' });
     }
   },
 
   getMemoryLogs: async (req, res) => {
     try {
-      const ip =
-        req.headers["x-forwarded-for"]?.split(",")[0] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.ip;
+      const userId = req.profile?.id;
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
 
-      const ipAddress = ip.includes("::ffff:") ? ip.split("::ffff:")[1] : ip;
-      const allLogs = await MemoryLog.findAll({
-        where: {
-          userId: req.user.id,
-          type: ["dedication", "photo", "sorrowbook", "condolence"],
-        },
-        include: [
-          {
-            model: Obituary,
-            attributes: ["name", "sirName"],
-          },
-        ],
-      });
+      const ip = req.headers["x-forwarded-for"]?.split(",")[0]
+        || req.connection.remoteAddress
+        || req.socket.remoteAddress
+        || req.ip;
+      const ipAddress = (ip && ip.includes("::ffff:")) ? ip.split("::ffff:")[1] : ip;
 
-      const totalCandle = await Candle.findAll({
-        where: {
-          [Op.or]: [{ userId: req.user?.id }, { ipAddress: ipAddress }],
-        },
-        attributes: ["id"],
-      });
+      const { data: allLogs, error: logsErr } = await supabaseAdmin
+        .from('"memorylogs"')
+        .select('id, interactionId, type, status, createdTimestamp, userName, obituaryId')
+        .eq('userId', userId)
+        .in('type', ['dedication', 'photo', 'sorrowbook', 'condolence']);
 
-      const KeeperObituaries = await Keeper.findAll({
-        where: {
-          userId: req.user.id,
-        },
-        attributes: ["id"],
-      });
+      if (logsErr) {
+        console.error('memorylogs fetch error:', logsErr);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch memory logs' });
+      }
 
-      // Total contributions
+      const { count: candleCount } = await supabaseAdmin
+        .from('"candles"')
+        .select('id', { count: 'exact', head: true })
+        .or(`userId.eq.${userId},ipAddress.eq.${ipAddress || ''}`);
+
+      const { data: keepers } = await supabaseAdmin
+        .from('"keepers"')
+        .select('id')
+        .eq('userId', userId);
 
       // Unique memory pages
       const memoryPagesSet = new Set();
-      allLogs.forEach((log) => {
-        if (log.obituaryId) {
-          memoryPagesSet.add(log.obituaryId);
-        }
+      (allLogs || []).forEach((log) => {
+        if (log.obituaryId) memoryPagesSet.add(log.obituaryId);
       });
       const memoryPagesCount = memoryPagesSet.size;
 
       // Deduplicate by interactionId
       const uniqueLogsMap = new Map();
-      allLogs.forEach((log) => {
-        if (!uniqueLogsMap.has(log.interactionId)) {
-          uniqueLogsMap.set(log.interactionId, log);
-        }
+      (allLogs || []).forEach((log) => {
+        if (!uniqueLogsMap.has(log.interactionId)) uniqueLogsMap.set(log.interactionId, log);
       });
-      const totalContributions = allLogs.length;
+      const totalContributions = (allLogs || []).length;
       const latestLogs = Array.from(uniqueLogsMap.values());
 
-      const approvedCounts = {
-        dedication: 0,
-        photo: 0,
-        sorrowbook: 0,
-        condolence: 0,
-        candle: totalCandle.length,
-      };
-
-      allLogs.forEach((log) => {
-        if (
-          log.status === "approved" &&
-          approvedCounts.hasOwnProperty(log.type)
-        ) {
+      const approvedCounts = { dedication: 0, photo: 0, sorrowbook: 0, condolence: 0, candle: candleCount || 0 };
+      (allLogs || []).forEach((log) => {
+        if (log.status === 'approved' && Object.prototype.hasOwnProperty.call(approvedCounts, log.type)) {
           approvedCounts[log.type]++;
         }
       });
 
-      // Final response
       res.status(httpStatus.OK).json({
-        myAdministrator: KeeperObituaries.length,
+        myAdministrator: (keepers || []).length,
         totalContributions,
         memoryPagesCount,
         approvedContributions: approvedCounts,
         logs: latestLogs,
       });
     } catch (error) {
-      console.error("Error fetching memory logs:", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Failed to fetch memory logs",
-      });
+      console.error('getMemoryLogs error:', error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch memory logs' });
     }
   },
 
-  getMemoriesAdmin: async (req, res) => {
-    const obituaries = await Obituary.findAll({
-      attributes: [
-        "id",
-        "name",
-        "sirName",
-        "deathDate",
-        "city",
-        "birthDate",
-        "funeralTimestamp",
-        "totalVisits",
-        "createdTimestamp",
-      ],
-      include: [
-        {
-          model: Keeper,
-          required: false,
-          order: [["createdTimestamp", "DESC"]],
-        },
-        {
-          model: MemoryLog,
-          where: {
-            type: {
-              [Op.notIn]: ["visit"],
-            },
-            status: "approved",
-          },
-          required: false,
-        },
-        {
-          model: Visit,
-          as: "visits",
+  getMemoriesAdmin: async (_req, res) => {
+    try {
+      const { data: obituaries, error } = await supabaseAdmin
+        .from('obituaries')
+        .select('id, name, sirName, deathDate, city, birthDate, funeralTimestamp, totalVisits, createdTimestamp');
+      if (error) {
+        console.error('getMemoriesAdmin error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
+      }
 
-          required: false,
-          attributes: ["id", "createdTimestamp"], // Keep visit ID and created timestamp
-        },
-        {
-          model: Candle,
-          as: "candles",
-          required: false,
-          attributes: ["id", "createdTimestamp"], // Keep candle ID and created timestamp
-        },
-      ],
-    });
+      const { data: keepers } = await supabaseAdmin
+        .from('"keepers"')
+        .select('id, obituaryId');
+      const { data: visits } = await supabaseAdmin
+        .from('"visits"')
+        .select('id, obituaryId, createdTimestamp');
+      const { data: candles } = await supabaseAdmin
+        .from('"candles"')
+        .select('id, obituaryId, createdTimestamp');
+      const { data: memlogs } = await supabaseAdmin
+        .from('"memorylogs"')
+        .select('id, obituaryId, userId, type, status')
+        .neq('type', 'visit')
+        .eq('status', 'approved');
 
-    // Process the retrieved obituaries
-    const finalObituaries = obituaries.map((obituary) => {
-      const totalVisits = obituary.visits.length;
-      const hasKeeper = obituary.Keepers.length > 0;
-      const totalContributions = obituary.MemoryLogs.length;
-      const uniqueContribution = Array.from(
-        new Map(
-          obituary.MemoryLogs.map((memory) => [memory.userId, memory])
-        ).values()
-      ).length;
-      const totalSorrowBooks = obituary.MemoryLogs.filter((memory) => {
-        return memory.type === "sorrowbook";
-      }).length;
-      const totalCondolences = obituary.MemoryLogs.filter((memory) => {
-        return memory.type === "condolence";
-      }).length;
-      const totalPhotos = obituary.MemoryLogs.filter((memory) => {
-        return memory.type === "photo";
-      }).length;
-      const totalDedications = obituary.MemoryLogs.filter((memory) => {
-        return memory.type === "dedication";
-      }).length;
-      const totalCandles = obituary.candles.length;
+      const keepersByObit = new Map();
+      (keepers || []).forEach(k => {
+        if (!keepersByObit.has(k.obituaryId)) keepersByObit.set(k.obituaryId, []);
+        keepersByObit.get(k.obituaryId).push(k);
+      });
+      const visitsByObit = new Map();
+      (visits || []).forEach(v => {
+        if (!visitsByObit.has(v.obituaryId)) visitsByObit.set(v.obituaryId, []);
+        visitsByObit.get(v.obituaryId).push(v);
+      });
+      const candlesByObit = new Map();
+      (candles || []).forEach(c => {
+        if (!candlesByObit.has(c.obituaryId)) candlesByObit.set(c.obituaryId, []);
+        candlesByObit.get(c.obituaryId).push(c);
+      });
+      const logsByObit = new Map();
+      (memlogs || []).forEach(m => {
+        if (!logsByObit.has(m.obituaryId)) logsByObit.set(m.obituaryId, []);
+        logsByObit.get(m.obituaryId).push(m);
+      });
 
-      return {
-        ...obituary.toJSON(),
-        hasKeeper,
-        totalVisits,
-        totalContributions,
-        uniqueContribution,
-        totalSorrowBooks,
-        totalCondolences,
-        totalCandles,
-        totalPhotos,
-        totalDedications,
-      };
-    });
+      const finalObituaries = (obituaries || []).map(o => {
+        const v = visitsByObit.get(o.id) || [];
+        const k = keepersByObit.get(o.id) || [];
+        const ml = logsByObit.get(o.id) || [];
+        const uniqueUsers = new Set(ml.map(m => m.userId));
+        const totalSorrowBooks = ml.filter(m => m.type === 'sorrowbook').length;
+        const totalCondolences = ml.filter(m => m.type === 'condolence').length;
+        const totalPhotos = ml.filter(m => m.type === 'photo').length;
+        const totalDedications = ml.filter(m => m.type === 'dedication').length;
+        const c = candlesByObit.get(o.id) || [];
 
-    return res.status(httpStatus.OK).json({
-      finalObituaries,
-    });
+        return {
+          ...o,
+          hasKeeper: k.length > 0,
+          totalVisits: v.length,
+          totalContributions: ml.length,
+          uniqueContribution: uniqueUsers.size,
+          totalSorrowBooks,
+          totalCondolences,
+          totalCandles: c.length,
+          totalPhotos,
+          totalDedications,
+        };
+      });
+
+      return res.status(httpStatus.OK).json({ finalObituaries });
+    } catch (e) {
+      console.error('getMemoriesAdmin exception:', e);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
+    }
   },
 
   getCompanyObituaries: async (req, res) => {
     try {
-      const userId = req.user.id;
-      const startOfTheMonth = moment().startOf("month").toDate();
-      const endOfTheMonth = moment().endOf("month").toDate();
+      const userId = req.profile?.id;
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
 
-      const startOfLastMonth = moment()
-        .subtract(1, "month")
-        .startOf("month")
-        .toDate();
+      const { data: obits, error } = await supabaseAdmin
+        .from('obituaries')
+        .select('*, createdTimestamp')
+        .eq('userId', userId)
+        .order('createdTimestamp', { ascending: false });
 
-      const endOfLastMonth = moment()
-        .subtract(1, "month")
-        .endOf("month")
-        .toDate();
+      if (error) {
+        console.error('getCompanyObituaries error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
+      }
 
-      const obituaries = await Obituary.findAll({
-        where: {
-          userId: userId,
-        },
+      // Fetch keepers for these obits
+      const ids = (obits || []).map(o => o.id);
+      const { data: keeps } = await supabaseAdmin
+        .from('"keepers"')
+        .select('id, obituaryId')
+        .in('obituaryId', ids);
+      const keeperSet = new Set((keeps || []).map(k => k.obituaryId));
 
-        order: [["createdTimestamp", "DESC"]],
-        include: [
-          {
-            model: Keeper,
-            required: false,
-            attributes: ["id"],
-          },
-        ],
-      });
+      const modifiedObituaries = (obits || []).map(o => ({ ...o, hasKeeper: keeperSet.has(o.id) }));
 
-      const modifiedObituaries = obituaries.map((obituary) => {
-        return {
-          ...obituary.toJSON(),
-
-          hasKeeper: obituary.Keepers && obituary.Keepers.length > 0,
-        };
-      });
       function getTotal(entries) {
+        const startOfTheMonth = moment().startOf("month");
+        const endOfTheMonth = moment().endOf("month");
+        const startOfLastMonth = moment().subtract(1, "month").startOf("month");
+        const endOfLastMonth = moment().subtract(1, "month").endOf("month");
         let currentMonthCount = 0;
         let lastMonthCount = 0;
-        if (entries.length === 0) {
-          return { currentMonthCount, lastMonthCount };
-        }
-        entries.forEach((entry) => {
+        (entries || []).forEach((entry) => {
           const createdDate = moment(entry.createdTimestamp);
-          if (
-            createdDate.isBetween(startOfTheMonth, endOfTheMonth, "day", "[]")
-          ) {
-            currentMonthCount++;
-          } else if (
-            createdDate.isBetween(startOfLastMonth, endOfLastMonth, "day", "[]")
-          ) {
-            lastMonthCount++;
-          }
+          if (createdDate.isBetween(startOfTheMonth, endOfTheMonth, "day", "[]")) currentMonthCount++;
+          else if (createdDate.isBetween(startOfLastMonth, endOfLastMonth, "day", "[]")) lastMonthCount++;
         });
-
         return { currentMonthCount, lastMonthCount };
       }
 
-      res.status(httpStatus.OK).json({
-        obituaries: modifiedObituaries,
-        data: getTotal(obituaries),
-      });
+      res.status(httpStatus.OK).json({ obituaries: modifiedObituaries, data: getTotal(obits) });
     } catch (error) {
-      console.error(error);
-      return res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+      console.log(error);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Internal Server Error" });
     }
   },
 
   getCompanyMonthlyObituaries: async (req, res) => {
     try {
-      const userId = req.user.id;
-      const obituaries = await Obituary.findAll({
-        where: { userId },
-        include: [{ model: Keeper }],
-        order: [["createdTimestamp", "DESC"]],
-      });
+      const userId = req.profile?.id;
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+
+      const { data: obituaries, error } = await supabaseAdmin
+        .from('obituaries')
+        .select('*')
+        .eq('userId', userId)
+        .order('createdTimestamp', { ascending: false });
+
+      if (error) {
+        console.error('getCompanyMonthlyObituaries error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
+      }
+
+      const { data: keepers } = await supabaseAdmin
+        .from('"keepers"')
+        .select('id, obituaryId')
+        .eq('userId', userId);
+      const keeperSet = new Set((keepers || []).map(k => k.obituaryId));
 
       const groupedByMonth = {};
       let totalObituaries = 0;
@@ -1177,41 +966,22 @@ const obituaryController = {
       let totalWithFunerals = 0;
       let totalComplete = 0;
 
-      obituaries.forEach((obituary) => {
+      (obituaries || []).forEach((obituary) => {
         totalObituaries++;
         const month = moment(obituary.createdTimestamp).format("MMMM YYYY");
 
         if (!groupedByMonth[month]) {
           groupedByMonth[month] = {
             obituaries: [],
-            stats: {
-              imageCount: 0,
-              funeralCount: 0,
-              keeperCount: 0,
-              completeObits: 0,
-            },
+            stats: { imageCount: 0, funeralCount: 0, keeperCount: 0, completeObits: 0 },
           };
         }
 
         groupedByMonth[month].obituaries.push(obituary);
-        if (obituary.image !== null) {
-          groupedByMonth[month].stats.imageCount++;
-          totalWithPhotos++;
-        }
-
-        if (obituary.funeralTimestamp !== "") {
-          groupedByMonth[month].stats.funeralCount++;
-          totalWithFunerals++;
-        }
-
-        if (obituary.Keepers) {
-          groupedByMonth[month].stats.keeperCount++;
-          totalObituariesWithKeeper++;
-        }
-        if (obituary.image !== null && obituary.funeralTimestamp !== "") {
-          groupedByMonth[month].stats.completeObits++;
-          totalComplete++;
-        }
+        if (obituary.image !== null) { groupedByMonth[month].stats.imageCount++; totalWithPhotos++; }
+        if (obituary.funeralTimestamp) { groupedByMonth[month].stats.funeralCount++; totalWithFunerals++; }
+        if (keeperSet.has(obituary.id)) { groupedByMonth[month].stats.keeperCount++; totalObituariesWithKeeper++; }
+        if (obituary.image !== null && obituary.funeralTimestamp) { groupedByMonth[month].stats.completeObits++; totalComplete++; }
       });
 
       return res.status(200).json({
@@ -1220,136 +990,111 @@ const obituaryController = {
         totalWithPhotos,
         totalComplete,
         totalWithFunerals,
-
         obituaries: groupedByMonth,
       });
     } catch (error) {
-      return res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: "Internal Server Error" });
     }
   },
 
   getCompanyMemoryLogs: async (req, res) => {
     try {
-      const logs = await MemoryLog.findAll({
-        where: {
-          type: ["dedication", "photo", "sorrowbook", "condolence"],
-        },
-        include: [
-          {
-            model: Obituary,
-            attributes: ["name", "sirName"],
-            where: {
-              userId: req.user.id,
-            },
-          },
-        ],
-      });
-      let approvedCounts = {
-        dedication: 0,
-        photo: 0,
-        sorrowbook: 0,
-        condolence: 0,
-      };
+      const userId = req.profile?.id;
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
 
-      logs.forEach((log) => {
-        if (
-          log.status === "approved" &&
-          approvedCounts.hasOwnProperty(log.type)
-        ) {
+      // Get obituaries for this company/user
+      const { data: obits, error: obErr } = await supabaseAdmin
+        .from('obituaries')
+        .select('id')
+        .eq('userId', userId);
+      if (obErr) {
+        console.error('getCompanyMemoryLogs obituaries error:', obErr);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
+      }
+      const ids = (obits || []).map(o => o.id);
+      if (ids.length === 0) return res.status(httpStatus.OK).json({ logs: [], totalContirbutions: 0, approvedCounts: { dedication: 0, photo: 0, sorrowbook: 0, condolence: 0, other: 0 }, obitsTotalCount: 0 });
+
+      const { data: logs, error } = await supabaseAdmin
+        .from('"memorylogs"')
+        .select('*')
+        .in('type', ['dedication', 'photo', 'sorrowbook', 'condolence'])
+        .in('obituaryId', ids)
+        .order('createdTimestamp', { ascending: false });
+      if (error) {
+        console.error('getCompanyMemoryLogs logs error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
+      }
+
+      let approvedCounts = { dedication: 0, photo: 0, sorrowbook: 0, condolence: 0 };
+      (logs || []).forEach((log) => {
+        if (log.status === 'approved' && Object.prototype.hasOwnProperty.call(approvedCounts, log.type)) {
           approvedCounts[log.type]++;
         }
       });
 
-      const totalContirbutions = logs.length;
+      const totalContirbutions = (logs || []).length;
+      approvedCounts = { ...approvedCounts, other: approvedCounts.dedication + approvedCounts.photo };
 
-      approvedCounts = {
-        ...approvedCounts,
-        other: approvedCounts.dedication + approvedCounts.photo,
-      };
       const memoryPagesSet = new Set();
-      logs.forEach((log) => {
-        if (log.obituaryId) {
-          memoryPagesSet.add(log.obituaryId);
-        }
-      });
+      (logs || []).forEach((log) => { if (log.obituaryId) memoryPagesSet.add(log.obituaryId); });
       const obitsTotalCount = memoryPagesSet.size;
-      return res
-        .status(httpStatus.OK)
-        .json({ logs, totalContirbutions, approvedCounts, obitsTotalCount });
+
+      return res.status(httpStatus.OK).json({ logs, totalContirbutions, approvedCounts, obitsTotalCount });
     } catch (error) {
-      console.error(error);
-      return res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+      console.log(error);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal Server Error' });
     }
   },
 
   getMemoryId: async (req, res) => {
     try {
       const { date, city, type } = req.query;
-      if (!date || !city || !type) {
-        return res.status(400).json({ message: "Missing required fields." });
+      if (!date || !city || !type) return res.status(400).json({ message: 'Missing required fields.' });
+
+      const op = type === 'previous' ? 'lt' : 'gt';
+      let query = supabaseAdmin
+        .from('obituaries')
+        .select('id, createdTimestamp')
+        .eq('city', city)
+        .order('createdTimestamp', { ascending: type !== 'previous' });
+
+      query = op === 'lt' ? query.lt('createdTimestamp', new Date(date).toISOString())
+                          : query.gt('createdTimestamp', new Date(date).toISOString());
+
+      const { data: row, error } = await query.limit(1).single();
+      if (error || !row) {
+        return res.status(404).json({ message: `No ${type} obituary found for the specified date and city.` });
       }
-
-      const whereClause = {
-        city,
-        createdTimestamp:
-          type === "previous"
-            ? { [Op.lt]: new Date(date) }
-            : { [Op.gt]: new Date(date) },
-      };
-
-      const order = [
-        ["createdTimestamp", type === "previous" ? "DESC" : "ASC"],
-      ];
-
-      const obituary = await Obituary.findOne({
-        where: whereClause,
-        order,
-      });
-
-      if (!obituary) {
-        return res.status(404).json({
-          message: `No ${type} obituary found for the specified date and city.`,
-        });
-      }
-      //
-      return res.status(200).json(obituary);
+      return res.status(200).json(row);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Internal server error." });
+      console.error('getMemoryId error:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
     }
   },
   uploadTemplateCards: async (req, res) => {
     try {
       const { id } = req.params;
-      if (!id) {
-        return res.status(400).json({ message: "Missing required fields." });
-      }
+      if (!id) return res.status(400).json({ message: 'Missing required fields.' });
       const { cardImages, cardPdfs } = req.files || {};
-      if (!cardImages || !cardPdfs) {
-        return res.status(400).json({ message: "Missing required fields." });
+      if (!cardImages || !cardPdfs) return res.status(400).json({ message: 'Missing required fields.' });
+
+      const newCardImages = cardImages.map((image) => dbUploadObituaryTemplateCardsPath(image?.filename));
+      const newCardPdfs = cardPdfs.map((pdf) => dbUploadObituaryTemplateCardsPath(pdf?.filename));
+
+      const { error } = await supabaseAdmin
+        .from('obituaries')
+        .update({ cardImages: newCardImages, cardPdfs: newCardPdfs })
+        .eq('id', parseInt(id));
+
+      if (error) {
+        console.error('uploadTemplateCards error:', error);
+        return res.status(500).json({ message: 'Failed to update template cards' });
       }
-      const obituary = await Obituary.findByPk(id);
 
-      const newCardImages = cardImages.map((image) =>
-        dbUploadObituaryTemplateCardsPath(image?.filename)
-      );
-      const newCardPdfs = cardPdfs.map((pdf) =>
-        dbUploadObituaryTemplateCardsPath(pdf?.filename)
-      );
-
-      await obituary.update({
-        cardImages: newCardImages,
-        cardPdfs: newCardPdfs,
-      });
-      return res
-        .status(200)
-        .json({ message: "Template cards uploaded successfully." });
+      return res.status(200).json({ message: 'Template cards uploaded successfully.' });
     } catch (error) {
-      console.error(error);
+      console.error('uploadTemplateCards exception:', error);
+      return res.status(500).json({ message: 'Internal Server Error' });
     }
   },
 };

@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "npx sequelize-cli db:migrate && node index.js",
+    "start": "node index.js",
     "dev": "nodemon index.js",
+    "build": "echo 'Build completed - Netlify Functions ready!'",
+    "test:netlify": "node scripts/test-netlify-functions.mjs",
+    "auth:smoke": "node scripts/auth-smoke.mjs",
+    "test:core": "node scripts/test-core-auth.mjs",
+    "test:auth": "node scripts/test-auth-complete.mjs",
+    "diagnose": "node scripts/diagnose-supabase-error.mjs",
     "staging": "NODE_ENV=staging npx sequelize-cli db:migrate && NODE_ENV=staging node index.js",
     "test:staging": "node scripts/test-staging.js",
     "db:migrate": "npx sequelize-cli db:migrate",
@@ -33,7 +39,6 @@
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.12.0",
     "path": "^0.12.7",
-    "sequelize": "^6.37.5",
     "sharp": "^0.33.5"
   },
   "devDependencies": {

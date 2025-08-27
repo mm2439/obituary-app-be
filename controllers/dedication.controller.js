@@ -1,63 +1,56 @@
 const httpStatus = require("http-status-codes").StatusCodes;
-
-const { Op } = require("sequelize");
-
-const { User } = require("../models/user.model");
+const { supabaseAdmin } = require("../config/supabase");
 const memoryLogsController = require("./memoryLogs.controller");
-
-const {
-  Dedication,
-  validateDedication,
-} = require("../models/dedication.model");
 
 const dedicationController = {
   createDedication: async (req, res) => {
     try {
-      console.log(req.body);
       const { title, message, name, isKeeper } = req.body;
+      const userId = req.profile?.id;
+      const obituaryId = parseInt(req.params.id);
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
 
-      const userId = req.user.id;
-      const obituaryId = req.params.id;
-      const dedicationData = { title, message, name };
-      const { error } = validateDedication(dedicationData);
-
-      if (error) {
-        console.warn(`Invalid data format: ${error}`);
-
-        return res
-          .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+      if (!title || !message || !name) {
+        return res.status(httpStatus.BAD_REQUEST).json({ error: 'Invalid data format: missing fields' });
       }
 
-      const dedication = await Dedication.create({
+      const payload = {
         title,
         message,
         userId,
         obituaryId,
         name,
-        status: isKeeper ? "approved" : "pending",
-      });
-      if (dedication) {
-        try {
-          await memoryLogsController.createLog(
-            "dedication",
-            obituaryId,
-            userId,
-            dedication.id,
-            dedication.status,
-            dedication.name,
-            "Posvetilo"
-          );
-        } catch (logError) {
-          console.error("Error creating memory log:", logError);
-        }
+        status: isKeeper ? 'approved' : 'pending',
+        createdTimestamp: new Date().toISOString()
+      };
+      const { data: dedication, error } = await supabaseAdmin
+        .from('dedications')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) {
+        console.error('createDedication insert error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Something went wrong' });
       }
+
+      try {
+        await memoryLogsController.createLog(
+          "dedication",
+          obituaryId,
+          userId,
+          dedication.id,
+          dedication.status,
+          dedication.name,
+          "Posvetilo"
+        );
+      } catch (logError) {
+        console.error("Error creating memory log:", logError);
+      }
+
       res.status(httpStatus.CREATED).json(dedication);
     } catch (error) {
       console.error("Error creating condolence:", error);
-      res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
     }
   },
 };
