@@ -71,10 +71,58 @@ const companyController = {
 
       if (req.files?.logo) {
         const pictureFile = req.files.logo[0];
-        const optimizedPicturePath = path.join('companyUploads', String(funeralCompany.id), `${path.parse(pictureFile.originalname).name}.avif`);
-        const maxWidth = 200; const maxHeight = 80; const image = sharp(pictureFile.buffer); const metadata = await image.metadata();
-        const { width, height } = metadata.width && metadata.height ? resizeConstants.getTargetResizeDimensions(maxWidth, maxHeight, metadata) : { width: maxWidth, height: maxHeight };
-        await sharpHelpers.processImageToAvif({ buffer: pictureFile.buffer, outputPath: path.join(__dirname, '../', optimizedPicturePath), resize: { width, height, fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } } });
+
+        const optimizedPicturePath = path.join(
+          "companyUploads",
+          String(funeralCompany.id),
+          `${path.parse(pictureFile.originalname).name}.avif`
+        );
+
+        const maxWidth = 200;
+        const maxHeight = 80;
+        const image = sharp(pictureFile.buffer);
+        const metadata = await image.metadata();
+        const { width, height } = resizeConstants.getTargetResizeDimensions(
+          maxWidth,
+          maxHeight,
+          metadata
+        );
+
+        await sharpHelpers.processImageToAvif({
+          buffer: pictureFile.buffer,
+          outputPath: path.join(__dirname, "../", optimizedPicturePath),
+          resize: {
+            width,
+            height,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        });
+
+        logoPath = optimizedPicturePath;
+      }
+      if (req.files?.picture) {
+        const pictureFile = req.files.picture[0];
+
+        const optimizedPicturePath = path.join(
+          "companyUploads",
+          String(funeralCompany.id),
+          `picture.avif`
+        );
+
+        await sharpHelpers.processImageToAvif({
+          buffer: pictureFile.buffer,
+          outputPath: path.join(__dirname, "../", optimizedPicturePath),
+          resize: {
+            width: 195,
+            height: 267,
+            fit: "cover",
+          },
+          avifOptions: {
+            quality: 50,
+          },
+        });
+
         logoPath = optimizedPicturePath;
       }
 
@@ -143,23 +191,66 @@ const companyController = {
       if (!fs.existsSync(companyFolder)) fs.mkdirSync(companyFolder, { recursive: true });
 
       const fileFields = [
-        { field: 'background', resize: resizeConstants.funeralBackgroundSize, avifOptions: { quality: 60, effort: 5, chromaSubsampling: '4:4:4' } },
-        { field: 'logo', resize: { width: 200, height: 80, fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } } },
-        { field: 'secondary_image', resize: [195, 267] },
-        { field: 'funeral_section_one_image_one', resize: [195, 267] },
-        { field: 'funeral_section_one_image_two', resize: [195, 267] },
-        { field: 'offer_one_image', resize: resizeConstants.offerImageOptions },
-        { field: 'offer_two_image', resize: resizeConstants.offerImageOptions },
-        { field: 'offer_three_image', resize: resizeConstants.offerImageOptions },
-        { field: 'boxBackgroundImage', resize: [1280, 420] },
+        {
+          field: "background",
+          resize: resizeConstants.funeralBackgroundSize,
+          avifOptions: {
+            quality: 60,
+            effort: 5,
+            chromaSubsampling: "4:4:4",
+          },
+        },
+        {
+          field: "logo",
+          resize: {
+            width: 200,
+            height: 80,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        },
+        { field: "secondary_image", resize: [195, 267] },
+        { field: "funeral_section_one_image_one", resize: [195, 267] },
+        { field: "funeral_section_one_image_two", resize: [195, 267] },
+        { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
+        { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
+        { field: "offer_three_image", resize: resizeConstants.offerImageOptions },
+        { field: "boxBackgroundImage", resize: [1280, 420] },
+        {
+          field: "picture",
+          resize: {
+            width: 195,
+            height: 267,
+            fit: "cover",
+          },
+          avifOptions: {
+            quality: 50
+          }
+        }
+
       ];
 
       for (const fileField of fileFields) {
         const file = req.files?.[fileField.field]?.[0];
         if (file) {
-          const optimizedPath = path.join('companyUploads', String(company.id), `${fileField.field}.avif`);
-          await sharpHelpers.processImageToAvif({ buffer: file.buffer, outputPath: path.join(__dirname, '../', optimizedPath), resize: fileField.resize, ...(fileField.avifOptions || {}) });
-          updateData[fileField.field] = optimizedPath;
+          const optimizedPath = path.join(
+            "companyUploads",
+            String(company.id),
+            `${fileField.field}.avif`
+          );
+
+          await sharpHelpers.processImageToAvif({
+            buffer: file.buffer,
+            outputPath: path.join(__dirname, "../", optimizedPath),
+            resize: fileField.resize,
+            ...(fileField.avifOptions || {}),
+          });
+
+          if (fileField.field === "picture") {
+            updateData.logo = optimizedPath;
+          } else {
+            updateData[fileField.field] = optimizedPath;
+          }
         } else if (req.body[fileField.field]) {
           updateData[fileField.field] = req.body[fileField.field];
         }
