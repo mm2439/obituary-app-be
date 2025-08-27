@@ -125,6 +125,10 @@ User.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    thirdCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     role: {
       type: DataTypes.ENUM(
         process.env.USER_ROLE,
