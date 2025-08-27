@@ -1,67 +1,57 @@
 const httpStatus = require("http-status-codes").StatusCodes;
-
-const { Op } = require("sequelize");
-
-const { User } = require("../models/user.model");
-const {
-  SorrowBook,
-  validateSorrowBook,
-} = require("../models/sorrow_book.model");
+const { supabaseAdmin } = require("../config/supabase");
 const memoryLogsController = require("./memoryLogs.controller");
+
 const sorrowBookController = {
   createSorrowBook: async (req, res) => {
     try {
       const { name, relation } = req.body;
-      const userId = req.user.id;
-      const obituaryId = req.params.id;
-      console.log(req.body);
-      // Validate input
-      const { error } = validateSorrowBook(req.body);
-      if (error) {
-        console.warn(`Invalid data format: ${error}`);
-        return res
-          .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
-      }
+      const userId = req.profile?.id;
+      const obituaryId = parseInt(req.params.id);
+
+      if (!userId) return res.status(httpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
+      if (!name || !relation) return res.status(httpStatus.BAD_REQUEST).json({ error: 'Invalid data format: missing fields' });
 
       // Check if user already added a name
-      const existingEntry = await SorrowBook.findOne({
-        where: { userId, obituaryId },
-      });
-      if (existingEntry) {
-        return res.status(httpStatus.CONFLICT).json({
-          error: "You have already added a name to this sorrow book.",
-        });
+      const { data: existing, error: existErr } = await supabaseAdmin
+        .from('sorrowBooks')
+        .select('id')
+        .eq('userId', userId)
+        .eq('obituaryId', obituaryId)
+        .limit(1);
+      if (!existErr && existing && existing.length > 0) {
+        return res.status(httpStatus.CONFLICT).json({ error: 'You have already added a name to this sorrow book.' });
       }
 
-      // Create a new sorrow book entry
-      const sorrowBook = await SorrowBook.create({
-        name,
-        relation,
-        userId,
-        obituaryId,
-      });
-      if (sorrowBook) {
-        try {
-          await memoryLogsController.createLog(
-            "sorrowbook",
-            obituaryId,
-            userId,
-            sorrowBook.id,
-            "approved",
-            sorrowBook.name,
-            "Žalna knjiga"
-          );
-        } catch (logError) {
-          console.error("Error creating memory log:", logError);
-        }
+      const payload = { name, relation, userId, obituaryId, createdTimestamp: new Date().toISOString(), status: 'approved' };
+      const { data: sorrowBook, error } = await supabaseAdmin
+        .from('sorrowBooks')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) {
+        console.error('createSorrowBook insert error:', error);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Something went wrong' });
       }
+
+      try {
+        await memoryLogsController.createLog(
+          "sorrowbook",
+          obituaryId,
+          userId,
+          sorrowBook.id,
+          "approved",
+          sorrowBook.name,
+          "Žalna knjiga"
+        );
+      } catch (logError) {
+        console.error("Error creating memory log:", logError);
+      }
+
       res.status(httpStatus.CREATED).json(sorrowBook);
     } catch (error) {
       console.error("Error creating sorrow book:", error);
-      res
-        .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
     }
   },
 };

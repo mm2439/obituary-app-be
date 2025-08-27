@@ -1,140 +1,83 @@
-const { Candle } = require("../models/candle.model");
-const { Op } = require("sequelize");
-const moment = require("moment");
+const { supabaseAdmin } = require("../config/supabase");
 const path = require("path");
 const fs = require("fs");
-
 const sharp = require("sharp");
-
-const { Cemetry } = require("../models/cemetry.model");
 const CEMETRY_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
 
 const cemetryController = {
   addCemetry: async (req, res) => {
     try {
       const { companyId, cemeteries } = req.body;
-      const userId = req.user.id;
+      const userId = req.profile?.id;
 
-      const createdCemeteries = [];
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
       for (let i = 0; i < cemeteries.length; i++) {
-        const cemetery = cemeteries[i];
-        const { id, updated, name, address, city, image } = cemetery; // include `image`
+        const { id, updated, name, address, city, image } = cemeteries[i];
+        const file = req.files?.find((f) => f.fieldname === `cemeteries[${i}][image]`);
 
-        const file = req.files.find(
-          (f) => f.fieldname === `cemeteries[${i}][image]`
-        );
-
-        // === Update existing cemetery ===
         if (id && updated) {
-          await Cemetry.update({ name, address, city }, { where: { id } });
-
+          await supabaseAdmin.from('cemetries').update({ name, address, city }).eq('id', id);
           if (file) {
-            const imagePath = path.join(
-              "cemetryUploads",
-              String(id),
-              `${path.parse(file.originalname).name}.avif`
-            );
-
+            const imagePath = path.join('cemetryUploads', String(id), `${path.parse(file.originalname).name}.avif`);
             const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(id));
-            if (!fs.existsSync(cemetryFolder)) {
-              fs.mkdirSync(cemetryFolder, { recursive: true });
-            }
+            if (!fs.existsSync(cemetryFolder)) fs.mkdirSync(cemetryFolder, { recursive: true });
 
-            await sharp(file.buffer)
-              .resize(195, 267, { fit: "cover" })
-              .toFormat("avif", { quality: 50 })
-              .toFile(path.join(__dirname, "../", imagePath));
-
-            await Cemetry.update({ image: imagePath }, { where: { id } });
-          } else if (typeof image === "string") {
-            await Cemetry.update({ image }, { where: { id } });
+            await sharp(file.buffer).resize(195, 267, { fit: 'cover' }).toFormat('avif', { quality: 50 }).toFile(path.join(__dirname, '../', imagePath));
+            await supabaseAdmin.from('cemetries').update({ image: imagePath }).eq('id', id);
+          } else if (typeof image === 'string') {
+            await supabaseAdmin.from('cemetries').update({ image }).eq('id', id);
           }
-
           continue;
         }
 
-        if (id && !updated) {
-          continue;
+        if (id && !updated) continue;
+
+        const { data: existing } = await supabaseAdmin.from('cemetries').select('id').eq('name', name).limit(1);
+        if (existing && existing.length > 0) {
+          return res.status(409).json({ message: `Cemetery "${name}" already exists.` });
         }
 
-        // === Create new cemetery ===
-        const existing = await Cemetry.findOne({ where: { name } });
-        if (existing) {
-          return res
-            .status(409)
-            .json({ message: `Cemetery "${name}" already exists.` });
-        }
+        const { data: created } = await supabaseAdmin
+          .from('cemetries')
+          .insert({ userId, name, city, address, companyId })
+          .select()
+          .single();
 
-        const newCemetry = await Cemetry.create({
-          userId,
-          name,
-          city,
-          address,
-          companyId,
-        });
-
-        const cemetryFolder = path.join(
-          CEMETRY_UPLOADS_PATH,
-          String(newCemetry.id)
-        );
-        if (!fs.existsSync(cemetryFolder)) {
-          fs.mkdirSync(cemetryFolder, { recursive: true });
-        }
+        const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(created.id));
+        if (!fs.existsSync(cemetryFolder)) fs.mkdirSync(cemetryFolder, { recursive: true });
 
         if (file) {
-          const imagePath = path.join(
-            "cemetryUploads",
-            String(newCemetry.id),
-            `${path.parse(file.originalname).name}.avif`
-          );
-
-          await sharp(file.buffer)
-            .resize(195, 267, { fit: "cover" })
-            .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", imagePath));
-
-          newCemetry.image = imagePath;
-          await newCemetry.save();
-        } else if (typeof image === "string") {
-          newCemetry.image = image;
-          await newCemetry.save();
+          const imagePath = path.join('cemetryUploads', String(created.id), `${path.parse(file.originalname).name}.avif`);
+          await sharp(file.buffer).resize(195, 267, { fit: 'cover' }).toFormat('avif', { quality: 50 }).toFile(path.join(__dirname, '../', imagePath));
+          await supabaseAdmin.from('cemetries').update({ image: imagePath }).eq('id', created.id);
+        } else if (typeof image === 'string') {
+          await supabaseAdmin.from('cemetries').update({ image }).eq('id', created.id);
         }
-
-        createdCemeteries.push(newCemetry);
       }
 
-      const allCemeteries = await Cemetry.findAll({ where: { companyId } });
-
-      return res.status(201).json({
-        message: "Cemeteries processed successfully.",
-        cemeteries: allCemeteries,
-      });
+      const { data: allCemeteries } = await supabaseAdmin.from('cemetries').select('*').eq('companyId', companyId);
+      return res.status(201).json({ message: 'Cemeteries processed successfully.', cemeteries: allCemeteries || [] });
     } catch (error) {
-      console.error("Error creating/updating cemeteries:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      console.error('Error creating/updating cemeteries:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
     }
   },
 
   getCemetries: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.profile?.id;
       const { city } = req.query;
-      const whereClause = {
-        userId: userId,
-      };
+      if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-      if (city) {
-        whereClause.city = city;
-      }
-      const cemetries = await Cemetry.findAll({
-        where: whereClause,
-      });
+      let query = supabaseAdmin.from('cemetries').select('*').eq('userId', userId);
+      if (city) query = query.eq('city', city);
+      const { data: cemetries } = await query;
 
-      return res.status(201).json({ message: "Success.", cemetries });
+      return res.status(201).json({ message: 'Success.', cemetries: cemetries || [] });
     } catch (error) {
-      console.error("Error getting cemetries:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      console.error('Error getting cemetries:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
     }
   },
 };

@@ -1,12 +1,11 @@
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const { connectToDB } = require("./startup/db");
 const listEndpoints = require("express-list-endpoints");
 
 const app = express();
 
-connectToDB();
+
 
 // CORS configuration - environment aware
 const getCorsOrigins = () => {
@@ -58,7 +57,7 @@ app.get("/test", (req, res) => {
 
 // Load routes and models
 require("./startup/routes")(app);
-require("./models/associations.model");
+
 
 // Start server
 const port = process.env.APP_PORT || 5000;
