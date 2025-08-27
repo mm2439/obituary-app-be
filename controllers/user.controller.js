@@ -7,6 +7,7 @@ const { CompanyPage } = require("../models/company_page.model");
 const sharp = require("sharp");
 const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 const { Card } = require("../models/card.model");
+const { Keeper } = require("../models/keeper.model");
 
 const userController = {
   register: async (req, res) => {
@@ -431,7 +432,7 @@ const userController = {
   },
 
   downloadCard: async (req, res) => {
-    const cardId = req.params.id;
+    const cardId = req.params.cardId;
     const userCard = await Card.findByPk(cardId);
     if (userCard) {
       userCard.isDownloaded = true;
@@ -451,6 +452,30 @@ const userController = {
         res.status(500).json({ message: "Error in downloading the file." });
       }
     });
+  },
+
+  getMyKeeperStatus: async (req, res) => {
+    const userId = req.user.id;
+    const whereClause = {
+      userId: userId,
+      isNotified: false
+    };
+    const user = await Keeper.findOne({
+      where: whereClause
+    });
+
+    res.status(httpStatus.OK).json({ message: "Success.", user });
+  },
+
+  updateNotified: async (req, res) => {
+    const keeperId = req.params.keeperId;
+    const keeperRow = await Keeper.findByPk(keeperId);
+    if (keeperRow) {
+      keeperRow.isNotified = true;
+      await keeperRow.save();
+    }
+
+    res.status(httpStatus.OK).json({ message: "Success.", user });
   },
 };
 

@@ -31,4 +31,7 @@ router.patch(
 router.get("/me/cards", authenticationMiddleware, userController.getMyCards);
 router.patch("/me/download/:cardId", authenticationMiddleware, userController.downloadCard);
 
+router.get("/me/keeper", authenticationMiddleware, userController.getMyKeeperStatus);
+router.patch("/me/keeper/:keeperId", authenticationMiddleware, userController.updateNotified);
+
 module.exports = router;
