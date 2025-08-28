@@ -477,7 +477,7 @@ const userController = {
       await keeperRow.save();
     }
 
-    res.status(httpStatus.OK).json({ message: "Success.", user });
+    res.status(httpStatus.OK).json({ message: "Success." });
   },
 };
 
