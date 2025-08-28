@@ -1199,12 +1199,12 @@ const obituaryController = {
           totalWithPhotos++;
         }
 
-        if (obituary.funeralTimestamp !== "") {
+        if (obituary.funeralTimestamp) {
           groupedByMonth[month].stats.funeralCount++;
           totalWithFunerals++;
         }
 
-        if (obituary.Keepers) {
+        if (obituary.Keepers?.length) {
           groupedByMonth[month].stats.keeperCount++;
           totalObituariesWithKeeper++;
         }
