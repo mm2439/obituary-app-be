@@ -28,4 +28,10 @@ router.patch(
   userController.updateUserAndCompanyPage
 );
 
+router.get("/me/cards", authenticationMiddleware, userController.getMyCards);
+router.get("/me/download/:cardId", userController.downloadCard);
+
+router.get("/me/keeper", authenticationMiddleware, userController.getMyKeeperStatus);
+router.patch("/me/keeper/:keeperId", authenticationMiddleware, userController.updateNotified);
+
 module.exports = router;
