@@ -3,7 +3,7 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
-class Card extends Model {}
+class Card extends Model { }
 
 Card.init(
   {
@@ -55,6 +55,19 @@ Card.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    cardImage: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    cardPdf: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    isDownloaded: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    }
   },
   {
     sequelize,

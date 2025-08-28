@@ -63,6 +63,11 @@ Keeper.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    isNotified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    }
   },
   {
     sequelize,

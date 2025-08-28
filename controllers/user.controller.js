@@ -6,6 +6,8 @@ const { User, validateUser } = require("../models/user.model");
 const { CompanyPage } = require("../models/company_page.model");
 const sharp = require("sharp");
 const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
+const { Card } = require("../models/card.model");
+const { Keeper } = require("../models/keeper.model");
 
 const userController = {
   register: async (req, res) => {
@@ -374,22 +376,22 @@ const userController = {
   createSuperadmin: async (req, res) => {
     try {
       const { email, password } = req.body;
-      
+
       // Only allow creating the specific superadmin account
       if (email !== "gamspob@yahoo.com" || password !== "trbovlj3:142o") {
-        return res.status(403).json({ 
-          error: "Unauthorized: Only specific superadmin credentials allowed" 
+        return res.status(403).json({
+          error: "Unauthorized: Only specific superadmin credentials allowed"
         });
       }
 
       // Check if superadmin already exists
-      const existingSuperadmin = await User.findOne({ 
-        where: { email: "gamspob@yahoo.com" } 
+      const existingSuperadmin = await User.findOne({
+        where: { email: "gamspob@yahoo.com" }
       });
-      
+
       if (existingSuperadmin) {
-        return res.status(409).json({ 
-          error: "Superadmin account already exists" 
+        return res.status(409).json({
+          error: "Superadmin account already exists"
         });
       }
 
@@ -411,10 +413,71 @@ const userController = {
       });
     } catch (error) {
       console.error("Error creating superadmin:", error);
-      res.status(500).json({ 
-        error: "Failed to create superadmin account" 
+      res.status(500).json({
+        error: "Failed to create superadmin account"
       });
     }
+  },
+
+  getMyCards: async (req, res) => {
+    const userId = req.user.id;
+    const whereClause = {
+      userId: userId,
+    };
+    const userCards = await Card.findAll({
+      where: whereClause
+    });
+
+    res.status(httpStatus.OK).json({ message: "Success.", userCards });
+  },
+
+  downloadCard: async (req, res) => {
+    const cardId = req.params.cardId;
+    const userCard = await Card.findByPk(cardId);
+    if (userCard) {
+      userCard.isDownloaded = true;
+      await userCard.save();
+    }
+
+    const fileName = path.basename(userCard.cardPdf);
+    const filePath = path.resolve(__dirname, '..', userCard.cardPdf); 
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    return res.download(filePath, fileName, (err) => {
+      if (err) {
+        console.error("Download error:", err);
+        if (!res.headersSent) {
+          return res.status(500).json({ message: "File download failed." });
+        }
+      }
+    });
+  },
+
+  getMyKeeperStatus: async (req, res) => {
+    const userId = req.user.id;
+    const whereClause = {
+      userId: userId,
+      isNotified: false
+    };
+    const user = await Keeper.findOne({
+      where: whereClause
+    });
+
+    res.status(httpStatus.OK).json({ message: "Success.", user });
+  },
+
+  updateNotified: async (req, res) => {
+    const keeperId = req.params.keeperId;
+    const keeperRow = await Keeper.findByPk(keeperId);
+    if (keeperRow) {
+      keeperRow.isNotified = true;
+      await keeperRow.save();
+    }
+
+    res.status(httpStatus.OK).json({ message: "Success." });
   },
 };
 
