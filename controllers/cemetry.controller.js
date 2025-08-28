@@ -137,5 +137,39 @@ const cemetryController = {
       return res.status(500).json({ message: "Internal server error." });
     }
   },
+  deleteCemetry: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      // ✅ Check if cemetery exists
+      const cemetry = await Cemetry.findOne({ where: { id, userId } });
+      if (!cemetry) {
+        return res.status(404).json({ message: "Cemetery not found." });
+      }
+
+      // ✅ Delete from DB
+      await cemetry.destroy();
+
+      // ✅ Delete uploads folder if exists
+      const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(id));
+      if (fs.existsSync(cemetryFolder)) {
+        fs.rmSync(cemetryFolder, { recursive: true, force: true });
+      }
+
+      // ✅ Fetch updated cemeteries of the user
+      const updatedCemeteries = await Cemetry.findAll({
+        where: { userId },
+      });
+
+      return res.status(200).json({
+        message: "Cemetery deleted successfully.",
+        cemeteries: updatedCemeteries,
+      });
+    } catch (error) {
+      console.error("Error deleting cemetery:", error);
+      return res.status(500).json({ message: "Internal server error." });
+    }
+  },
 };
 module.exports = cemetryController;

@@ -26,5 +26,10 @@ router.post(
 );
 
 router.get("/", authenticationMiddleware, cemetryController.getCemetries);
+router.delete(
+  "/:id",
+  authenticationMiddleware,
+  cemetryController.deleteCemetry
+);
 
 module.exports = router;
