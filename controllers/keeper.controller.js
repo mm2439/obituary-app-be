@@ -44,7 +44,8 @@ const keeperController = {
         expiry,
         relation,
         name,
-        isNotified: false
+        isNotified: false,
+        time
       });
 
       const keeperId = keeper.id;
@@ -75,7 +76,8 @@ const keeperController = {
         keeper.id,
         "approved",
         name,
-        "Skrbnik"
+        "Skrbnik",
+        time
       );
 
       res

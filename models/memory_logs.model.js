@@ -27,6 +27,10 @@ MemoryLog.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    time: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,

@@ -81,7 +81,7 @@ const validateCondolence = (condolence) => {
     status: Joi.string()
       .valid("pending", "approved", "rejected")
       .default("pending"),
-    relation: Joi.string().min(3).max(100).allow(null, "").optional(),
+    relation: Joi.string().min(1).max(100).allow(null, "").optional(),
     isCustomMessage: Joi.boolean().required(),
   });
 

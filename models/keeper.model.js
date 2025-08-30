@@ -58,6 +58,10 @@ Keeper.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    time: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     modifiedTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
