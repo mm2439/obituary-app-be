@@ -1255,14 +1255,16 @@ const obituaryController = {
       const logs = await MemoryLog.findAll({
         where: {
           type: ["dedication", "photo", "sorrowbook", "condolence"],
+          userId: req.user.id, // remove this if logs needed of a whole company
         },
         include: [
           {
             model: Obituary,
             attributes: ["name", "sirName"],
-            where: {
-              userId: req.user.id,
-            },
+            // Uncomment below if logs needed of a whole company
+            // where: {
+            //   userId: req.user.id,
+            // },
           },
         ],
       });
