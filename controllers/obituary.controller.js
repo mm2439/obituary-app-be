@@ -200,7 +200,6 @@ const obituaryController = {
       } = req.query;
 
       const allow = req.query?.allow;
-      console.log('>>>>>>>>> 1122', allow);
 
       const whereClause = {};
 
