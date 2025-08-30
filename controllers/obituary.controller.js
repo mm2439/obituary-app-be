@@ -199,6 +199,8 @@ const obituaryController = {
         endDate,
       } = req.query;
 
+      const allow = req.query?.allow;
+
       const whereClause = {};
 
       if (id) whereClause.id = id;
@@ -233,10 +235,19 @@ const obituaryController = {
         whereClause.region = region;
       }
 
+      if (allow === 'allow') {
+        const threeWeeksAgo = new Date();
+        threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
+        whereClause.createdTimestamp = {
+          [Op.gte]: threeWeeksAgo,
+        };
+      }
 
       // Main obituary query
       const obituaries = await Obituary.findAndCountAll({
-        where: whereClause,
+        where: {
+          ...whereClause,
+        },
         order: [["createdTimestamp", "DESC"]],
         include: [
           {
@@ -538,13 +549,22 @@ const obituaryController = {
 
   updateObituary: async (req, res) => {
     const obituaryId = req.params.id;
+    const allow = req.query?.allow;
     const userId = req.user.id;
-    const existingObituary = await Obituary.findOne({
+    let existingObituary = await Obituary.findOne({
       where: {
         id: obituaryId,
         userId,
       },
     });
+
+    if (allow === 'allow') {
+      existingObituary = await Obituary.findOne({
+        where: {
+          id: obituaryId
+        },
+      });
+    }
 
     if (!existingObituary) {
       return res
@@ -1235,14 +1255,16 @@ const obituaryController = {
       const logs = await MemoryLog.findAll({
         where: {
           type: ["dedication", "photo", "sorrowbook", "condolence"],
+          userId: req.user.id, // remove this if logs needed of a whole company
         },
         include: [
           {
             model: Obituary,
             attributes: ["name", "sirName"],
-            where: {
-              userId: req.user.id,
-            },
+            // Uncomment below if logs needed of a whole company
+            // where: {
+            //   userId: req.user.id,
+            // },
           },
         ],
       });
