@@ -208,6 +208,30 @@ const florsitShopController = {
       });
     }
   },
+
+  deleteFloristShop: async (req, res) => {
+    try {
+      const { id } = req.query;
+
+      await FloristShop.destroy({
+        where: {
+          id
+        }
+      });
+
+
+      return res.status(200).json({
+        message: "Florist shop deleted successfully.",
+        shops: []
+      });
+    } catch (error) {
+      console.error("Error fetching florist shops:", error);
+      return res.status(500).json({
+        message: "Internal server error.",
+        error: error.message
+      });
+    }
+  },
 };
 
 module.exports = florsitShopController;

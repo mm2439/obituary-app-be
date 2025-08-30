@@ -30,6 +30,10 @@ const dbUploadObituaryTemplateCardsPath = (filename) => {
   return `obituaryUploads/template-cards/${filename}`;
 };
 
+const dbUploadObituaryUserCardsPath = (filename) => {
+  return `obituaryUploads/user-cards/${filename}`;
+};
+
 const obituaryUploadsFields = multer({
   storage: obituaryUploadsStorage,
 }).fields([
@@ -40,4 +44,5 @@ const obituaryUploadsFields = multer({
 module.exports = {
   obituaryUploadsFields,
   dbUploadObituaryTemplateCardsPath,
+  dbUploadObituaryUserCardsPath
 };

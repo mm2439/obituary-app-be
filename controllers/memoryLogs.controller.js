@@ -133,15 +133,16 @@ const memoryLogsController = {
         include: [
           {
             model: Obituary,
-            attributes: ["city", "name", "sirName"],
+            attributes: ["city", "name", "sirName", "slugKey"],
           },
         ],
         order: [["createdTimestamp", "DESC"]],
       });
-
+      
       const formattedLogs = logs.map((log) => ({
         city: log.Obituary.city,
-        name: log.Obituary.name,
+        name: log.Obituary.name, 
+        slugKey: log.Obituary.slugKey, 
         sirName: log.Obituary.sirName,
         giftedTo: log.userName,
         createdAt: log.createdTimestamp,

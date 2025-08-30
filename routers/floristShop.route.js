@@ -17,5 +17,10 @@ router.post(
   florsitShopController.addFloristShop
 );
 router.get("/", florsitShopController.getFloristShops);
+router.delete(
+  "/",
+  [authenticationMiddleware],
+  florsitShopController.deleteFloristShop
+);
 
 module.exports = router;
