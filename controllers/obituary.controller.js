@@ -199,6 +199,9 @@ const obituaryController = {
         endDate,
       } = req.query;
 
+      const allow = req.query?.allow;
+      console.log('>>>>>>>>> 1122', allow);
+
       const whereClause = {};
 
       if (id) whereClause.id = id;
@@ -233,16 +236,18 @@ const obituaryController = {
         whereClause.region = region;
       }
 
+      if (allow === 'allow') {
+        const threeWeeksAgo = new Date();
+        threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
+        whereClause.createdTimestamp = {
+          [Op.gte]: threeWeeksAgo,
+        };
+      }
 
       // Main obituary query
-      const threeWeeksAgo = new Date();
-      threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
       const obituaries = await Obituary.findAndCountAll({
         where: {
           ...whereClause,
-          createdTimestamp: {
-            [Op.gte]: threeWeeksAgo,
-          }
         },
         order: [["createdTimestamp", "DESC"]],
         include: [
