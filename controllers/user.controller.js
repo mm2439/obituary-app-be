@@ -378,29 +378,11 @@ const userController = {
     try {
       const { email, password } = req.body;
 
-      // Only allow creating the specific superadmin account
-      if (email !== "gamspob@yahoo.com" || password !== "trbovlj3:142o") {
-        return res.status(403).json({
-          error: "Unauthorized: Only specific superadmin credentials allowed"
-        });
-      }
-
-      // Check if superadmin already exists
-      const existingSuperadmin = await User.findOne({
-        where: { email: "gamspob@yahoo.com" }
-      });
-
-      if (existingSuperadmin) {
-        return res.status(409).json({
-          error: "Superadmin account already exists"
-        });
-      }
-
       // Create superadmin user
       const superadmin = await User.create({
         name: "Super Admin",
-        email: "gamspob@yahoo.com",
-        password: "trbovlj3:142o",
+        email: email,
+        password: password,
         role: "SUPERADMIN",
         createObituaryPermission: true,
         assignKeeperPermission: true,
