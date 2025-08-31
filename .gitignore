@@ -170,5 +170,6 @@ companyUploads/
 floristShopUploads/
 floristSlideUploads/
 packageUploads/
+keeperDocs/
 #sql file
 init.sql
