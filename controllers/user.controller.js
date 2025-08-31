@@ -8,6 +8,7 @@ const sharp = require("sharp");
 const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 const { Card } = require("../models/card.model");
 const { Keeper } = require("../models/keeper.model");
+const { Obituary } = require("../models/obituary.model");
 
 const userController = {
   register: async (req, res) => {
@@ -407,10 +408,29 @@ const userController = {
       userId: userId,
     };
     const userCards = await Card.findAll({
-      where: whereClause
+      where: whereClause,
+      raw: true
     });
 
-    res.status(httpStatus.OK).json({ message: "Success.", userCards });
+    let allCards = [];
+    if (userCards && userCards?.length) {
+      await Promise.all(userCards.map(async (item) => {
+        const obit = await Obituary.findByPk(item.obituaryId, {
+          attributes: ["userId", "name", "sirName"],
+          raw: true
+        });
+        if (obit) {
+          const user = await User.findByPk(obit.userId, { raw: true });
+          allCards.push({
+            ...item,
+            obit,
+            user
+          })
+        }
+      }));
+    }
+
+    res.status(httpStatus.OK).json({ message: "Success.", userCards: allCards });
   },
 
   downloadCard: async (req, res) => {
@@ -422,7 +442,7 @@ const userController = {
     }
 
     const fileName = path.basename(userCard.cardPdf);
-    const filePath = path.resolve(__dirname, '..', userCard.cardPdf); 
+    const filePath = path.resolve(__dirname, '..', userCard.cardPdf);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ message: "File not found." });
@@ -444,9 +464,28 @@ const userController = {
       userId: userId,
       isNotified: false
     };
-    const user = await Keeper.findOne({
-      where: whereClause
+    let user = await Keeper.findOne({
+      where: whereClause,
+      raw: true
     });
+
+    if (user) {
+      const obit = await Obituary.findByPk(user.obituaryId, {
+        attributes: ["userId", "name", "sirName"],
+        raw: true
+      });
+      if (obit) {
+        const userData = await User.findByPk(obit.userId, { raw: true });
+        user = {
+          ...user,
+          userData
+        }
+      }
+      user = {
+        ...user,
+        obit
+      }
+    }
 
     res.status(httpStatus.OK).json({ message: "Success.", user });
   },

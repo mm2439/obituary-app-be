@@ -11,4 +11,6 @@ router.get(
   commonController.getApprovedPosts
 );
 
+router.post("/contact", commonController.saveContact);
+
 module.exports = router;

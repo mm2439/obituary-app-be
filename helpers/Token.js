@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "secret";
 const secret = NEXTAUTH_SECRET;
-console.log(secret);
 
 // TokenPayload {
 //   tokenType: string;
