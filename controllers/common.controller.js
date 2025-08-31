@@ -13,6 +13,7 @@ const { Candle } = require("../models/candle.model");
 const { Obituary } = require("../models/obituary.model");
 const { Photo } = require("../models/photo.model");
 const { MemoryLog } = require("../models/memory_logs.model");
+const { Contact } = require("../models/contact.model");
 
 // Define a mapping for dynamic model selection
 const models = { condolence: Condolence, dedication: Dedication, photo: Photo };
@@ -163,6 +164,21 @@ const commonController = {
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal Server Error" });
+    }
+  },
+
+  saveContact: async (req, res) => {
+    try {
+      await Contact.create(req.body);
+
+      res.status(httpStatus.OK).json({
+        message: `Contact submitted successfully`
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
     }
   },
 };
