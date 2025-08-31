@@ -15,6 +15,7 @@ const { Obituary } = require("../models/obituary.model");
 const { Photo } = require("../models/photo.model");
 const { MemoryLog } = require("../models/memory_logs.model");
 const { Contact } = require("../models/contact.model");
+const { ObitNotification } = require("../models/obit_notification");
 
 // Define a mapping for dynamic model selection
 const models = { condolence: Condolence, dedication: Dedication, photo: Photo };
@@ -199,6 +200,24 @@ const commonController = {
 
       res.status(httpStatus.OK).json({
         message: `Contact submitted successfully`
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
+  saveObitNotification: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { emails, obituaryId, message } = req.body;
+      console.log('>>>>>> userId', userId);
+      await ObitNotification.create({ obituaryId, message, emails: JSON.stringify(emails), userId: userId });
+
+      res.status(httpStatus.OK).json({
+        message: `Notification submitted successfully`
       });
     } catch (error) {
       console.error("Error:", error);

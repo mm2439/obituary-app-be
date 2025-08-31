@@ -12,5 +12,6 @@ router.get(
 );
 
 router.post("/contact", commonController.saveContact);
+router.post("/obit-notification", authenticationMiddleware, commonController.saveObitNotification);
 
 module.exports = router;
