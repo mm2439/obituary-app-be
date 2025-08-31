@@ -4,6 +4,7 @@ const moment = require("moment");
 const {
   memoryLogsController,
 } = require("../controllers/memoryLogs.controller");
+const nodemailer = require('nodemailer');
 
 // Import all models
 const { Condolence } = require("../models/condolence.model");
@@ -170,6 +171,31 @@ const commonController = {
   saveContact: async (req, res) => {
     try {
       await Contact.create(req.body);
+
+      // const transporter = nodemailer.createTransport({
+      //   host: 'smtp.hostinger.com',
+      //   port: 465,
+      //   secure: true,
+      //   auth: {
+      //     user: 'your Hostinger email',
+      //     pass: 'your Hostinger email password',
+      //   },
+      // });
+
+      // const mailOptions = {
+      //   from: 'sender address',
+      //   to: 'list of receivers',
+      //   subject: 'Hello from Hostinger via Node.js',
+      //   text: 'This is a test email sent using Nodemailer and Hostinger SMTP.',
+      //   // html: '<b>Hello world?</b>'
+      // };
+
+      // transporter.sendMail(mailOptions, (error, info) => {
+      //   if (error) {
+      //     return console.error('Error sending email:', error);
+      //   }
+      //   console.log('Email sent:', info.response);
+      // });
 
       res.status(httpStatus.OK).json({
         message: `Contact submitted successfully`
