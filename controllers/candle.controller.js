@@ -5,7 +5,7 @@ const { Obituary } = require("../models/obituary.model");
 const candleController = {
   burnCandle: async (req, res) => {
     try {
-      const { userId } = req.body;
+      const userId = req.body?.userId;
       const obituaryId = req.params.id;
 
       const ip =
