@@ -2,8 +2,6 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const jwt = require("jsonwebtoken");
 const { Op } = require("sequelize");
 
-const { RefreshToken } = require("../models/refreshToken.model");
-const { setAccessToken } = require("../helpers/responseToken");
 const { User } = require("../models/user.model");
 
 async function verifyUser(id) {
@@ -35,22 +33,31 @@ async function verifyUser(id) {
 }
 
 module.exports = async (req, res, next) => {
-  const accessToken = req.header("access-token");
-  const refreshToken = req.header("refresh-token");
-
-  if (!accessToken && !refreshToken) {
-    console.warn("Access denied. No token provided");
+  const authHeader = req.header("Authorization");
+  
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.warn("Access denied. No valid authorization header provided");
     return res
       .status(httpStatus.UNAUTHORIZED)
-      .json({ error: "Access denied. No token provided" });
+      .json({ error: `Access denied. No token provided.`});
   }
+
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
 
   let response;
 
   try {
-    if (accessToken) {
-      const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
-      response = await verifyUser(decoded.id);
+    if (token) {
+      const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET);
+      const userId = decoded.id || decoded._id;
+
+      if (!userId) {
+        return res
+          .status(httpStatus.UNAUTHORIZED)
+          .json({ error: "Invalid token structure" });
+      }
+
+      response = await verifyUser(userId);
 
       if (!response.success) {
         return res
@@ -61,54 +68,10 @@ module.exports = async (req, res, next) => {
       req.user = response.user;
       return next();
     }
-  } catch (accessTokenError) {
-    console.warn(`Access token validation error: ${accessTokenError}`);
+  } catch (error) {
+    console.warn(`Token validation error: ${error.message}`);
+    return res
+      .status(httpStatus.UNAUTHORIZED)
+      .json({ error: "Access denied. Invalid token" });
   }
-
-  try {
-    if (refreshToken) {
-      const decodedRefresh = jwt.verify(
-        refreshToken,
-        process.env.REFRESH_TOKEN_SECRET
-      );
-
-      const validRefreshToken = await RefreshToken.findOne({
-        where: {
-          userId: decodedRefresh.id,
-          token: refreshToken,
-          expiresAt: {
-            [Op.gt]: new Date(),
-          },
-          isValid: true,
-        },
-      });
-
-      if (!validRefreshToken) {
-        console.warn("Access denied. Refresh token not found or has expired");
-
-        return res.status(httpStatus.UNAUTHORIZED).json({
-          error: "Access denied. Refresh token not found or has expired",
-        });
-      }
-
-      setAccessToken(decodedRefresh, res);
-
-      response = await verifyUser(decodedRefresh.id);
-
-      if (!response.success) {
-        return res
-          .status(httpStatus.UNAUTHORIZED)
-          .json({ error: response.error });
-      }
-
-      req.user = response.user;
-      return next();
-    }
-  } catch (refreshTokenError) {
-    console.warn(`Refresh token validation error: ${refreshTokenError}`);
-  }
-
-  res
-    .status(httpStatus.UNAUTHORIZED)
-    .json({ error: "Access denied. Invalid token(s)" });
 };

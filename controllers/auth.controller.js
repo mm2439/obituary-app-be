@@ -1,10 +1,9 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const bcrypt = require("bcrypt");
+const TokenManagement = require("../helpers/Token");
 
 const { User } = require("../models/user.model");
 const Auth = require("../models/auth.model");
-const { RefreshToken } = require("../models/refreshToken.model");
-const responseToken = require("../helpers/responseToken");
 
 const authController = {
   login: async (req, res) => {
@@ -40,11 +39,12 @@ const authController = {
 
       return res
         .status(httpStatus.FORBIDDEN)
-        .json({ error: "Your account has been blocked. Please contact administrator." });
+        .json({
+          error: "Your account has been blocked. Please contact administrator.",
+        });
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
-
 
     if (!validPassword) {
       console.warn("Invalid Password");
@@ -54,63 +54,25 @@ const authController = {
         .json({ error: "Invalid   password" });
     }
 
-    responseToken.setAccessToken(user, res);
+    const isAdmin = user.role === "SUPERADMIN";
 
-    await responseToken.setRefreshToken(user, res);
+    // handle token management
+    const token = TokenManagement.createToken(
+      {
+        sub: user.id.toString(),
+        _id: user.id,
+        email: user.email,
+        isAdmin: isAdmin,
+        role: user.role,
+      },
+      "login"
+    );
 
     res.status(httpStatus.OK).json({
       message: "Login Successful!",
+      token,
       user: user.toSafeObject(),
     });
-  },
-
-  logout: async (req, res) => {
-    try {
-      // Invalidate refresh token
-      await RefreshToken.update(
-        { isValid: false },
-        { where: { userId: req.user.id } }
-      );
-      
-      const isProd = process.env.NODE_ENV === "production";
-      
-      // Clear cookies with exact same options as when they were set
-      res.clearCookie("accessToken", {
-        path: "/",
-        httpOnly: false,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        maxAge: 0,
-        expires: new Date(0),
-      });
-      
-      res.clearCookie("role", {
-        path: "/",
-        httpOnly: false,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        maxAge: 0,
-        expires: new Date(0),
-      });
-      
-      res.clearCookie("slugKey", {
-        path: "/",
-        httpOnly: false,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
-        maxAge: 0,
-        expires: new Date(0),
-      });
-      
-      res.status(httpStatus.OK).json({
-        message: "Logged out successfully!",
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Failed to log out",
-      });
-    }
   },
 };
 

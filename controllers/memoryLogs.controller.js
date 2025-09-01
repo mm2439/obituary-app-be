@@ -19,7 +19,8 @@ const memoryLogsController = {
     interactionId = null,
     status,
     name,
-    typeInSl
+    typeInSl,
+    time = ''
   ) => {
     try {
       if (!type || !obituaryId || !userId || !status) {
@@ -35,6 +36,7 @@ const memoryLogsController = {
         interactionId: interactionId || null,
         userName: name || null,
         typeInSL: typeInSl,
+        time
       });
 
       return log;
@@ -112,6 +114,7 @@ const memoryLogsController = {
   getUserCardAndKeeperLogs: async (req, res) => {
     try {
       const userId = req.user.id;
+      console.log('>>>>>> userId', userId);
 
       const userObituaries = await Obituary.findAll({
         where: { userId },
@@ -127,7 +130,7 @@ const memoryLogsController = {
       const logs = await MemoryLog.findAll({
         where: {
           obituaryId: obituaryIds,
-          type: ["card", "keeper_activation", "keeper_deactivation"],
+          type: ["card", "keeper_activation", "keeper_deactivation", "time"],
           status: "approved",
         },
         include: [
@@ -147,6 +150,7 @@ const memoryLogsController = {
         giftedTo: log.userName,
         createdAt: log.createdTimestamp,
         typeInSL: log.typeInSL,
+        time: log.time,
       }));
 
       return res.status(200).json({ logs: formattedLogs });
