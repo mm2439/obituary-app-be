@@ -42,7 +42,7 @@ const cemetryController = {
             }
 
             await sharp(file.buffer)
-              .resize(195, 267, { fit: "cover" })
+              .resize(1920, 1282, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
               .toFile(path.join(__dirname, "../", imagePath));
 
