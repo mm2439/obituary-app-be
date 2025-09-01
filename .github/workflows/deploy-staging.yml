@@ -20,7 +20,7 @@ jobs:
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.DEPLOY_KEY }}
         script: |
-          cd /home/jenkins/deployment/obituary-app/staging-be/obituary-app-backend
+          cd /home/jenkins/deployment/obituary-app/staging-be/obituary-app-be
           sleep 1
           git checkout staging
           git pull origin staging
