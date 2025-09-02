@@ -64,7 +64,7 @@ const companyController = {
       }
       floristCompany.background = picturePath;
       await floristCompany.save();
-      uploadToBunny(picturePath, picturePath)
+      // uploadToBunny(picturePath, picturePath)
       res.status(httpStatus.OK).json({
         message: `Florist Company Created Successfully `,
         company: floristCompany,
@@ -302,10 +302,8 @@ const companyController = {
       const updateData = { ...req.body };
 
       const companyFolder = path.join(COMPANY_UPLOADS_PATH, String(company.id));
-      console.log("fffffffffffffffffffff", companyFolder);
 
       if (!fs.existsSync(companyFolder)) {
-
         fs.mkdirSync(companyFolder, { recursive: true });
       }
 
@@ -366,22 +364,22 @@ const companyController = {
             String(company.id),
             `${fileField.field}.avif`
           );
-
+          if (fs.existsSync(optimizedPath)) {
+            console.log("brfore", optimizedPath);
+          }
           await sharpHelpers.processImageToAvif({
             buffer: file.buffer,
             outputPath: path.join(__dirname, "../", optimizedPath),
             resize: fileField.resize,
             ...(fileField.avifOptions || {}),
           });
-
+          if (fs.existsSync(optimizedPath)) {
+            console.log("after", optimizedPath);
+          }
           if (fileField.field === "picture") {
             updateData.logo = optimizedPath;
-            // uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
-
           } else {
             updateData[fileField.field] = optimizedPath;
-            // uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
-
           }
 
         } else if (req.body[fileField.field]) {
