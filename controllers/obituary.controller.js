@@ -23,6 +23,7 @@ const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
 const { dbUploadObituaryTemplateCardsPath } = require("../config/upload");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 
 const slugKeyFilter = (name) => {
   return name
@@ -134,45 +135,45 @@ const obituaryController = {
         fs.mkdirSync(obituaryFolder, { recursive: true });
       }
 
-      let picturePath = null;
-      let deathReportPath = null;
+      let pictureUrl = null;
+      let deathReportUrl = null;
 
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
         const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
-
-        const localPath = path.join(
-          "obituaryUploads",
+        const remotePath = buildRemotePath(
+          "obituaries",
           String(obituaryId),
           fileName
         );
 
-        await sharp(pictureFile.buffer)
+        const optimizedBuffer = await sharp(pictureFile.buffer)
           .resize(195, 267, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", localPath));
+          .toBuffer();
 
-        picturePath = `${localPath.replace(/\\/g, "/")}`;
+        await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
+        pictureUrl = publicUrl(remotePath);
       }
 
       if (req.files?.deathReport) {
-        const fileName = req.files.deathReport[0].originalname;
-        const localPath = path.join(
-          "obituaryUploads",
+        const file = req.files.deathReport[0];
+        const remotePath = buildRemotePath(
+          "obituaries",
           String(obituaryId),
-          fileName
+          file.originalname
         );
 
-        fs.writeFileSync(
-          path.join(__dirname, "../", localPath),
-          req.files.deathReport[0].buffer
+        await uploadBuffer(
+          file.buffer,
+          remotePath,
+          file.mimetype || "application/pdf"
         );
-
-        deathReportPath = `${localPath.replace(/\\/g, "/")}`;
+        deathReportUrl = publicUrl(remotePath);
       }
 
-      newObituary.image = picturePath;
-      newObituary.deathReport = deathReportPath;
+      newObituary.image = pictureUrl;
+      newObituary.deathReport = deathReportUrl;
       await newObituary.save();
       return res.status(httpStatus.CREATED).json(newObituary);
     } catch (err) {
@@ -235,7 +236,7 @@ const obituaryController = {
         whereClause.region = region;
       }
 
-      if (allow === 'allow') {
+      if (allow === "allow") {
         const threeWeeksAgo = new Date();
         threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
         whereClause.createdTimestamp = {
@@ -530,7 +531,6 @@ const obituaryController = {
       };
     }
 
-
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
       order: [["funeralTimestamp", "ASC"]], // Order by time ascending
@@ -558,10 +558,10 @@ const obituaryController = {
       },
     });
 
-    if (allow === 'allow') {
+    if (allow === "allow") {
       existingObituary = await Obituary.findOne({
         where: {
-          id: obituaryId
+          id: obituaryId,
         },
       });
     }
@@ -1344,34 +1344,105 @@ const obituaryController = {
       return res.status(500).json({ message: "Internal server error." });
     }
   },
+  // uploadTemplateCards: async (req, res) => {
+  //   try {
+  //     const { id } = req.params;
+  //     if (!id) {
+  //       return res.status(400).json({ message: "Missing required fields." });
+  //     }
+  //     const { cardImages, cardPdfs } = req.files || {};
+  //     if (!cardImages || !cardPdfs) {
+  //       return res.status(400).json({ message: "Missing required fields." });
+  //     }
+  //     const obituary = await Obituary.findByPk(id);
+
+  //     const newCardImages = cardImages.map((image) =>
+  //       dbUploadObituaryTemplateCardsPath(image?.filename)
+  //     );
+  //     const newCardPdfs = cardPdfs.map((pdf) =>
+  //       dbUploadObituaryTemplateCardsPath(pdf?.filename)
+  //     );
+
+  //     await obituary.update({
+  //       cardImages: newCardImages,
+  //       cardPdfs: newCardPdfs,
+  //     });
+  //     return res
+  //       .status(200)
+  //       .json({ message: "Template cards uploaded successfully." });
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // },
   uploadTemplateCards: async (req, res) => {
     try {
       const { id } = req.params;
       if (!id) {
-        return res.status(400).json({ message: "Missing required fields." });
+        return res.status(400).json({ message: "Missing obituary id." });
       }
-      const { cardImages, cardPdfs } = req.files || {};
-      if (!cardImages || !cardPdfs) {
-        return res.status(400).json({ message: "Missing required fields." });
-      }
-      const obituary = await Obituary.findByPk(id);
 
-      const newCardImages = cardImages.map((image) =>
-        dbUploadObituaryTemplateCardsPath(image?.filename)
+      const obituary = await Obituary.findByPk(id);
+      if (!obituary) {
+        return res.status(404).json({ message: "Obituary not found." });
+      }
+
+      const { cardImages = [], cardPdfs = [] } = req.files || {};
+      if (!cardImages.length && !cardPdfs.length) {
+        return res.status(400).json({ message: "No files provided." });
+      }
+
+      const timestampName = (originalname) => {
+        const now = Date.now();
+        return `${now}-${originalname}`;
+      };
+
+      const uploadedImageUrls = await Promise.all(
+        cardImages.map(async (image) => {
+          const fileName = timestampName(image.originalname);
+          const remotePath = buildRemotePath(
+            "template-cards",
+            String(id),
+            fileName
+          );
+          await uploadBuffer(
+            image.buffer,
+            remotePath,
+            image.mimetype || "image/*"
+          );
+          return publicUrl(remotePath);
+        })
       );
-      const newCardPdfs = cardPdfs.map((pdf) =>
-        dbUploadObituaryTemplateCardsPath(pdf?.filename)
+
+      const uploadedPdfUrls = await Promise.all(
+        cardPdfs.map(async (pdf) => {
+          const fileName = timestampName(pdf.originalname);
+          const remotePath = buildRemotePath(
+            "template-cards",
+            String(id),
+            fileName
+          );
+          await uploadBuffer(
+            pdf.buffer,
+            remotePath,
+            pdf.mimetype || "application/pdf"
+          );
+          return publicUrl(remotePath);
+        })
       );
 
       await obituary.update({
-        cardImages: newCardImages,
-        cardPdfs: newCardPdfs,
+        cardImages: uploadedImageUrls,
+        cardPdfs: uploadedPdfUrls,
       });
-      return res
-        .status(200)
-        .json({ message: "Template cards uploaded successfully." });
+
+      return res.status(200).json({
+        message: "Template cards uploaded successfully.",
+        cardImages: uploadedImageUrls,
+        cardPdfs: uploadedPdfUrls,
+      });
     } catch (error) {
-      console.error(error);
+      console.error("uploadTemplateCards error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
     }
   },
 };
