@@ -12,6 +12,7 @@ const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
 const { sharpHelpers } = require("../helpers/sharp");
 const { Obituary } = require("../models/obituary.model"); // Add this import
+const { uploadToBunny } = require("../utils/uploadToBunny");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -63,7 +64,7 @@ const companyController = {
       }
       floristCompany.background = picturePath;
       await floristCompany.save();
-
+      uploadToBunny(picturePath, picturePath)
       res.status(httpStatus.OK).json({
         message: `Florist Company Created Successfully `,
         company: floristCompany,
@@ -301,7 +302,10 @@ const companyController = {
       const updateData = { ...req.body };
 
       const companyFolder = path.join(COMPANY_UPLOADS_PATH, String(company.id));
+      console.log("fffffffffffffffffffff", companyFolder);
+
       if (!fs.existsSync(companyFolder)) {
+
         fs.mkdirSync(companyFolder, { recursive: true });
       }
 
@@ -372,9 +376,14 @@ const companyController = {
 
           if (fileField.field === "picture") {
             updateData.logo = optimizedPath;
+            uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
+
           } else {
             updateData[fileField.field] = optimizedPath;
+            uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
+
           }
+
         } else if (req.body[fileField.field]) {
           updateData[fileField.field] = req.body[fileField.field];
         }
