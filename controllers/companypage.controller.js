@@ -173,8 +173,8 @@ const companyController = {
           buffer: pictureFile.buffer,
           outputPath: path.join(__dirname, "../", optimizedPicturePath),
           resize: {
-            width: 195,
-            height: 267,
+            width: 228,
+            height: 140,
             fit: "cover",
           },
           avifOptions: {
