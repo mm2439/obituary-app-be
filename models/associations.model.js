@@ -1,5 +1,5 @@
 const { User } = require("./user.model");
-const { RefreshToken } = require("./refreshToken.model");
+const { RefreshToken } = require("./refreshToken.model"); 
 const { Obituary } = require("./obituary.model");
 const { Event } = require("./event.model");
 const { Photo } = require("./photo.model");
