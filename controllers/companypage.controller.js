@@ -376,11 +376,11 @@ const companyController = {
 
           if (fileField.field === "picture") {
             updateData.logo = optimizedPath;
-            uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
+            // uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
 
           } else {
             updateData[fileField.field] = optimizedPath;
-            uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
+            // uploadToBunny(path.join(__dirname, "../", optimizedPath), optimizedPath)
 
           }
 

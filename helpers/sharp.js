@@ -1,4 +1,5 @@
 const sharp = require("sharp");
+const { uploadToBunny } = require("../utils/uploadToBunny");
 /**
  * Highly reusable image processing function using sharp.
  * @param {Object} options - Options object
@@ -35,6 +36,7 @@ async function processImageToAvif({
 
   if (outputPath) {
     await image.toFile(outputPath);
+    const resp = await uploadToBunny(outputPath, outputPath)
     return outputPath;
   } else {
     return await image.toBuffer();
