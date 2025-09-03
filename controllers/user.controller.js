@@ -9,6 +9,7 @@ const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 const { Card } = require("../models/card.model");
 const { Keeper } = require("../models/keeper.model");
 const { Obituary } = require("../models/obituary.model");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 
 const userController = {
   register: async (req, res) => {
@@ -330,30 +331,22 @@ const userController = {
           .json({ message: "Could not update company related data" });
       }
 
-      const companyFolder = path.join(
-        COMPANY_FOLDER_UPLOAD,
-        String(companyPage.id)
-      );
-      if (!fs.existsSync(companyFolder)) {
-        fs.mkdirSync(companyFolder, { recursive: true });
-      }
-
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
-        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize(195, 267, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toBuffer();
 
-        const localPath = path.join(
+        const base = path.parse(pictureFile.originalname).name;
+        const fileName = `${Date.now()}-${base}.avif`;
+        const remotePath = buildRemotePath(
           "companyUploads",
           String(companyPage.id),
           fileName
         );
-
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", localPath));
-
-        logoPath = `${localPath.replace(/\\/g, "/")}`;
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
+        logoPath = encodeURI(publicUrl(remotePath));
       }
 
       if (website) companyPage.website = website;
@@ -392,12 +385,12 @@ const userController = {
 
       res.status(201).json({
         message: "Superadmin account created successfully",
-        user: superadmin.toSafeObject()
+        user: superadmin.toSafeObject(),
       });
     } catch (error) {
       console.error("Error creating superadmin:", error);
       res.status(500).json({
-        error: "Failed to create superadmin account"
+        error: "Failed to create superadmin account",
       });
     }
   },
@@ -409,28 +402,32 @@ const userController = {
     };
     const userCards = await Card.findAll({
       where: whereClause,
-      raw: true
+      raw: true,
     });
 
     let allCards = [];
     if (userCards && userCards?.length) {
-      await Promise.all(userCards.map(async (item) => {
-        const obit = await Obituary.findByPk(item.obituaryId, {
-          attributes: ["userId", "name", "sirName"],
-          raw: true
-        });
-        if (obit) {
-          const user = await User.findByPk(obit.userId, { raw: true });
-          allCards.push({
-            ...item,
-            obit,
-            user
-          })
-        }
-      }));
+      await Promise.all(
+        userCards.map(async (item) => {
+          const obit = await Obituary.findByPk(item.obituaryId, {
+            attributes: ["userId", "name", "sirName"],
+            raw: true,
+          });
+          if (obit) {
+            const user = await User.findByPk(obit.userId, { raw: true });
+            allCards.push({
+              ...item,
+              obit,
+              user,
+            });
+          }
+        })
+      );
     }
 
-    res.status(httpStatus.OK).json({ message: "Success.", userCards: allCards });
+    res
+      .status(httpStatus.OK)
+      .json({ message: "Success.", userCards: allCards });
   },
 
   downloadCard: async (req, res) => {
@@ -442,7 +439,7 @@ const userController = {
     }
 
     const fileName = path.basename(userCard.cardPdf);
-    const filePath = path.resolve(__dirname, '..', userCard.cardPdf);
+    const filePath = path.resolve(__dirname, "..", userCard.cardPdf);
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ message: "File not found." });
@@ -462,29 +459,29 @@ const userController = {
     const userId = req.user.id;
     const whereClause = {
       userId: userId,
-      isNotified: false
+      isNotified: false,
     };
     let user = await Keeper.findOne({
       where: whereClause,
-      raw: true
+      raw: true,
     });
 
     if (user) {
       const obit = await Obituary.findByPk(user.obituaryId, {
         attributes: ["userId", "name", "sirName"],
-        raw: true
+        raw: true,
       });
       if (obit) {
         const userData = await User.findByPk(obit.userId, { raw: true });
         user = {
           ...user,
-          userData
-        }
+          userData,
+        };
       }
       user = {
         ...user,
-        obit
-      }
+        obit,
+      };
     }
 
     res.status(httpStatus.OK).json({ message: "Success.", user });

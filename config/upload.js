@@ -2,6 +2,21 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+});
+
+const uploadFields = upload.fields([
+  { name: "picture", maxCount: 1 },
+  { name: "deathReport", maxCount: 1 },
+]);
+
+const obituaryUploadsFields = upload.fields([
+  { name: "cardImages", maxCount: 5 },
+  { name: "cardPdfs", maxCount: 5 },
+]);
+
 const obituaryUploadsPath = path.join(
   process.cwd(),
   "obituaryUploads",
@@ -34,15 +49,9 @@ const dbUploadObituaryUserCardsPath = (filename) => {
   return `obituaryUploads/user-cards/${filename}`;
 };
 
-const obituaryUploadsFields = multer({
-  storage: obituaryUploadsStorage,
-}).fields([
-  { name: "cardImages", maxCount: 5 },
-  { name: "cardPdfs", maxCount: 5 },
-]);
-
 module.exports = {
+  uploadFields,
   obituaryUploadsFields,
   dbUploadObituaryTemplateCardsPath,
-  dbUploadObituaryUserCardsPath
+  dbUploadObituaryUserCardsPath,
 };
