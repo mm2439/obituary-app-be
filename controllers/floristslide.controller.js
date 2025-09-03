@@ -39,7 +39,7 @@ const florsitSlideController = {
             }
 
             await sharp(file.buffer)
-              .resize(195, 267, { fit: "cover" })
+              .resize(351, 351, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
               .toFile(path.join(__dirname, "../", imagePath));
 
@@ -84,7 +84,7 @@ const florsitSlideController = {
           );
 
           await sharp(file.buffer)
-            .resize(195, 267, { fit: "cover" })
+            .resize(351, 351, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
             .toFile(path.join(__dirname, "../", imagePath));
 

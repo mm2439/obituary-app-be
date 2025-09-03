@@ -44,6 +44,11 @@ router.get(
   companyController.getFloristCompany
 );
 
+router.get(
+  "/florist/by-slug",
+  companyController.getFloristCompany
+);
+
 router.get("/", companyController.getCompanies);
 
 router.get(

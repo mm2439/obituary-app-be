@@ -287,6 +287,44 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  // // GET Florist Company By User Slug
+  getFloristCompanyByUserSlug: async (req, res) => {
+    try {
+      const { slug } = req.query;
+      const whereClause = {slugKey: slug};
+
+
+      whereClause.type = "FLORIST";
+      const company = await CompanyPage.findOne({ where: whereClause });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const packages = await Package.findAll({ where: { companyId } });
+      const slides = await FloristSlide.findAll({ where: { companyId } });
+      const shops = await FloristShop.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.packages = packages;
+      companyData.slides = slides;
+      companyData.shops = shops;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
   updateCompanyPage: async (req, res) => {
     try {
       const { id } = req.params;
