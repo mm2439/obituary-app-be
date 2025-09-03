@@ -1,0 +1,29 @@
+name: Deploy Staging Backend
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          cd /home/jenkins/deployment/obituary-app/staging-be/obituary-app-be
+          sleep 1
+          git checkout staging
+          git pull origin staging
+          sleep 1
+          npm install
+          /root/.nvm/versions/node/v21.7.3/bin/pm2 restart staging-be
