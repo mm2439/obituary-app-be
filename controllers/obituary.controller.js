@@ -235,7 +235,7 @@ const obituaryController = {
         whereClause.region = region;
       }
 
-      if (allow === 'allow') {
+      if (allow === "allow") {
         const threeWeeksAgo = new Date();
         threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
         whereClause.createdTimestamp = {
@@ -530,7 +530,6 @@ const obituaryController = {
       };
     }
 
-
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
       order: [["funeralTimestamp", "ASC"]], // Order by time ascending
@@ -558,10 +557,10 @@ const obituaryController = {
       },
     });
 
-    if (allow === 'allow') {
+    if (allow === "allow") {
       existingObituary = await Obituary.findOne({
         where: {
-          id: obituaryId
+          id: obituaryId,
         },
       });
     }
@@ -666,6 +665,7 @@ const obituaryController = {
   updateVisitCounts: async (req, res) => {
     try {
       const { id: obituaryId } = req.params;
+      const { isNoFloristLimit } = req.query;
 
       const ip =
         req.headers["x-forwarded-for"]?.split(",")[0] ||
@@ -784,6 +784,7 @@ const obituaryController = {
       const company = await CompanyPage.findOne({ where: { userId: user.id } });
 
       let floristShopList = [];
+      const floristLimit = isNoFloristLimit === "true" ? null : 5;
 
       if (user.role === "Florist" && company) {
         const ownShop = await FloristShop.findOne({
@@ -802,7 +803,7 @@ const obituaryController = {
             companyId: { [Sequelize.Op.ne]: company.id },
           },
           order: Sequelize.literal("RAND()"),
-          limit: 5,
+          ...(floristLimit ? { limit: floristLimit } : {}), // <--- replace limit: 5 here
         });
 
         floristShopList = [...(ownShop ? [ownShop] : []), ...randomShops];
@@ -810,7 +811,7 @@ const obituaryController = {
         floristShopList = await FloristShop.findAll({
           where: { city },
           order: Sequelize.literal("RAND()"),
-          limit: 5,
+          ...(floristLimit ? { limit: floristLimit } : {}), // <--- replace limit: 5 here
         });
       }
 
