@@ -134,8 +134,7 @@ const photoController = {
       // Also return the URL for the client
       return res.status(httpStatus.CREATED).json({
         ...photo.toJSON(),
-        cdnUrl: publicFileUrl, // ⬅️ for convenience on the client
-        // remotePath,                                 // (optional) include if you want it in the response
+        cdnUrl: publicFileUrl,
       });
     } catch (error) {
       console.error("Error adding photo:", error);

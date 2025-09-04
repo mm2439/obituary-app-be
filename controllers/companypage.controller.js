@@ -452,7 +452,6 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
-
   getFullCompanyDetails: async (req, res) => {
     try {
       const userId = req.user.id;
@@ -501,7 +500,6 @@ const companyController = {
       res.status(500).json({ error: "Something went wrong" });
     }
   },
-
   getCompanies: async (req, res) => {
     try {
       const { type, region, city } = req.query;

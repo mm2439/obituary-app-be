@@ -5,6 +5,7 @@ const FLORIST_SHOP_UPLOADS_PATH = path.join(__dirname, "../floristShopUploads");
 const { sharpHelpers } = require("../helpers/sharp");
 const fs = require("fs");
 const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
+const sharp = require("sharp");
 
 const florsitShopController = {
   addFloristShop: async (req, res) => {
@@ -82,7 +83,7 @@ const florsitShopController = {
         const logoId = i + 1 + Math.floor(Date.now() * Math.random());
         let logo = "";
 
-        const file = req.files?.[fileField.field]?.[0];
+        const file = req.files?.picture?.[0];
 
         if (file) {
           const avifBuffer = await sharp(file.buffer)
@@ -90,7 +91,7 @@ const florsitShopController = {
             .toFormat("avif", { quality: 50 })
             .toBuffer();
 
-          const baseName = path.parse(pictureFile.originalname).name;
+          const baseName = path.parse(file.originalname).name;
           const fileName = `picture-${Date.now()}-${baseName}.avif`;
           const remotePath = buildRemotePath(
             "floristShopUploads",
@@ -98,11 +99,7 @@ const florsitShopController = {
             fileName
           );
           await uploadBuffer(avifBuffer, remotePath, "image/avif");
-          optimizedPath = encodeURI(publicUrl(remotePath));
-
-          if (fileField.field === "picture") {
-            logo = optimizedPath;
-          }
+          logo = encodeURI(publicUrl(remotePath));
         }
 
         // === Create new shop ===

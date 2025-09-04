@@ -6,6 +6,14 @@ const fs = require("fs");
 const { CompanyPage } = require("../models/company_page.model");
 const { sharpHelpers } = require("../helpers/sharp");
 const { resizeConstants } = require("../constants/resize");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+
+function allFiles(req) {
+  if (Array.isArray(req.files)) return req.files;
+  if (req.files && typeof req.files === "object")
+    return Object.values(req.files).flat();
+  return [];
+}
 
 const packageController = {
   addPackages: async (req, res) => {
@@ -13,6 +21,7 @@ const packageController = {
       const { packages, companyId } = req.body;
       const createdOrUpdatedPackages = [];
 
+      const files = allFiles(req);
       for (let i = 0; i < packages.length; i++) {
         const { id, updated, title, price, image } = packages[i];
         const file = req.files.find(
@@ -24,24 +33,28 @@ const packageController = {
           await Package.update({ title, price }, { where: { id } });
 
           if (file) {
-            const imagePath = path.join(
-              "packageUploads",
+            const avifBuffer = await sharp(file.buffer)
+              .resize(
+                resizeConstants?.packageImageOptions || {
+                  width: 600,
+                  height: 400,
+                  fit: "cover",
+                }
+              )
+              .toFormat("avif", { quality: 60 })
+              .toBuffer();
+            const filename = file.originalname || "package.avif";
+            const remotePath = buildRemotePath(
+              "packages",
+              String(companyId),
               String(id),
-              `${path.parse(file.originalname).name}.avif`
+              filename
             );
 
-            const packageFolder = path.join(PACKAGE_UPLOADS, String(id));
-            if (!fs.existsSync(packageFolder)) {
-              fs.mkdirSync(packageFolder, { recursive: true });
-            }
+            await uploadBuffer(avifBuffer, remotePath, "image/avif");
+            const imageUrl = publicUrl(remotePath);
 
-            await sharpHelpers.processImageToAvif({
-              buffer: file.buffer,
-              outputPath: path.join(__dirname, "../", imagePath),
-              resize: resizeConstants.packageImageOptions,
-            });
-
-            await Package.update({ image: imagePath }, { where: { id } });
+            await Package.update({ image: imageUrl }, { where: { id } });
           } else if (typeof image === "string") {
             await Package.update({ image }, { where: { id } });
           }
@@ -57,25 +70,30 @@ const packageController = {
         // === Create new package ===
         const newPackage = await Package.create({ companyId, title, price });
 
-        const packageFolder = path.join(PACKAGE_UPLOADS, String(newPackage.id));
-        if (!fs.existsSync(packageFolder)) {
-          fs.mkdirSync(packageFolder, { recursive: true });
-        }
-
         if (file) {
-          const imagePath = path.join(
-            "packageUploads",
+          const avifBuffer = await sharp(file.buffer)
+            .resize(
+              resizeConstants?.packageImageOptions || {
+                width: 600,
+                height: 400,
+                fit: "cover",
+              }
+            )
+            .toFormat("avif", { quality: 60 })
+            .toBuffer();
+
+          const filename = safeName(file.originalname || "package.avif");
+          const remotePath = buildRemotePath(
+            "packages",
+            String(companyId),
             String(newPackage.id),
-            `${path.parse(file.originalname).name}.avif`
+            filename
           );
 
-          await sharpHelpers.processImageToAvif({
-            buffer: file.buffer,
-            outputPath: path.join(__dirname, "../", imagePath),
-            resize: resizeConstants.packageImageOptions,
-          });
+          await uploadBuffer(avifBuffer, remotePath, "image/avif");
+          const imageUrl = publicUrl(remotePath);
 
-          newPackage.image = imagePath;
+          newPackage.image = imageUrl;
           await newPackage.save();
         } else if (typeof image === "string") {
           newPackage.image = image;

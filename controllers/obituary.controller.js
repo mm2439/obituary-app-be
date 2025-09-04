@@ -118,13 +118,6 @@ const obituaryController = {
         slugKey,
       });
       const obituaryId = newObituary.id;
-      const obituaryFolder = path.join(
-        OBITUARY_UPLOADS_PATH,
-        String(obituaryId)
-      );
-      if (!fs.existsSync(obituaryFolder)) {
-        fs.mkdirSync(obituaryFolder, { recursive: true });
-      }
       let pictureUrl = null;
       let deathReportUrl = null;
       if (req.files?.picture) {

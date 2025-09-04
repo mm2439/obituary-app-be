@@ -17,29 +17,10 @@ const obituaryUploadsFields = upload.fields([
   { name: "cardPdfs", maxCount: 5 },
 ]);
 
-const obituaryUploadsPath = path.join(
-  process.cwd(),
-  "obituaryUploads",
-  "template-cards"
-);
-
-if (!fs.existsSync(obituaryUploadsPath)) {
-  fs.mkdirSync(obituaryUploadsPath, { recursive: true });
-}
-
-const generateFileName = (file) => {
-  const timestamp = Date.now();
-  return `${timestamp}-${file.originalname}`;
-};
-
-const obituaryUploadsStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, obituaryUploadsPath);
-  },
-  filename: (req, file, cb) => {
-    cb(null, generateFileName(file));
-  },
-});
+const cardUploadsFields = upload.fields([
+  { name: "cardImages", maxCount: 5 },
+  { name: "cardPdfs", maxCount: 5 },
+]);
 
 const dbUploadObituaryTemplateCardsPath = (filename) => {
   return `obituaryUploads/template-cards/${filename}`;
@@ -50,6 +31,7 @@ const dbUploadObituaryUserCardsPath = (filename) => {
 };
 
 module.exports = {
+  cardUploadsFields,
   uploadFields,
   obituaryUploadsFields,
   dbUploadObituaryTemplateCardsPath,

@@ -1,11 +1,8 @@
 const path = require("path");
 const { FloristSlide } = require("../models/florist_slide.model");
-const FLORIST_SLIDE_UPLOADS_PATH = path.join(
-  __dirname,
-  "../floristSlideUploads"
-);
 const sharp = require("sharp");
 const fs = require("fs");
+const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
 
 const florsitSlideController = {
   addFloristSlide: async (req, res) => {
@@ -13,6 +10,7 @@ const florsitSlideController = {
       const { slides, companyId } = req.body;
       const createdOrUpdatedSlides = [];
 
+      console.log("Received slides data:", slides);
       for (let i = 0; i < slides.length; i++) {
         const { id, updated, title, description, image } = slides[i];
         const file = req.files.find(
@@ -24,26 +22,23 @@ const florsitSlideController = {
           await FloristSlide.update({ title, description }, { where: { id } });
 
           if (file) {
-            const imagePath = path.join(
-              "floristSlideUploads",
-              String(id),
-              `${path.parse(file.originalname).name}.avif`
-            );
-
-            const slideFolder = path.join(
-              FLORIST_SLIDE_UPLOADS_PATH,
-              String(id)
-            );
-            if (!fs.existsSync(slideFolder)) {
-              fs.mkdirSync(slideFolder, { recursive: true });
-            }
-
-            await sharp(file.buffer)
+            const avifBuffer = await sharp(file.buffer)
               .resize(195, 267, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
-              .toFile(path.join(__dirname, "../", imagePath));
+              .toBuffer();
 
-            await FloristSlide.update({ image: imagePath }, { where: { id } });
+            const filename = file.originalname || "slide.avif";
+            const remotePath = buildRemotePath(
+              "floristSlides",
+              String(companyId),
+              String(id),
+              filename
+            );
+
+            await uploadBuffer(avifBuffer, remotePath, "image/avif");
+            const imageUrl = publicUrl(remotePath);
+
+            await FloristSlide.update({ image: imageUrl }, { where: { id } });
           } else if (typeof image === "string") {
             await FloristSlide.update({ image }, { where: { id } });
           }
@@ -68,27 +63,24 @@ const florsitSlideController = {
           description,
         });
 
-        const slideFolder = path.join(
-          FLORIST_SLIDE_UPLOADS_PATH,
-          String(newSlide.id)
-        );
-        if (!fs.existsSync(slideFolder)) {
-          fs.mkdirSync(slideFolder, { recursive: true });
-        }
-
         if (file) {
-          const imagePath = path.join(
-            "floristSlideUploads",
-            String(newSlide.id),
-            `${path.parse(file.originalname).name}.avif`
-          );
-
-          await sharp(file.buffer)
+          const avifBuffer = await sharp(file.buffer)
             .resize(195, 267, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", imagePath));
+            .toBuffer();
 
-          newSlide.image = imagePath;
+          const filename = file.originalname || "slide.avif";
+          const remotePath = buildRemotePath(
+            "floristSlides",
+            String(companyId),
+            String(newSlide.id),
+            filename
+          );
+
+          await uploadBuffer(avifBuffer, remotePath, "image/avif");
+          const imageUrl = cdnUrl || storageUrl || publicUrl(remotePath);
+
+          newSlide.image = imageUrl;
           await newSlide.save();
         } else if (typeof image === "string") {
           newSlide.image = image;
