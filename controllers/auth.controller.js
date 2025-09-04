@@ -81,7 +81,7 @@ const authController = {
 
     console.log({ userId, adminId });
 
-    if (!userId || !adminId) {
+    if (!userId ) {
       console.warn(`Invalid data format`);
 
       return res
@@ -117,9 +117,12 @@ const authController = {
       "login"
     );
     const userObj = user.toSafeObject();
+    if (adminId) {
+      userObj.adminId = adminId
+    }
     res.status(httpStatus.OK).json({
       token,
-      user: { ...userObj, isGhost: isAdmin ? false : true, adminId: adminId }
+      user: { ...userObj, isGhost: isAdmin ? false : true }
       ,
     });
   },
