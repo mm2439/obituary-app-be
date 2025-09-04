@@ -632,7 +632,7 @@ router.get("/compines-for-approval", async (req, res) => {
 
     // Get all companies
     const companies = await CompanyPage.findAll({
-      where: { status: "SENT_FOR_APPROVAL" },
+      // where: { status: "SENT_FOR_APPROVAL" },
       attributes: [
         'id','userId', 'type', 'city', 'createdTimestamp', 'modifiedTimestamp', 'status', 'approvedTimestamp', 'sentTimestamp',
       ],

@@ -95,6 +95,8 @@ const authController = {
       },
     });
 
+    console.log('>>>>> user', user, userId);
+
     if (!user) {
       console.warn("User not found");
 
