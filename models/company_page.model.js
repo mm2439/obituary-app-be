@@ -197,6 +197,18 @@ CompanyPage.init(
       allowNull: true,
     },
 
+    approvedTimestamp: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+
+    sentTimestamp: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
