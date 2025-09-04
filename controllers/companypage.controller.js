@@ -421,6 +421,11 @@ const companyController = {
       }
 
       updateData.modifiedTimestamp = new Date();
+      if (company.status === 'SENT_FOR_APPROVAL') {
+        updateData.status = 'SENT_FOR_APPROVAL';
+      } else if (company.status === 'PUBLISHED') {
+        updateData.status = 'PUBLISHED';
+      }
       await company.update(updateData);
 
       // Fetch updated data including related items
