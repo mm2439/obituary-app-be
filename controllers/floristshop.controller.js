@@ -38,9 +38,6 @@ const florsitShopController = {
         }
       }
 
-      console.log('>>>>>>>>>>>> company', company?.status);
-      console.log('>>>>>>>>>>>> eq?.body?.allowStatus', req?.body?.allowStatus);
-
       // console.log("existing company:", company);
 
       // If no company exists, create one first
