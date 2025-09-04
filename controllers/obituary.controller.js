@@ -569,6 +569,7 @@ const obituaryController = {
   updateVisitCounts: async (req, res) => {
     try {
       const { id: obituaryId } = req.params;
+      const { isNoFloristLimit } = req.query;
       const ip =
         req.headers["x-forwarded-for"]?.split(",")[0] ||
         req.connection.remoteAddress ||
@@ -669,6 +670,8 @@ const obituaryController = {
       const user = obituary.User;
       const company = await CompanyPage.findOne({ where: { userId: user.id } });
       let floristShopList = [];
+
+      const floristLimit = isNoFloristLimit === "true" ? null : 5;
       if (user.role === "Florist" && company) {
         const ownShop = await FloristShop.findOne({
           where: {
@@ -685,14 +688,14 @@ const obituaryController = {
             companyId: { [Sequelize.Op.ne]: company.id },
           },
           order: Sequelize.literal("RAND()"),
-          limit: 5,
+          ...(floristLimit ? { limit: floristLimit } : {}), // <--- replace limit: 5 here
         });
         floristShopList = [...(ownShop ? [ownShop] : []), ...randomShops];
       } else {
         floristShopList = await FloristShop.findAll({
           where: { city },
           order: Sequelize.literal("RAND()"),
-          limit: 5,
+          ...(floristLimit ? { limit: floristLimit } : {}), // <--- replace limit: 5 here
         });
       }
       obituary.dataValues.floristShops = floristShopList;
