@@ -420,12 +420,14 @@ const userController = {
           attributes: ["userId", "name", "sirName"],
           raw: true
         });
+        const sender = await User.findByPk(item.sender, { raw: true });
         if (obit) {
           const user = await User.findByPk(obit.userId, { raw: true });
           allCards.push({
             ...item,
             obit,
-            user
+            user,
+            senderUser: sender
           })
         }
       }));
@@ -526,6 +528,17 @@ const userController = {
     });
 
     res.status(httpStatus.OK).json({ message: "Success.", notifications });
+  },
+
+  notifyCard: async (req, res) => {
+    const cardId = req.params.cardId;
+    const userCard = await Card.findByPk(cardId);
+    if (userCard) {
+      userCard.isNotified = true;
+      await userCard.save();
+    }
+
+    res.status(httpStatus.OK).json({ message: "Success." });
   },
 };
 

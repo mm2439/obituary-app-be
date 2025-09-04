@@ -3,6 +3,7 @@ const cardController = require("../controllers/card.controller");
 const path = require("path");
 const multer = require("multer");
 const fs = require('fs');
+const authenticationMiddleware = require("../middlewares/authentication");
 
 const router = express.Router();
 
@@ -36,6 +37,6 @@ const cardUploadsFields = multer({
     { name: "cardPdfs", maxCount: 5 },
 ]);
 
-router.post("/", [cardUploadsFields], cardController.createCard);
+router.post("/", [authenticationMiddleware, cardUploadsFields], cardController.createCard);
 
 module.exports = router;
