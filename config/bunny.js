@@ -27,7 +27,7 @@ async function uploadBuffer(
     headers: {
       AccessKey: BUNNY_KEY,
       "Content-Type": contentType,
-      "Content-Length": buffer.length,
+      "Content-Length": buffer.length || 0,
     },
   };
 

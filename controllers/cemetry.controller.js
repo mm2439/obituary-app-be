@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 
 const sharp = require("sharp");
-const sanitize = require("../helpers/sanitize");
+const sanitize = require("../helpers/sanitize").sanitize;
 const { buildRemotePath, uploadBuffer, publicUrl } = require("../config/bunny");
 
 const { Cemetry } = require("../models/cemetry.model");
