@@ -77,8 +77,11 @@ const authController = {
 
   ghostLogin: async (req, res) => {
 
-    const { userId } = req.params;
-    if (!userId) {
+    const { userId, adminId } = req.body;
+
+    console.log({ userId, adminId });
+
+    if (!userId || !adminId) {
       console.warn(`Invalid data format`);
 
       return res
@@ -113,11 +116,11 @@ const authController = {
       },
       "login"
     );
-
+    const userObj = user.toSafeObject();
     res.status(httpStatus.OK).json({
-      message: "Ghost Login Successful!",
       token,
-      user: user.toSafeObject(),
+      user: { ...userObj, isGhost: isAdmin ? false : true, adminId: adminId }
+      ,
     });
   },
 
