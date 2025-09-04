@@ -74,6 +74,53 @@ const authController = {
       user: user.toSafeObject(),
     });
   },
+
+  ghostLogin: async (req, res) => {
+
+    const { userId } = req.params;
+    if (!userId) {
+      console.warn(`Invalid data format`);
+
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json({ error: `Invalid data format` });
+    }
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      console.warn("User not found");
+
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
+    const isAdmin = user.role === "SUPERADMIN";
+
+    // handle token management
+    const token = TokenManagement.createToken(
+      {
+        sub: user.id.toString(),
+        _id: user.id,
+        email: user.email,
+        isAdmin: isAdmin,
+        role: user.role,
+      },
+      "login"
+    );
+
+    res.status(httpStatus.OK).json({
+      message: "Ghost Login Successful!",
+      token,
+      user: user.toSafeObject(),
+    });
+  },
+
 };
 
 module.exports = authController;

@@ -46,7 +46,7 @@ router.get(
 
 router.get(
   "/florist/by-slug",
-  companyController.getFloristCompany
+  companyController.getFloristCompanyByUserSlug
 );
 
 router.get("/", companyController.getCompanies);
