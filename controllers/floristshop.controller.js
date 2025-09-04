@@ -87,11 +87,11 @@ const florsitShopController = {
         const fileFields = [
           {
             field: "picture",
-            resize: {
-              width: 140,
-              height: 116,
-              fit: "cover",
-            },
+            // resize: {
+            //   width: 140,
+            //   height: 116,
+            //   fit: "cover",
+            // },
             avifOptions: {
               quality: 50
             }

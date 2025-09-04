@@ -148,7 +148,7 @@ const obituaryController = {
         );
 
         await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
+          .resize(203, 275, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toFile(path.join(__dirname, "../", localPath));
 
