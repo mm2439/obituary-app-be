@@ -3,7 +3,6 @@ const { User } = require("../models/user.model");
 const memoryLogsController = require("./memoryLogs.controller");
 const { dbUploadObituaryUserCardsPath } = require("../config/upload");
 const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
-const sanitize = require("../helpers/sanitize");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -55,7 +54,7 @@ const cardController = {
       );
       const pdfUrls = await Promise.all(
         cardPdfs.map(async (file) => {
-          const filename = file.originalname || "card.pdf";
+          const filename = timestampName(file.originalname || "card.pdf");
           const remotePath = buildRemotePath("template-cards", filename);
           await uploadBuffer(
             file.buffer,

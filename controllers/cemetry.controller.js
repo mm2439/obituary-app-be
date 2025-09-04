@@ -6,9 +6,11 @@ const fs = require("fs");
 
 const sharp = require("sharp");
 const sanitize = require("../helpers/sanitize").sanitize;
+const timestampName = require("../helpers/sanitize").timestampName;
 const { buildRemotePath, uploadBuffer, publicUrl } = require("../config/bunny");
 
 const { Cemetry } = require("../models/cemetry.model");
+const { time } = require("console");
 const CEMETRY_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
 function getAllFiles(req) {
   if (Array.isArray(req.files)) return req.files;
@@ -43,7 +45,9 @@ const cemetryController = {
               .toFormat("avif", { quality: 50 })
               .toBuffer();
 
-            const filename = sanitize(file.originalname || "cemetery.avif");
+            const filename = timestampName(
+              file.originalname || "cemetery.avif"
+            );
             const remotePath = buildRemotePath(
               "cemeteries",
               String(companyId),
@@ -83,16 +87,16 @@ const cemetryController = {
         });
 
         if (file) {
-          const avifBuffer = sharp(file.buffer)
+          const avifBuffer = await sharp(file.buffer)
             .resize(195, 267, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
             .toBuffer();
 
-          const filename = sanitize(file.originalname || "cemetery.avif");
+          const filename = timestampName(file.originalname || "cemetery.avif");
           const remotePath = buildRemotePath(
             "cemeteries",
             String(companyId),
-            String(id),
+            String(newCemetry.id),
             filename
           );
           await uploadBuffer(avifBuffer, remotePath, "image/avif");

@@ -7,6 +7,7 @@ const { CompanyPage } = require("../models/company_page.model");
 const { sharpHelpers } = require("../helpers/sharp");
 const { resizeConstants } = require("../constants/resize");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const timestampName = require("../helpers/sanitize").timestampName;
 
 function allFiles(req) {
   if (Array.isArray(req.files)) return req.files;
@@ -43,7 +44,7 @@ const packageController = {
               )
               .toFormat("avif", { quality: 60 })
               .toBuffer();
-            const filename = file.originalname || "package.avif";
+            const filename = timestampName(file.originalname || "package.avif");
             const remotePath = buildRemotePath(
               "packages",
               String(companyId),
@@ -82,7 +83,7 @@ const packageController = {
             .toFormat("avif", { quality: 60 })
             .toBuffer();
 
-          const filename = safeName(file.originalname || "package.avif");
+          const filename = timestampName(file.originalname || "package.avif");
           const remotePath = buildRemotePath(
             "packages",
             String(companyId),

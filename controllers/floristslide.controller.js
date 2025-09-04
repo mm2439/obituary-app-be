@@ -3,6 +3,7 @@ const { FloristSlide } = require("../models/florist_slide.model");
 const sharp = require("sharp");
 const fs = require("fs");
 const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
+const timestampName = require("../helpers/sanitize").timestampName;
 
 const florsitSlideController = {
   addFloristSlide: async (req, res) => {
@@ -27,7 +28,7 @@ const florsitSlideController = {
               .toFormat("avif", { quality: 50 })
               .toBuffer();
 
-            const filename = file.originalname || "slide.avif";
+            const filename = timestampName(file.originalname || "slide.avif");
             const remotePath = buildRemotePath(
               "floristSlides",
               String(companyId),
@@ -69,7 +70,7 @@ const florsitSlideController = {
             .toFormat("avif", { quality: 50 })
             .toBuffer();
 
-          const filename = file.originalname || "slide.avif";
+          const filename = timestampName(file.originalname || "slide.avif");
           const remotePath = buildRemotePath(
             "floristSlides",
             String(companyId),

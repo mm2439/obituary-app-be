@@ -23,6 +23,7 @@ const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const { timestampName } = require("../helpers/sanitize").timestampName;
 const sanitize = require("../helpers/sanitize").sanitize;
 
 const slugKeyFilter = (name) => {
@@ -122,7 +123,9 @@ const obituaryController = {
       let deathReportUrl = null;
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
-        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
+        const fileName = timestampName(
+          `${path.parse(pictureFile.originalname).name}.avif`
+        );
         const remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
@@ -140,7 +143,7 @@ const obituaryController = {
         const remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
-          file.originalname
+          timestampName(file.originalname)
         );
         await uploadBuffer(
           file.buffer,

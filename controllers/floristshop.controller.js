@@ -92,7 +92,7 @@ const florsitShopController = {
             .toBuffer();
 
           const baseName = path.parse(file.originalname).name;
-          const fileName = `picture-${Date.now()}-${baseName}.avif`;
+          const fileName = `${Date.now()}-${baseName}.avif`;
           const remotePath = buildRemotePath(
             "floristShopUploads",
             String(logoId),

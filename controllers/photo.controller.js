@@ -9,6 +9,7 @@ const memoryLogsController = require("./memoryLogs.controller");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 const { Photo } = require("../models/photo.model");
+const timestampName = require("../helpers/sanitize").timestampName;
 
 // const photoController = {
 //   addPhoto: async (req, res) => {
@@ -93,7 +94,7 @@ const photoController = {
         remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
-          fileName
+          timestampName(fileName)
         );
 
         const optimizedBuffer = await sharp(pictureFile.buffer)
