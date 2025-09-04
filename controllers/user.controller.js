@@ -438,21 +438,13 @@ const userController = {
       await userCard.save();
     }
 
-    const fileName = path.basename(userCard.cardPdf);
-    const filePath = path.resolve(__dirname, "..", userCard.cardPdf);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: "File not found." });
+    if (!userCard.cardPdf) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ message: "No PDF URL on this card." });
     }
 
-    return res.download(filePath, fileName, (err) => {
-      if (err) {
-        console.error("Download error:", err);
-        if (!res.headersSent) {
-          return res.status(500).json({ message: "File download failed." });
-        }
-      }
-    });
+    return res.redirect(302, userCard.cardPdf);
   },
 
   getMyKeeperStatus: async (req, res) => {

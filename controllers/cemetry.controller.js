@@ -38,12 +38,6 @@ const cemetryController = {
           await Cemetry.update({ name, address, city }, { where: { id } });
 
           if (file) {
-            const imagePath = path.join(
-              "cemetryUploads",
-              String(id),
-              `${path.parse(file.originalname).name}.avif`
-            );
-
             const avifBuffer = await sharp(file.buffer)
               .resize(195, 267, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
@@ -89,16 +83,10 @@ const cemetryController = {
         });
 
         if (file) {
-          const imagePath = path.join(
-            "cemetryUploads",
-            String(newCemetry.id),
-            `${path.parse(file.originalname).name}.avif`
-          );
-
           const avifBuffer = sharp(file.buffer)
             .resize(195, 267, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", imagePath));
+            .toBuffer();
 
           const filename = sanitize(file.originalname || "cemetery.avif");
           const remotePath = buildRemotePath(
@@ -169,6 +157,7 @@ const cemetryController = {
       await cemetry.destroy();
 
       // ✅ Delete uploads folder if exists
+      // not deleting it just incase needed in future for deleting this folder
       const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(id));
       if (fs.existsSync(cemetryFolder)) {
         fs.rmSync(cemetryFolder, { recursive: true, force: true });
