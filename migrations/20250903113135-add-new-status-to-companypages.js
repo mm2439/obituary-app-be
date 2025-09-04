@@ -2,19 +2,17 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(`
-      ALTER TYPE "enum_companypages_status"
-      ADD VALUE IF NOT EXISTS 'SENT_FOR_APPROVAL';
-    `);
+  async up(queryInterface, Sequelize) {
+    await queryInterface.changeColumn('companypages', 'status', {
+      type: Sequelize.ENUM('PENDING', 'DRAFT', 'PUBLISHED', 'SENT_FOR_APPROVAL'),
+      allowNull: false,
+    });
   },
 
-  async down (queryInterface, Sequelize) {
-    /**
-     * Add reverting commands here.
-     *
-     * Example:
-     * await queryInterface.dropTable('users');
-     */
+  async down(queryInterface, Sequelize) {
+    await queryInterface.changeColumn('companypages', 'status', {
+      type: Sequelize.ENUM('PENDING', 'DRAFT', 'PUBLISHED'),
+      allowNull: false,
+    });
   }
 };
