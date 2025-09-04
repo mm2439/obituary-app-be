@@ -21,11 +21,11 @@ const cardController = {
         where: { email, obituaryId, cardId },
       });
 
-      // if (cardExists) {
-      //   return res
-      //     .status(httpStatus.CONFLICT)
-      //     .json({ message: "User Already has this card" });
-      // }
+      if (cardExists) {
+        return res
+          .status(httpStatus.CONFLICT)
+          .json({ message: "User Already has this card" });
+      }
 
       const { cardImages, cardPdfs } = req.files || {};
       if (!cardImages || !cardPdfs) {
@@ -46,7 +46,9 @@ const cardController = {
         cardId,
         cardImage: newCardImages[0],
         cardPdf: newCardPdfs[0],
-        isDownloaded: false
+        isDownloaded: false,
+        isNotified: false,
+        sender: req.user.id
       });
 
       await memoryLogsController.createLog(

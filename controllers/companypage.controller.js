@@ -201,7 +201,7 @@ const companyController = {
   },
   getFuneralCompany: async (req, res) => {
     try {
-      const { userId, id, slugKey } = req.query;
+      const { userId, id, userKey } = req.query;
       const whereClause = {};
 
       if (id) whereClause.id = id;
@@ -250,6 +250,60 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  // // GET Funeral Company By User Slug
+  getFuneralCompanyBySlug: async (req, res) => {
+    try {
+      const { slug } = req.query;
+
+      const whereClause = {};
+      const user = await User.findOne({ where: { slugKey: slug } });
+      whereClause.userId = user?.id;
+      whereClause.type = "FUNERAL";
+      const company = await CompanyPage.findOne({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            attributes: [
+              "id",
+              "name",
+              "email",
+              "city",
+              "secondaryCity",
+              "thirdCity",
+              "company",
+              "region",
+            ],
+          },
+        ],
+      });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const faqs = await FAQ.findAll({ where: { companyId } });
+      const cemeteries = await Cemetry.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.faqs = faqs;
+      companyData.cemeteries = cemeteries;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
   getFloristCompany: async (req, res) => {
     try {
       const { userId, id } = req.query;
@@ -287,6 +341,46 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  // // GET Florist Company By User Slug
+  getFloristCompanyByUserSlug: async (req, res) => {
+    try {
+      const { slug } = req.query;
+
+      const whereClause = {};
+      const user = await User.findOne({ where: { slugKey: slug } });
+      whereClause.userId = user?.id;
+      whereClause.type = "FLORIST";
+
+      const company = await CompanyPage.findOne({ where: whereClause });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const packages = await Package.findAll({ where: { companyId } });
+      const slides = await FloristSlide.findAll({ where: { companyId } });
+      const shops = await FloristShop.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.packages = packages;
+      companyData.slides = slides;
+      companyData.shops = shops;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
   updateCompanyPage: async (req, res) => {
     try {
       const { id } = req.params;
@@ -381,6 +475,18 @@ const companyController = {
       }
 
       updateData.modifiedTimestamp = new Date();
+
+      if (req?.body?.allowStatus === 'send') {
+        updateData.sentTimestamp = new Date();
+        updateData.status = 'SENT_FOR_APPROVAL';
+      }
+
+      if (company.status === 'SENT_FOR_APPROVAL') {
+        updateData.status = 'SENT_FOR_APPROVAL';
+      } else if (company.status === 'PUBLISHED') {
+        updateData.status = 'PUBLISHED';
+      }
+
       await company.update(updateData);
 
       // Fetch updated data including related items

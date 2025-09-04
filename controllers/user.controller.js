@@ -9,6 +9,7 @@ const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 const { Card } = require("../models/card.model");
 const { Keeper } = require("../models/keeper.model");
 const { Obituary } = require("../models/obituary.model");
+const { KeeperNotification } = require("../models/keeper_notification");
 
 const userController = {
   register: async (req, res) => {
@@ -419,12 +420,14 @@ const userController = {
           attributes: ["userId", "name", "sirName"],
           raw: true
         });
+        const sender = await User.findByPk(item.sender, { raw: true });
         if (obit) {
           const user = await User.findByPk(obit.userId, { raw: true });
           allCards.push({
             ...item,
             obit,
-            user
+            user,
+            senderUser: sender
           })
         }
       }));
@@ -492,10 +495,47 @@ const userController = {
 
   updateNotified: async (req, res) => {
     const keeperId = req.params.keeperId;
-    const keeperRow = await Keeper.findByPk(keeperId);
+    const keeperRow = await KeeperNotification.findByPk(keeperId);
     if (keeperRow) {
       keeperRow.isNotified = true;
       await keeperRow.save();
+    }
+
+    res.status(httpStatus.OK).json({ message: "Success." });
+  },
+
+  getMyKeeperGifts: async (req, res) => {
+    const userId = req.user.id;
+    let notifications = await KeeperNotification.findAll({
+      where: {
+        receiver: userId
+      },
+      include: [
+        {
+          model: User,
+          as: "Sender"
+        },
+        {
+          model: User,
+          as: "Receiver"
+        },
+        {
+          model: Obituary,
+          as: "Obituary",
+          attributes: ["userId", "name", "sirName"],
+        },
+      ]
+    });
+
+    res.status(httpStatus.OK).json({ message: "Success.", notifications });
+  },
+
+  notifyCard: async (req, res) => {
+    const cardId = req.params.cardId;
+    const userCard = await Card.findByPk(cardId);
+    if (userCard) {
+      userCard.isNotified = true;
+      await userCard.save();
     }
 
     res.status(httpStatus.OK).json({ message: "Success." });

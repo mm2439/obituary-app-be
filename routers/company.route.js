@@ -39,9 +39,19 @@ router.get(
 );
 
 router.get(
+  "/funeral/by-slug",
+  companyController.getFuneralCompanyBySlug
+);
+
+router.get(
   "/florist",
   [authenticationMiddleware],
   companyController.getFloristCompany
+);
+
+router.get(
+  "/florist/by-slug",
+  companyController.getFloristCompanyByUserSlug
 );
 
 router.get("/", companyController.getCompanies);
