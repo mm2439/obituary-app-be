@@ -24,7 +24,21 @@ const florsitShopController = {
         },
       });
 
-      console.log("existing company:", company);
+      let approvalFields = {};
+      if (req?.body?.allowStatus === 'send') {
+        approvalFields = {
+          sentTimestamp: new Date(),
+          status: 'SENT_FOR_APPROVAL'
+        }
+      }
+
+      if (company?.status === 'SENT_FOR_APPROVAL') {
+        approvalFields = {
+          status: 'SENT_FOR_APPROVAL'
+        }
+      }
+
+      // console.log("existing company:", company);
 
       // If no company exists, create one first
       if (!company) {
@@ -33,8 +47,17 @@ const florsitShopController = {
           type: "FLORIST", // Set appropriate type
           name: shops[0]?.shopName || "Default Florist", // Use shop name as default
           // Add other required fields as needed
+          ...approvalFields
         });
         console.log("created new company:", company);
+      }
+
+      if (approvalFields?.status) {
+        await CompanyPage.update(approvalFields, {
+          where: {
+            id: company.id,
+          }
+        });
       }
 
       const companyId = company.id;
