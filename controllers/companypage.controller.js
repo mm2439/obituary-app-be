@@ -250,6 +250,60 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  // // GET Funeral Company By User Slug
+  getFuneralCompanyBySlug: async (req, res) => {
+    try {
+      const { slug } = req.query;
+
+      const whereClause = {};
+      const user = await User.findOne({ where: { slugKey: slug } });
+      whereClause.userId = user?.id;
+      whereClause.type = "FUNERAL";
+      const company = await CompanyPage.findOne({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            attributes: [
+              "id",
+              "name",
+              "email",
+              "city",
+              "secondaryCity",
+              "thirdCity",
+              "company",
+              "region",
+            ],
+          },
+        ],
+      });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const faqs = await FAQ.findAll({ where: { companyId } });
+      const cemeteries = await Cemetry.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.faqs = faqs;
+      companyData.cemeteries = cemeteries;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
   getFloristCompany: async (req, res) => {
     try {
       const { userId, id } = req.query;
