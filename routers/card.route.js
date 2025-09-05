@@ -2,40 +2,11 @@ const express = require("express");
 const cardController = require("../controllers/card.controller");
 const path = require("path");
 const multer = require("multer");
-const fs = require('fs');
+const fs = require("fs");
+const { cardUploadsFields } = require("../config/upload");
 const authenticationMiddleware = require("../middlewares/authentication");
 
 const router = express.Router();
-
-const generateFileName = (file) => {
-    const timestamp = Date.now();
-    return `${timestamp}-${file.originalname}`;
-};
-
-const cardUploadsPath = path.join(
-    process.cwd(),
-    "obituaryUploads",
-    "user-cards"
-);
-
-const cardUploadsStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Ensure directory exists at the time of file write
-        fs.mkdir(cardUploadsPath, { recursive: true }, (err) => {
-            cb(err, cardUploadsPath);
-        });
-    },
-    filename: (req, file, cb) => {
-        cb(null, generateFileName(file));
-    },
-});
-
-const cardUploadsFields = multer({
-    storage: cardUploadsStorage,
-}).fields([
-    { name: "cardImages", maxCount: 5 },
-    { name: "cardPdfs", maxCount: 5 },
-]);
 
 router.post("/", [authenticationMiddleware, cardUploadsFields], cardController.createCard);
 

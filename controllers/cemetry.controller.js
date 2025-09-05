@@ -5,10 +5,20 @@ const path = require("path");
 const fs = require("fs");
 
 const sharp = require("sharp");
+const sanitize = require("../helpers/sanitize").sanitize;
+const timestampName = require("../helpers/sanitize").timestampName;
+const { buildRemotePath, uploadBuffer, publicUrl } = require("../config/bunny");
 
 const { Cemetry } = require("../models/cemetry.model");
+const { time } = require("console");
 const CEMETRY_UPLOADS_PATH = path.join(__dirname, "../cemetryUploads");
-
+function getAllFiles(req) {
+  if (Array.isArray(req.files)) return req.files;
+  if (req.files && typeof req.files === "object") {
+    return Object.values(req.files).flat();
+  }
+  return [];
+}
 const cemetryController = {
   addCemetry: async (req, res) => {
     try {
@@ -16,12 +26,12 @@ const cemetryController = {
       const userId = req.user.id;
 
       const createdCemeteries = [];
-
       for (let i = 0; i < cemeteries.length; i++) {
         const cemetery = cemeteries[i];
         const { id, updated, name, address, city, image } = cemetery; // include `image`
 
-        const file = req.files.find(
+        const files = getAllFiles(req);
+        const file = files.find(
           (f) => f.fieldname === `cemeteries[${i}][image]`
         );
 
@@ -30,23 +40,25 @@ const cemetryController = {
           await Cemetry.update({ name, address, city }, { where: { id } });
 
           if (file) {
-            const imagePath = path.join(
-              "cemetryUploads",
-              String(id),
-              `${path.parse(file.originalname).name}.avif`
-            );
-
-            const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(id));
-            if (!fs.existsSync(cemetryFolder)) {
-              fs.mkdirSync(cemetryFolder, { recursive: true });
-            }
-
-            await sharp(file.buffer)
-              .resize(440, 320, { fit: "cover" })
+            const avifBuffer = await sharp(file.buffer)
+              .resize(195, 267, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
-              .toFile(path.join(__dirname, "../", imagePath));
+              .toBuffer();
 
-            await Cemetry.update({ image: imagePath }, { where: { id } });
+            const filename = timestampName(
+              file.originalname || "cemetery.avif"
+            );
+            const remotePath = buildRemotePath(
+              "cemeteries",
+              String(companyId),
+              String(id),
+              filename
+            );
+            await uploadBuffer(avifBuffer, remotePath, "image/avif");
+
+            const imageUrl = publicUrl(remotePath);
+
+            await Cemetry.update({ image: imageUrl }, { where: { id } });
           } else if (typeof image === "string") {
             await Cemetry.update({ image }, { where: { id } });
           }
@@ -74,27 +86,24 @@ const cemetryController = {
           companyId,
         });
 
-        const cemetryFolder = path.join(
-          CEMETRY_UPLOADS_PATH,
-          String(newCemetry.id)
-        );
-        if (!fs.existsSync(cemetryFolder)) {
-          fs.mkdirSync(cemetryFolder, { recursive: true });
-        }
-
         if (file) {
-          const imagePath = path.join(
-            "cemetryUploads",
-            String(newCemetry.id),
-            `${path.parse(file.originalname).name}.avif`
-          );
-
-          await sharp(file.buffer)
-            .resize(440, 320, { fit: "cover" })
+          const avifBuffer = await sharp(file.buffer)
+            .resize(195, 267, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
-            .toFile(path.join(__dirname, "../", imagePath));
+            .toBuffer();
 
-          newCemetry.image = imagePath;
+          const filename = timestampName(file.originalname || "cemetery.avif");
+          const remotePath = buildRemotePath(
+            "cemeteries",
+            String(companyId),
+            String(newCemetry.id),
+            filename
+          );
+          await uploadBuffer(avifBuffer, remotePath, "image/avif");
+
+          const imageUrl = publicUrl(remotePath);
+
+          newCemetry.image = imageUrl;
           await newCemetry.save();
         } else if (typeof image === "string") {
           newCemetry.image = image;
@@ -152,6 +161,7 @@ const cemetryController = {
       await cemetry.destroy();
 
       // ✅ Delete uploads folder if exists
+      // not deleting it just incase needed in future for deleting this folder
       const cemetryFolder = path.join(CEMETRY_UPLOADS_PATH, String(id));
       if (fs.existsSync(cemetryFolder)) {
         fs.rmSync(cemetryFolder, { recursive: true, force: true });
