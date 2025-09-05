@@ -11,7 +11,10 @@ const { FloristShop } = require("../models/florist_shop.model");
 const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
 const { sharpHelpers } = require("../helpers/sharp");
-const { Obituary } = require("../models/obituary.model"); // Add this import
+const { Obituary } = require("../models/obituary.model");
+const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
+const { sanitize } = require("../helpers/sanitize");
+const { compareSync } = require("bcrypt");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -31,33 +34,31 @@ const companyController = {
         title,
         description,
       });
-      const companyFolder = path.join(
-        COMPANY_UPLOADS_PATH,
-        String(floristCompany.id)
-      );
-
-      if (!fs.existsSync(companyFolder)) {
-        fs.mkdirSync(companyFolder, { recursive: true });
-      }
 
       let picturePath = null;
 
       if (req.files?.background) {
         const pictureFile = req.files.background[0];
 
-        const optimizedPicturePath = path.join(
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize(resizeConstants.funeralBackgroundSize)
+          .toFormat("avif", {
+            quality: 60,
+            effort: 5,
+            chromaSubsampling: "4:4:4",
+          })
+          .toBuffer();
+
+        const base = sanitize(path.parse(pictureFile.originalname).name);
+        const fileName = `${Date.now()}-${base}.avif`;
+        const remotePath = buildRemotePath(
           "companyUploads",
           String(floristCompany.id),
-          `${path.parse(pictureFile.originalname).name}.avif`
+          fileName
         );
-
-        await sharpHelpers.processImageToAvif({
-          buffer: pictureFile.buffer,
-          outputPath: path.join(__dirname, "../", optimizedPicturePath),
-          resize: resizeConstants.companyPageCoverImageOptions,
-        });
-
-        picturePath = optimizedPicturePath;
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
+        picturePath = encodeURI(publicUrl(remotePath));
+        console.log("Uploaded background to:", picturePath);
       } else if (typeof background === "string") {
         picturePath = background;
       }
@@ -87,55 +88,39 @@ const companyController = {
         name,
         facebook,
         address,
-
         email,
         phone,
         website,
       });
-      const companyFolder = path.join(
-        COMPANY_UPLOADS_PATH,
-        String(funeralCompany.id)
-      );
-
-      if (!fs.existsSync(companyFolder)) {
-        fs.mkdirSync(companyFolder, { recursive: true });
-      }
 
       let picturePath = null;
       let logoPath = null;
 
       if (req.files?.background) {
         const pictureFile = req.files.background[0];
-
-        const optimizedPicturePath = path.join(
-          "companyUploads",
-          String(funeralCompany.id),
-          `${path.parse(pictureFile.originalname).name}.avif`
-        );
-
-        await sharpHelpers.processImageToAvif({
-          buffer: pictureFile.buffer,
-          outputPath: path.join(__dirname, "../", optimizedPicturePath),
-          resize: resizeConstants.funeralBackgroundSize,
-          avifOptions: {
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize(resizeConstants.funeralBackgroundSize)
+          .toFormat("avif", {
             quality: 60,
             effort: 5,
             chromaSubsampling: "4:4:4",
-          },
-        });
+          })
+          .toBuffer();
 
-        picturePath = optimizedPicturePath;
+        const base = sanitize(path.parse(pictureFile.originalname).name);
+        const fileName = `${Date.now()}-${base}.avif`;
+        const remotePath = buildRemotePath(
+          "companyUploads",
+          String(funeralCompany.id),
+          fileName
+        );
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
+        picturePath = encodeURI(publicUrl(remotePath));
       } else if (typeof background === "string") {
         picturePath = background;
       }
       if (req.files?.logo) {
         const pictureFile = req.files.logo[0];
-
-        const optimizedPicturePath = path.join(
-          "companyUploads",
-          String(funeralCompany.id),
-          `${path.parse(pictureFile.originalname).name}.avif`
-        );
 
         const maxWidth = 200;
         const maxHeight = 80;
@@ -147,42 +132,45 @@ const companyController = {
           metadata
         );
 
-        await sharpHelpers.processImageToAvif({
-          buffer: pictureFile.buffer,
-          outputPath: path.join(__dirname, "../", optimizedPicturePath),
-          resize: {
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize({
             width,
             height,
             fit: "contain",
             background: { r: 255, g: 255, b: 255, alpha: 0 },
-          },
-        });
+          })
+          .toFormat("avif", { quality: 60, effort: 5 })
+          .toBuffer();
 
-        logoPath = optimizedPicturePath;
+        const base = sanitize(path.parse(pictureFile.originalname).name);
+        const fileName = `${Date.now()}-${base}.avif`;
+        const remotePath = buildRemotePath(
+          "companyUploads",
+          String(funeralCompany.id),
+          fileName
+        );
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
+        logoUrl = encodeURI(publicUrl(remotePath));
+
+        logoPath = logoUrl;
       }
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize({ width: 195, height: 267, fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toBuffer();
 
-        const optimizedPicturePath = path.join(
+        const fileName = `picture-${Date.now()}.avif`;
+        const remotePath = buildRemotePath(
           "companyUploads",
           String(funeralCompany.id),
-          `picture.avif`
+          fileName
         );
 
-        await sharpHelpers.processImageToAvif({
-          buffer: pictureFile.buffer,
-          outputPath: path.join(__dirname, "../", optimizedPicturePath),
-          resize: {
-            width: 195,
-            height: 267,
-            fit: "cover",
-          },
-          avifOptions: {
-            quality: 50,
-          },
-        });
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
 
-        logoPath = optimizedPicturePath;
+        logoPath = encodeURI(publicUrl(remotePath));
       }
       funeralCompany.background = picturePath;
       funeralCompany.logo = logoPath;
@@ -201,7 +189,7 @@ const companyController = {
   },
   getFuneralCompany: async (req, res) => {
     try {
-      const { userId, id, slugKey } = req.query;
+      const { userId, id, userKey } = req.query;
       const whereClause = {};
 
       if (id) whereClause.id = id;
@@ -250,6 +238,60 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  // // GET Funeral Company By User Slug
+  getFuneralCompanyBySlug: async (req, res) => {
+    try {
+      const { slug } = req.query;
+
+      const whereClause = {};
+      const user = await User.findOne({ where: { slugKey: slug } });
+      whereClause.userId = user?.id;
+      whereClause.type = "FUNERAL";
+      const company = await CompanyPage.findOne({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            attributes: [
+              "id",
+              "name",
+              "email",
+              "city",
+              "secondaryCity",
+              "thirdCity",
+              "company",
+              "region",
+            ],
+          },
+        ],
+      });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const faqs = await FAQ.findAll({ where: { companyId } });
+      const cemeteries = await Cemetry.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.faqs = faqs;
+      companyData.cemeteries = cemeteries;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
   getFloristCompany: async (req, res) => {
     try {
       const { userId, id } = req.query;
@@ -287,6 +329,46 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
+
+  // // GET Florist Company By User Slug
+  getFloristCompanyByUserSlug: async (req, res) => {
+    try {
+      const { slug } = req.query;
+
+      const whereClause = {};
+      const user = await User.findOne({ where: { slugKey: slug } });
+      whereClause.userId = user?.id;
+      whereClause.type = "FLORIST";
+
+      const company = await CompanyPage.findOne({ where: whereClause });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      const companyId = company.id;
+      const packages = await Package.findAll({ where: { companyId } });
+      const slides = await FloristSlide.findAll({ where: { companyId } });
+      const shops = await FloristShop.findAll({ where: { companyId } });
+      const companyData = company.toJSON();
+
+      companyData.packages = packages;
+      companyData.slides = slides;
+      companyData.shops = shops;
+
+      res.status(httpStatus.OK).json({
+        message: "success",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+
   updateCompanyPage: async (req, res) => {
     try {
       const { id } = req.params;
@@ -300,20 +382,61 @@ const companyController = {
 
       const updateData = { ...req.body };
 
-      const companyFolder = path.join(COMPANY_UPLOADS_PATH, String(company.id));
-      if (!fs.existsSync(companyFolder)) {
-        fs.mkdirSync(companyFolder, { recursive: true });
-      }
-
+      // const fileFields = [
+      //   {
+      //     field: "background",
+      //     resize: resizeConstants.funeralBackgroundSize,
+      //     avifOptions: {
+      //       quality: 60,
+      //       effort: 5,
+      //       chromaSubsampling: "4:4:4",
+      //     },
+      //   },
+      //   {
+      //     field: "logo",
+      //     resize: {
+      //       width: 228,
+      //       height: 140,
+      //       fit: "contain",
+      //       background: { r: 255, g: 255, b: 255, alpha: 0 },
+      //     },
+      //   },
+      //   {
+      //     field: "company_logo",
+      //     resize: {
+      //       width: 228,
+      //       height: 140,
+      //       fit: "contain",
+      //       background: { r: 255, g: 255, b: 255, alpha: 0 },
+      //     },
+      //   },
+      //   { field: "secondary_image", resize: [195, 267] },
+      //   { field: "funeral_section_one_image_one", resize: [195, 267] },
+      //   { field: "funeral_section_one_image_two", resize: [195, 267] },
+      //   { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
+      //   { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
+      //   {
+      //     field: "offer_three_image",
+      //     resize: resizeConstants.offerImageOptions,
+      //   },
+      //   { field: "boxBackgroundImage", resize: [1280, 420] },
+      //   {
+      //     field: "picture",
+      //     resize: {
+      //       width: 228,
+      //       height: 140,
+      //       fit: "cover",
+      //     },
+      //     avifOptions: {
+      //       quality: 50,
+      //     },
+      //   },
+      // ];
       const fileFields = [
         {
           field: "background",
           resize: resizeConstants.funeralBackgroundSize,
-          avifOptions: {
-            quality: 60,
-            effort: 5,
-            chromaSubsampling: "4:4:4",
-          },
+          avifOptions: { quality: 60, effort: 5, chromaSubsampling: "4:4:4" },
         },
         {
           field: "logo",
@@ -333,47 +456,57 @@ const companyController = {
             background: { r: 255, g: 255, b: 255, alpha: 0 },
           },
         },
-        { field: "secondary_image", resize: [195, 267] },
-        { field: "funeral_section_one_image_one", resize: [195, 267] },
-        { field: "funeral_section_one_image_two", resize: [195, 267] },
+        { field: "secondary_image", resize: { width: 195, height: 267 } },
+        {
+          field: "funeral_section_one_image_one",
+          resize: { width: 195, height: 267 },
+        },
+        {
+          field: "funeral_section_one_image_two",
+          resize: { width: 195, height: 267 },
+        },
         { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
         { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
-        { field: "offer_three_image", resize: resizeConstants.offerImageOptions },
-        { field: "boxBackgroundImage", resize: [1280, 420] },
+        {
+          field: "offer_three_image",
+          resize: resizeConstants.offerImageOptions,
+        },
+        { field: "boxBackgroundImage", resize: { width: 1280, height: 420 } },
         {
           field: "picture",
-          resize: {
-            width: 228,
-            height: 140,
-            fit: "cover",
-          },
-          avifOptions: {
-            quality: 50
-          }
-        }
-
+          resize: { width: 228, height: 140, fit: "cover" },
+          avifOptions: { quality: 50 },
+        },
       ];
 
       for (const fileField of fileFields) {
         const file = req.files?.[fileField.field]?.[0];
         if (file) {
-          const optimizedPath = path.join(
+          let sharpPipeline = sharp(file.buffer).resize(fileField.resize);
+          if (fileField.avifOptions) {
+            sharpPipeline = sharpPipeline.toFormat(
+              "avif",
+              fileField.avifOptions
+            );
+          } else {
+            sharpPipeline = sharpPipeline.toFormat("avif", { quality: 60 });
+          }
+          const avifBuffer = await sharpPipeline.toBuffer();
+
+          const fileName = `${fileField.field}-${Date.now()}.avif`;
+          const remotePath = buildRemotePath(
             "companyUploads",
             String(company.id),
-            `${fileField.field}.avif`
+            fileName
           );
+          await uploadBuffer(avifBuffer, remotePath, "image/avif");
 
-          await sharpHelpers.processImageToAvif({
-            buffer: file.buffer,
-            outputPath: path.join(__dirname, "../", optimizedPath),
-            resize: fileField.resize,
-            ...(fileField.avifOptions || {}),
-          });
+          const cdnUrl = encodeURI(publicUrl(remotePath));
 
           if (fileField.field === "picture") {
-            updateData.logo = optimizedPath;
+            updateData.logo = cdnUrl;
           } else {
-            updateData[fileField.field] = optimizedPath;
+            updateData[fileField.field] = cdnUrl;
           }
         } else if (req.body[fileField.field]) {
           updateData[fileField.field] = req.body[fileField.field];
@@ -381,6 +514,18 @@ const companyController = {
       }
 
       updateData.modifiedTimestamp = new Date();
+
+      if (req?.body?.allowStatus === 'send') {
+        updateData.sentTimestamp = new Date();
+        updateData.status = 'SENT_FOR_APPROVAL';
+      }
+
+      if (company.status === 'SENT_FOR_APPROVAL') {
+        updateData.status = 'SENT_FOR_APPROVAL';
+      } else if (company.status === 'PUBLISHED') {
+        updateData.status = 'PUBLISHED';
+      }
+
       await company.update(updateData);
 
       // Fetch updated data including related items
@@ -413,7 +558,6 @@ const companyController = {
         .json({ error: "Something went wrong" });
     }
   },
-
   getFullCompanyDetails: async (req, res) => {
     try {
       const userId = req.user.id;
@@ -432,7 +576,15 @@ const companyController = {
       }
 
       const user = await User.findByPk(userId, {
-        attributes: ["id", "name", "email", "city", "secondaryCity", "thirdCity", "company"],
+        attributes: [
+          "id",
+          "name",
+          "email",
+          "city",
+          "secondaryCity",
+          "thirdCity",
+          "company",
+        ],
         include: [
           {
             model: CompanyPage,
@@ -454,7 +606,6 @@ const companyController = {
       res.status(500).json({ error: "Something went wrong" });
     }
   },
-
   getCompanies: async (req, res) => {
     try {
       const { type, region, city } = req.query;

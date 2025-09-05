@@ -4,23 +4,13 @@ const authenticationMiddleware = require("../middlewares/authentication");
 const checkPermission = require("../middlewares/checkPermission");
 const router = express.Router();
 const obituaryController = require("../controllers/obituary.controller");
-const { obituaryUploadsFields } = require("../config/upload");
-
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-});
-
-const uploadFields = upload.fields([
-  { name: "picture", maxCount: 1 },
-  { name: "deathReport", maxCount: 1 },
-]);
+const { obituaryUploadsFields, uploadFields } = require("../config/upload");
 
 router.post(
   "/",
   [
     authenticationMiddleware,
-    checkPermission("createObituaryPermission"), // Temporarily commented
+    checkPermission("createObituaryPermission"),
     uploadFields,
   ],
   obituaryController.createObituary

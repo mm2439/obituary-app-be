@@ -9,6 +9,8 @@ const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 const { Card } = require("../models/card.model");
 const { Keeper } = require("../models/keeper.model");
 const { Obituary } = require("../models/obituary.model");
+const { KeeperNotification } = require("../models/keeper_notification");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 
 const userController = {
   register: async (req, res) => {
@@ -330,30 +332,22 @@ const userController = {
           .json({ message: "Could not update company related data" });
       }
 
-      const companyFolder = path.join(
-        COMPANY_FOLDER_UPLOAD,
-        String(companyPage.id)
-      );
-      if (!fs.existsSync(companyFolder)) {
-        fs.mkdirSync(companyFolder, { recursive: true });
-      }
-
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
-        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize(195, 267, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toBuffer();
 
-        const localPath = path.join(
+        const base = path.parse(pictureFile.originalname).name;
+        const fileName = `${Date.now()}-${base}.avif`;
+        const remotePath = buildRemotePath(
           "companyUploads",
           String(companyPage.id),
           fileName
         );
-
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", localPath));
-
-        logoPath = `${localPath.replace(/\\/g, "/")}`;
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
+        logoPath = encodeURI(publicUrl(remotePath));
       }
 
       if (website) companyPage.website = website;
@@ -392,12 +386,12 @@ const userController = {
 
       res.status(201).json({
         message: "Superadmin account created successfully",
-        user: superadmin.toSafeObject()
+        user: superadmin.toSafeObject(),
       });
     } catch (error) {
       console.error("Error creating superadmin:", error);
       res.status(500).json({
-        error: "Failed to create superadmin account"
+        error: "Failed to create superadmin account",
       });
     }
   },
@@ -409,7 +403,7 @@ const userController = {
     };
     const userCards = await Card.findAll({
       where: whereClause,
-      raw: true
+      raw: true,
     });
 
     let allCards = [];
@@ -419,18 +413,22 @@ const userController = {
           attributes: ["userId", "name", "sirName"],
           raw: true
         });
+        const sender = await User.findByPk(item.sender, { raw: true });
         if (obit) {
           const user = await User.findByPk(obit.userId, { raw: true });
           allCards.push({
             ...item,
             obit,
-            user
+            user,
+            senderUser: sender
           })
         }
       }));
     }
 
-    res.status(httpStatus.OK).json({ message: "Success.", userCards: allCards });
+    res
+      .status(httpStatus.OK)
+      .json({ message: "Success.", userCards: allCards });
   },
 
   downloadCard: async (req, res) => {
@@ -441,50 +439,42 @@ const userController = {
       await userCard.save();
     }
 
-    const fileName = path.basename(userCard.cardPdf);
-    const filePath = path.resolve(__dirname, '..', userCard.cardPdf);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: "File not found." });
+    if (!userCard.cardPdf) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ message: "No PDF URL on this card." });
     }
 
-    return res.download(filePath, fileName, (err) => {
-      if (err) {
-        console.error("Download error:", err);
-        if (!res.headersSent) {
-          return res.status(500).json({ message: "File download failed." });
-        }
-      }
-    });
+    return res.redirect(302, userCard.cardPdf);
   },
 
   getMyKeeperStatus: async (req, res) => {
     const userId = req.user.id;
     const whereClause = {
       userId: userId,
-      isNotified: false
+      isNotified: false,
     };
     let user = await Keeper.findOne({
       where: whereClause,
-      raw: true
+      raw: true,
     });
 
     if (user) {
       const obit = await Obituary.findByPk(user.obituaryId, {
         attributes: ["userId", "name", "sirName"],
-        raw: true
+        raw: true,
       });
       if (obit) {
         const userData = await User.findByPk(obit.userId, { raw: true });
         user = {
           ...user,
-          userData
-        }
+          userData,
+        };
       }
       user = {
         ...user,
-        obit
-      }
+        obit,
+      };
     }
 
     res.status(httpStatus.OK).json({ message: "Success.", user });
@@ -492,10 +482,47 @@ const userController = {
 
   updateNotified: async (req, res) => {
     const keeperId = req.params.keeperId;
-    const keeperRow = await Keeper.findByPk(keeperId);
+    const keeperRow = await KeeperNotification.findByPk(keeperId);
     if (keeperRow) {
       keeperRow.isNotified = true;
       await keeperRow.save();
+    }
+
+    res.status(httpStatus.OK).json({ message: "Success." });
+  },
+
+  getMyKeeperGifts: async (req, res) => {
+    const userId = req.user.id;
+    let notifications = await KeeperNotification.findAll({
+      where: {
+        receiver: userId
+      },
+      include: [
+        {
+          model: User,
+          as: "Sender"
+        },
+        {
+          model: User,
+          as: "Receiver"
+        },
+        {
+          model: Obituary,
+          as: "Obituary",
+          attributes: ["userId", "name", "sirName"],
+        },
+      ]
+    });
+
+    res.status(httpStatus.OK).json({ message: "Success.", notifications });
+  },
+
+  notifyCard: async (req, res) => {
+    const cardId = req.params.cardId;
+    const userCard = await Card.findByPk(cardId);
+    if (userCard) {
+      userCard.isNotified = true;
+      await userCard.save();
     }
 
     res.status(httpStatus.OK).json({ message: "Success." });
