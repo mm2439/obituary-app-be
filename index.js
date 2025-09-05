@@ -11,14 +11,12 @@ connectToDB();
 // CORS configuration
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001", "https://dev111.osmrtnica.com", "https://mark-project-nine.vercel.app", "https://staging.osmrtnica.com"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://dev111.osmrtnica.com", "https://mark-project-nine.vercel.app", "https://staging.osmrtnica.com", "https://osmrtnica.com"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
-      "refresh-token", // Add this line
-      "access-token", // Add this too if you're using it
     ],
   })
 );
