@@ -30,6 +30,7 @@ router.patch(
 
 router.get("/me/cards", authenticationMiddleware, userController.getMyCards);
 router.get("/me/download/:cardId", userController.downloadCard);
+router.post("/me/notify/:cardId", userController.notifyCard);
 
 router.get(
   "/me/keeper",
@@ -41,5 +42,7 @@ router.patch(
   authenticationMiddleware,
   userController.updateNotified
 );
+
+router.get("/me/keeper-gifts", authenticationMiddleware, userController.getMyKeeperGifts);
 
 module.exports = router;

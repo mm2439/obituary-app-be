@@ -11,7 +11,7 @@ const packageImageOptions = {
   width: 120,
   height: 135,
   fit: "cover",
-  position: sharp.strategy.entropy,
+  // position: sharp.strategy.entropy,
 };
 
 const funeralBackgroundSize = {
@@ -25,7 +25,7 @@ const offerImageOptions = {
   width: 291,
   height: 345,
   fit: "cover",
-  position: sharp.strategy.entropy,
+  // position: sharp.strategy.entropy,
 };
 
 const getTargetResizeDimensions = (maxWidth, maxHeight, metadata) => {

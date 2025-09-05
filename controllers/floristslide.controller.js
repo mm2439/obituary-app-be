@@ -66,7 +66,7 @@ const florsitSlideController = {
 
         if (file) {
           const avifBuffer = await sharp(file.buffer)
-            .resize(195, 267, { fit: "cover" })
+            .resize(351, 351, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
             .toBuffer();
 

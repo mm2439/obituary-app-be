@@ -74,6 +74,61 @@ const authController = {
       user: user.toSafeObject(),
     });
   },
+
+  ghostLogin: async (req, res) => {
+
+    const { userId, adminId } = req.body;
+
+    console.log({ userId, adminId });
+
+    if (!userId ) {
+      console.warn(`Invalid data format`);
+
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json({ error: `Invalid data format` });
+    }
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    console.log('>>>>> user', user, userId);
+
+    if (!user) {
+      console.warn("User not found");
+
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "User not found" });
+    }
+
+    const isAdmin = user.role === "SUPERADMIN";
+
+    // handle token management
+    const token = TokenManagement.createToken(
+      {
+        sub: user.id.toString(),
+        _id: user.id,
+        email: user.email,
+        isAdmin: isAdmin,
+        role: user.role,
+      },
+      "login"
+    );
+    const userObj = user.toSafeObject();
+    if (adminId) {
+      userObj.adminId = adminId
+    }
+    res.status(httpStatus.OK).json({
+      token,
+      user: { ...userObj, isGhost: isAdmin ? false : true }
+      ,
+    });
+  },
+
 };
 
 module.exports = authController;

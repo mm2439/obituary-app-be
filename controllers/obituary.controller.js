@@ -132,7 +132,7 @@ const obituaryController = {
           fileName
         );
         const optimizedBuffer = await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
+          .resize(203, 275, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toBuffer();
         await uploadBuffer(optimizedBuffer, remotePath, "image/avif");

@@ -67,7 +67,17 @@ Card.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
-    }
+    },
+    isNotified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    sender: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null
+    },
   },
   {
     sequelize,

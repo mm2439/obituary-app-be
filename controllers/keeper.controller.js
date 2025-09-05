@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const memoryLogsController = require("./memoryLogs.controller");
+const { KeeperNotification } = require("../models/keeper_notification");
 const KEEPER_DEATH_DOCS = path.join(__dirname, "../keeperDocs");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 
@@ -50,6 +51,21 @@ const keeperController = {
       });
 
       const keeperId = keeper.id;
+      const keeperFolder = path.join(KEEPER_DEATH_DOCS, String(keeperId));
+      if (!fs.existsSync(keeperFolder)) {
+        fs.mkdirSync(keeperFolder, { recursive: true });
+      }
+
+      if (keeperId) {
+        await KeeperNotification.create({
+          sender: req.user.id,
+          receiver: userId,
+          obituaryId,
+          isNotified: false,
+          time
+        });
+      }
+
       let deathReport = null;
 
       if (req.files?.deathReport) {

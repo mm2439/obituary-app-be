@@ -98,7 +98,7 @@ const photoController = {
         );
 
         const optimizedBuffer = await sharp(pictureFile.buffer)
-          .resize(200, 200, { fit: "cover" })
+          .resize(176, 176, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toBuffer();
 
