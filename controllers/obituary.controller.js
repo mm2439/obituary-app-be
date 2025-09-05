@@ -23,7 +23,7 @@ const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
-const { timestampName } = require("../helpers/sanitize").timestampName;
+const  timestampName  = require("../helpers/sanitize").timestampName;
 const sanitize = require("../helpers/sanitize").sanitize;
 
 const slugKeyFilter = (name) => {
