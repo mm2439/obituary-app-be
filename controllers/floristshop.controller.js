@@ -110,7 +110,7 @@ const florsitShopController = {
 
         if (file) {
           const avifBuffer = await sharp(file.buffer)
-            .resize({ width: 140, height: 116, fit: "cover" })
+            // .resize({ width: 140, height: 116, fit: "cover" })
             .toFormat("avif", { quality: 50 })
             .toBuffer();
 
