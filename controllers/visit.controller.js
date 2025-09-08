@@ -7,6 +7,7 @@ const visitController = {
     try {
       const lastVisit = await Visit.findOne({
         where: {
+          userId,
           ipAddress: ipAddress,
           obituaryId: obituaryId,
           createdTimestamp: {

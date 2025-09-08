@@ -18,6 +18,7 @@ const candleController = {
 
       const lastBurned = await Candle.findOne({
         where: {
+          userId,
           ipAddress: ipAddress,
           obituaryId: obituaryId,
           createdTimestamp: {
