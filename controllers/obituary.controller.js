@@ -23,7 +23,7 @@ const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
-const  timestampName  = require("../helpers/sanitize").timestampName;
+const timestampName = require("../helpers/sanitize").timestampName;
 const sanitize = require("../helpers/sanitize").sanitize;
 
 const slugKeyFilter = (name) => {
@@ -270,7 +270,7 @@ const obituaryController = {
         .json({ error: "Memory not found" });
     }
     const obituary = await Obituary.findOne({
-      where: { id: baseObituary.id },
+      where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits'] },
       include: [
         {
           model: User,
@@ -316,6 +316,14 @@ const obituaryController = {
         },
       ],
     });
+
+    const totalVisits = await Visit.count({
+      where: {
+        obituaryId: baseObituary.id,
+        ipAddress: ipAddress,
+      },
+    });
+
     if (obituary) {
       const obituaryId = obituary.id;
       const totalCandles = await Candle.count({
@@ -344,6 +352,7 @@ const obituaryController = {
           ? myLastBurntCandle.createdTimestamp
           : null,
       };
+      obituary.dataValues.totalVisits = totalVisits;
     }
     if (!obituary) {
       return res
