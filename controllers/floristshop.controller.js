@@ -183,7 +183,7 @@ const florsitShopController = {
         if (company) {
           filter.companyId = company.id;
         } else {
-          return res.status(404).json({
+          return res.status(200).json({
             message: "No company found for this user.",
             shops: [],
           });
