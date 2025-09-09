@@ -23,6 +23,7 @@ const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const { Card } = require("../models/card.model");
 const timestampName = require("../helpers/sanitize").timestampName;
 const sanitize = require("../helpers/sanitize").sanitize;
 
@@ -1269,6 +1270,16 @@ const obituaryController = {
         cardImages: uploadedImageUrls,
         cardPdfs: uploadedPdfUrls,
       });
+      await Promise.all(
+        uploadedImageUrls?.map(async (el, index) => {
+          const card = await Card.findOne({ where: { obituaryId: id, cardId: index + 1 } });
+          if (card) {
+            card.cardImage = uploadedImageUrls[index];
+            card.cardPdf = uploadedPdfUrls[index];
+            await card.save();
+          }
+        })
+      )
       return res.status(200).json({
         message: "Template cards uploaded successfully.",
         cardImages: uploadedImageUrls,
