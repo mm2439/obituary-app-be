@@ -113,7 +113,8 @@ const photoController = {
         obituaryId,
         // Store PUBLIC, directly usable URL in DB:
         fileUrl: publicFileUrl, // ⬅️ public URL saved
-        status: isKeeper ? "approved" : "pending",
+        status: "pending",
+        // status: isKeeper ? "approved" : "pending", // Old logic
       });
 
       if (photo) {
