@@ -316,7 +316,10 @@ const obituaryController = {
         },
       ],
     });
-
+    const floristShops = await FloristShop.findAll({
+      where: { city: obituary.dataValues.city },
+      order: Sequelize.literal("RAND()"),
+    });
     const totalVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
@@ -353,6 +356,7 @@ const obituaryController = {
           : null,
       };
       obituary.dataValues.totalVisits = totalVisits;
+      obituary.dataValues.floristShops = floristShops;
     }
     if (!obituary) {
       return res
