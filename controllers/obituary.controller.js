@@ -754,6 +754,35 @@ const obituaryController = {
         ],
         order: [["createdTimestamp", "DESC"]],
       });
+
+
+      // let fetchedData = {};
+      await Promise.all(
+        interactions?.map(async (el) => {
+          let interactionData = null;
+          console.log('el.type', el.type);
+
+          if (el.type === 'condolence') {
+            interactionData = await Condolence.findOne({
+              where: { id: el.interactionId }
+            });
+          } else if (el.type === 'photo') {
+            interactionData = await Photo.findOne({
+              where: { id: el.interactionId }
+            });
+          } else if (el.type === 'dedication') {
+            interactionData = await Dedication.findOne({
+              where: { id: el.interactionId }
+            });
+          }
+
+          if (interactionData) {
+            el.dataValues.interaction = interactionData;
+          }
+        })
+      );
+
+
       const result = {
         pending: [],
         others: [],
