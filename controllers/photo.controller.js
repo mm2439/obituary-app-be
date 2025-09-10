@@ -81,7 +81,7 @@ const photoController = {
     try {
       const userId = req.user.id;
       const obituaryId = req.params.id;
-      const { isKeeper } = req.body;
+      const { isKeeper, userName } = req.body;
 
       let remotePath = null;
       let publicFileUrl = null;
@@ -125,7 +125,7 @@ const photoController = {
             userId,
             photo.id,
             photo.status,
-            "annonymous",
+            userName,
             "Slika"
           );
         } catch (logError) {
