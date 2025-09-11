@@ -73,7 +73,6 @@ const userController = {
   },
 
   updateMyUser: async (req, res) => {
-        console.log('HIT-1');
 
     const {
       email,
@@ -132,7 +131,6 @@ const userController = {
     });
   },
   updateMyUser: async (req, res) => {
-    console.log('HIT-2');
     
     const {
       email,
