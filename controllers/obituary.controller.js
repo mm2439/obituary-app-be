@@ -2,7 +2,7 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
-const { Op } = require("sequelize");
+const { Op,fn, col, where, literal  } = require("sequelize");
 const { Sequelize } = require("sequelize");
 const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
 const moment = require("moment");
@@ -302,7 +302,7 @@ const obituaryController = {
         .json({ error: "Memory not found" });
     }
     const obituary = await Obituary.findOne({
-      where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits'] },
+      where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits', 'currentWeekVisits'] },
       include: [
         {
           model: User,
@@ -355,7 +355,18 @@ const obituaryController = {
     const totalVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
-        ipAddress: ipAddress,
+        // ipAddress: ipAddress,
+      },
+    });
+           
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const formattedDate = oneWeekAgo.toISOString().split('T')[0];
+    console.log('One week ago (date only):', formattedDate);
+    const currentWeekVisits = await Visit.count({
+      where: {
+        obituaryId: baseObituary.id,
+         [Op.and]: [where(fn('DATE', col('createdTimestamp')), '>=', formattedDate),],
       },
     });
 
@@ -388,6 +399,7 @@ const obituaryController = {
           : null,
       };
       obituary.dataValues.totalVisits = totalVisits;
+      obituary.dataValues.currentWeekVisits = currentWeekVisits;
       obituary.dataValues.floristShops = floristShops;
     }
     if (!obituary) {
