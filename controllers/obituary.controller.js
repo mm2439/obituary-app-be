@@ -348,6 +348,7 @@ const obituaryController = {
         },
       ],
     });
+    const Company = await CompanyPage.findOne({ where: { userId: obituary.dataValues.userId }, attributes: ["type",] })
     const floristShops = await FloristShop.findAll({
       where: { city: obituary.dataValues.city },
       order: Sequelize.literal("RAND()"),
@@ -389,6 +390,7 @@ const obituaryController = {
       };
       obituary.dataValues.totalVisits = totalVisits;
       obituary.dataValues.floristShops = floristShops;
+      obituary.dataValues.Company = Company;
     }
     if (!obituary) {
       return res
