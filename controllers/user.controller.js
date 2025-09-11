@@ -73,6 +73,8 @@ const userController = {
   },
 
   updateMyUser: async (req, res) => {
+        console.log('HIT-1');
+
     const {
       email,
       company,
@@ -130,13 +132,15 @@ const userController = {
     });
   },
   updateMyUser: async (req, res) => {
+    console.log('HIT-2');
+    
     const {
       email,
       company,
       region,
       city,
       secondaryCity,
-      thirdCity,
+      thirdCity,fourthCity,fifthCity,sixthCity,seventhCity,eightCity,
       sendGiftsPermission,
       sendMobilePermission,
       createObitaryPermission,
@@ -177,6 +181,21 @@ const userController = {
     }
     if (req.body.hasOwnProperty("thirdCity")) {
       user.thirdCity = thirdCity;
+    }
+    if (req.body.hasOwnProperty("fourthCity")) {
+      user.fourthCity = fourthCity;
+    }
+    if (req.body.hasOwnProperty("fifthCity")) {
+      user.fifthCity = fifthCity;
+    }
+    if (req.body.hasOwnProperty("sixthCity")) {
+      user.sixthCity = sixthCity;
+    }
+    if (req.body.hasOwnProperty("seventhCity")) {
+      user.seventhCity = seventhCity;
+    }
+    if (req.body.hasOwnProperty("eightCity")) {
+      user.eightCity = eightCity;
     }
 
     await user.save();
