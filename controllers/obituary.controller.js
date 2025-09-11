@@ -212,20 +212,52 @@ const obituaryController = {
           [Op.gte]: threeWeeksAgo,
         };
       }
-      const obituaries = await Obituary.findAndCountAll({
-        where: {
-          ...whereClause,
-        },
-        order: [["createdTimestamp", "DESC"]],
-        include: [
-          {
-            model: User,
+      let totalObit = [];
+      if (allow === "allow") {
+        const arr = userId ? [
+          { userId }, { city }
+        ] : [{ city }]
+        const myClause = {
+          ...whereClause, [Op.or]: arr
+        };
+        delete myClause.userId;
+        delete myClause.city;
+
+        const myobituaries = await Obituary.findAndCountAll({
+          where: {
+            ...myClause,
           },
-          {
-            model: Cemetry,
+          order: [["createdTimestamp", "DESC"]],
+          include: [
+            {
+              model: User,
+            },
+            {
+              model: Cemetry,
+            },
+          ],
+        });
+        totalObit = myobituaries;
+      }
+      else {
+        const obituaries = await Obituary.findAndCountAll({
+          where: {
+            ...whereClause,
           },
-        ],
-      });
+          order: [["createdTimestamp", "DESC"]],
+          include: [
+            {
+              model: User,
+            },
+            {
+              model: Cemetry,
+            },
+          ],
+        });
+        totalObit = obituaries;
+
+      }
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date();
@@ -240,8 +272,8 @@ const obituaryController = {
         },
       });
       res.status(httpStatus.OK).json({
-        total: obituaries.count,
-        obituaries: obituaries.rows,
+        total: totalObit.count,
+        obituaries: totalObit.rows,
         funeralCount: funeralCount,
       });
     } catch (error) {
@@ -316,7 +348,10 @@ const obituaryController = {
         },
       ],
     });
-
+    const floristShops = await FloristShop.findAll({
+      where: { city: obituary.dataValues.city },
+      order: Sequelize.literal("RAND()"),
+    });
     const totalVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
@@ -365,6 +400,7 @@ const obituaryController = {
       };
       obituary.dataValues.totalVisits = totalVisits;
       obituary.dataValues.currentWeekVisits = currentWeekVisits;
+      obituary.dataValues.floristShops = floristShops;
     }
     if (!obituary) {
       return res
