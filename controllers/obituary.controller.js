@@ -2,7 +2,7 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
-const { Op } = require("sequelize");
+const { Op,fn, col, where, literal  } = require("sequelize");
 const { Sequelize } = require("sequelize");
 const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
 const moment = require("moment");
@@ -212,20 +212,52 @@ const obituaryController = {
           [Op.gte]: threeWeeksAgo,
         };
       }
-      const obituaries = await Obituary.findAndCountAll({
-        where: {
-          ...whereClause,
-        },
-        order: [["createdTimestamp", "DESC"]],
-        include: [
-          {
-            model: User,
+      let totalObit = [];
+      if (allow === "allow") {
+        const arr = userId ? [
+          { userId }, { city }
+        ] : [{ city }]
+        const myClause = {
+          ...whereClause, [Op.or]: arr
+        };
+        delete myClause.userId;
+        delete myClause.city;
+
+        const myobituaries = await Obituary.findAndCountAll({
+          where: {
+            ...myClause,
           },
-          {
-            model: Cemetry,
+          order: [["createdTimestamp", "DESC"]],
+          include: [
+            {
+              model: User,
+            },
+            {
+              model: Cemetry,
+            },
+          ],
+        });
+        totalObit = myobituaries;
+      }
+      else {
+        const obituaries = await Obituary.findAndCountAll({
+          where: {
+            ...whereClause,
           },
-        ],
-      });
+          order: [["createdTimestamp", "DESC"]],
+          include: [
+            {
+              model: User,
+            },
+            {
+              model: Cemetry,
+            },
+          ],
+        });
+        totalObit = obituaries;
+
+      }
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date();
@@ -240,8 +272,8 @@ const obituaryController = {
         },
       });
       res.status(httpStatus.OK).json({
-        total: obituaries.count,
-        obituaries: obituaries.rows,
+        total: totalObit.count,
+        obituaries: totalObit.rows,
         funeralCount: funeralCount,
       });
     } catch (error) {
@@ -270,7 +302,7 @@ const obituaryController = {
         .json({ error: "Memory not found" });
     }
     const obituary = await Obituary.findOne({
-      where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits'] },
+      where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits', 'currentWeekVisits'] },
       include: [
         {
           model: User,
@@ -316,11 +348,26 @@ const obituaryController = {
         },
       ],
     });
-
+    const Company = await CompanyPage.findOne({ where: { userId: obituary.dataValues.userId }, attributes: ["type",] })
+    const floristShops = await FloristShop.findAll({
+      where: { city: obituary.dataValues.city },
+      order: Sequelize.literal("RAND()"),
+    });
     const totalVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
-        ipAddress: ipAddress,
+        // ipAddress: ipAddress,
+      },
+    });
+           
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const formattedDate = oneWeekAgo.toISOString().split('T')[0];
+    console.log('One week ago (date only):', formattedDate);
+    const currentWeekVisits = await Visit.count({
+      where: {
+        obituaryId: baseObituary.id,
+         [Op.and]: [where(fn('DATE', col('createdTimestamp')), '>=', formattedDate),],
       },
     });
 
@@ -353,6 +400,9 @@ const obituaryController = {
           : null,
       };
       obituary.dataValues.totalVisits = totalVisits;
+      obituary.dataValues.currentWeekVisits = currentWeekVisits;
+      obituary.dataValues.floristShops = floristShops;
+      obituary.dataValues.Company = Company;
     }
     if (!obituary) {
       return res
@@ -754,6 +804,35 @@ const obituaryController = {
         ],
         order: [["createdTimestamp", "DESC"]],
       });
+
+
+      // let fetchedData = {};
+      await Promise.all(
+        interactions?.map(async (el) => {
+          let interactionData = null;
+          console.log('el.type', el.type);
+
+          if (el.type === 'condolence') {
+            interactionData = await Condolence.findOne({
+              where: { id: el.interactionId }
+            });
+          } else if (el.type === 'photo') {
+            interactionData = await Photo.findOne({
+              where: { id: el.interactionId }
+            });
+          } else if (el.type === 'dedication') {
+            interactionData = await Dedication.findOne({
+              where: { id: el.interactionId }
+            });
+          }
+
+          if (interactionData) {
+            el.dataValues.interaction = interactionData;
+          }
+        })
+      );
+
+
       const result = {
         pending: [],
         others: [],

@@ -81,7 +81,7 @@ const photoController = {
     try {
       const userId = req.user.id;
       const obituaryId = req.params.id;
-      const { isKeeper } = req.body;
+      const { isKeeper, userName } = req.body;
 
       let remotePath = null;
       let publicFileUrl = null;
@@ -113,7 +113,8 @@ const photoController = {
         obituaryId,
         // Store PUBLIC, directly usable URL in DB:
         fileUrl: publicFileUrl, // ⬅️ public URL saved
-        status: isKeeper ? "approved" : "pending",
+        status: "pending",
+        // status: isKeeper ? "approved" : "pending", // Old logic
       });
 
       if (photo) {
@@ -124,7 +125,7 @@ const photoController = {
             userId,
             photo.id,
             photo.status,
-            "annonymous",
+            userName,
             "Slika"
           );
         } catch (logError) {

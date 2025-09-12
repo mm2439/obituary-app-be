@@ -581,8 +581,7 @@ const companyController = {
           "name",
           "email",
           "city",
-          "secondaryCity",
-          "thirdCity",
+          "secondaryCity","thirdCity","fourthCity","fifthCity","sixthCity","seventhCity","eightCity",
           "company",
         ],
         include: [

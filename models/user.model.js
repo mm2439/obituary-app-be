@@ -129,6 +129,26 @@ User.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    fourthCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    fifthCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    sixthCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    seventhCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    eightCity: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     role: {
       type: DataTypes.ENUM(
         process.env.USER_ROLE,
