@@ -12,13 +12,157 @@ const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
 const { sharpHelpers } = require("../helpers/sharp");
 const { Obituary } = require("../models/obituary.model");
-const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
+const { uploadBuffer, publicUrl, buildRemotePath, uploadStream } = require("../config/bunny");
 const { sanitize } = require("../helpers/sanitize");
 const { compareSync } = require("bcrypt");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
+async function processBackgroundImage(files, fallbackBackground, companyId) {
+  if (files?.background?.[0]) {
+    const pictureFile = files.background[0];
+    const avifBuffer = sharp(pictureFile.buffer).resize(resizeConstants.funeralBackgroundSize)
+      .toFormat("avif", { quality: 60, effort: 5, chromaSubsampling: "4:4:4" });
+
+    const baseName = sanitize(path.parse(pictureFile.originalname).name);
+    const fileName = `${Date.now()}-${baseName}.avif`;
+    const remotePath = buildRemotePath("companyUploads", String(companyId), fileName);
+    await uploadStream(avifBuffer, remotePath, "image/avif");
+    return encodeURI(publicUrl(remotePath));
+  }
+  if (typeof fallbackBackground === "string") {
+    return fallbackBackground;
+  }
+  return null;
+}
+
+async function processAndUploadImage({
+  file,
+  companyId,
+  resizeOptions,
+  avifOptions,
+  prefix,
+}) {
+  const base = sanitize(path.parse(file.originalname).name);
+  const fileName = prefix ? `${prefix}-${Date.now()}-${base}.avif` : `${Date.now()}-${base}.avif`;
+  const remotePath = buildRemotePath("companyUploads", String(companyId), fileName);
+
+  const transform = sharp(file.buffer)
+    .resize(resizeOptions)
+    .toFormat("avif", avifOptions);
+
+  await uploadStream(transform, remotePath, "image/avif");
+
+  return encodeURI(publicUrl(remotePath));
+}
+
+
 const companyController = {
+  // REFACTORED CREATE FLORIST COMPANY CODE ----
+  createFloristCompany: async (req, res) => {
+    try {
+      const date = Date.now();
+      const { heading, phone, title, description, background } = req.body;
+      const userId = req.user.id;
+      const floristCompany = await CompanyPage.create({
+        userId,
+        type: "FLORIST",
+        heading,
+        phone,
+        title,
+        description,
+      });
+
+      const picturePath = await processBackgroundImage(req.files, background, floristCompany?.id,)
+
+      if (picturePath) {
+        await floristCompany.update({ background: picturePath });
+      }
+      console.log(`Time taken => ${(Date.now() - date) / 1000} seconds `)
+
+      return res.status(httpStatus.OK).json({ message: "Florsit Company create Successfully", company: floristCompany });
+
+
+    } catch (error) {
+      console.error("Error while creating 'Florist Company' :", error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong!" });
+    }
+  },
+  //----------------------------------------------
+
+  //REFACTORED CREATE FUNERAL COMPANY CODE ------
+  createFuneralCompany: async (req, res) => {
+    try {
+      const date = Date.now()
+      const { name, facebook, address, email, phone, website, background } =
+        req.body;
+      const userId = req.user.id;
+
+      const funeralCompany = await CompanyPage.create({
+        userId,
+        type: "FUNERAL",
+        name,
+        facebook,
+        address,
+        email,
+        phone,
+        website,
+      });
+      const companyId = funeralCompany.id;
+
+      const backgroundPromise = (req.files?.background?.[0]) ? processAndUploadImage({
+        file: req.files?.background?.[0], companyId, resizeOptions: resizeConstants.funeralBackgroundSize
+        , avifOption: {
+          quality: 60,
+          effort: 5,
+          chromaSubsampling: "4:4:4",
+        }
+      }) : typeof background === "string" ? Promise.resolve(background) : Promise.resolve(null);
+
+      const logoPromise = (req.files?.logo?.[0]) ? (async () => {
+        const logoFile = req.files.logo[0];
+        const metaData = await sharp(logoFile.buffer).metadata();
+        const { width, height } = resizeConstants.getTargetResizeDimensions(200, 80, metaData);
+        return await processAndUploadImage({
+          file: logoFile, companyId, resizeOptions: {
+            width, height, fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 },
+          }, avifOptions: { quality: 60, effort: 5 }
+        });
+      })() : Promise.resolve(null);
+
+      const companyLogoPromise = (req.files?.company_logo?.[0]) ? (async () => {
+        const logoFile = req.files.company_logo[0];
+        const metaData = await sharp(logoFile.buffer).metadata();
+        const { width, height } = resizeConstants.getTargetResizeDimensions(200, 80, metaData);
+        return await processAndUploadImage({
+          file: logoFile, companyId, resizeOptions: {
+            width, height, fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 },
+          }, avifOptions: { quality: 60, effort: 5 }
+        });
+      })() : Promise.resolve(null);
+
+      const picturePromise = (req.files?.picture?.[0]) ? processAndUploadImage({
+        file: req.files?.picture?.[0], resizeOptions: { width: 195, height: 267, fit: "cover" }, avifOptions: { quality: 50 }, prefix: "picture"
+      }) : Promise.resolve(null);
+
+      const [backgroundUrl, logoUrl, companylogoUrl, pictureUrl] = await Promise.all([backgroundPromise, logoPromise, companyLogoPromise, picturePromise]);
+      await funeralCompany.update({
+        background: backgroundUrl,
+        logo: logoUrl, company_logo: companylogoUrl
+      });
+      console.log(`Time taken => ${(Date.now() - date) / 1000} seconds `)
+
+      return res.status(httpStatus.OK).json({
+        message: "Funeral Company Created Successfully",
+        company: funeralCompany
+      });
+    } catch (error) {
+      console.error("Error while creating 'Funeral Company' :", error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+    }
+  },
+  //---------------------------------------------
+
   creatFlorist: async (req, res) => {
     try {
       const { heading, phone, title, description, background } = req.body;
@@ -581,7 +725,7 @@ const companyController = {
           "name",
           "email",
           "city",
-          "secondaryCity","thirdCity","fourthCity","fifthCity","sixthCity","seventhCity","eightCity",
+          "secondaryCity", "thirdCity", "fourthCity", "fifthCity", "sixthCity", "seventhCity", "eightCity",
           "company",
         ],
         include: [

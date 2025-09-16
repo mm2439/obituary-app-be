@@ -25,12 +25,12 @@ const router = express.Router();
 router.post(
   "/funeral",
   [authenticationMiddleware, uploadFields],
-  companyController.creatFuneral
+  companyController.createFuneralCompany
 );
 router.post(
   "/florist",
   [authenticationMiddleware, uploadFields],
-  companyController.creatFlorist
+  companyController.createFloristCompany
 );
 router.get(
   "/funeral",
