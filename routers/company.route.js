@@ -69,8 +69,12 @@ router.patch(
 );
 
 router.get(
+  "/my",
+  [authenticationMiddleware],
+  companyController.getMyCompany);
+router.get(
   "/additional-data/:id",
-  // [authenticationMiddleware],
+  [authenticationMiddleware],
   companyController.getCompanyAdditionalData
 );
 

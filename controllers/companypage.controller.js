@@ -57,13 +57,57 @@ async function processAndUploadImage({
 }
 
 const DBTableMap = { faqs: FAQ, cementry: Cemetry, packages: Package, slides: FloristSlide, shops: FloristShop };
-
+const fileFields = [
+  {
+    field: "background",
+    resize: resizeConstants.funeralBackgroundSize,
+    avifOptions: { quality: 60, effort: 5, chromaSubsampling: "4:4:4" },
+  },
+  {
+    field: "logo",
+    resize: {
+      width: 228,
+      height: 140,
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    },
+  },
+  {
+    field: "company_logo",
+    resize: {
+      width: 228,
+      height: 140,
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    },
+  },
+  { field: "secondary_image", resize: { width: 195, height: 267 } },
+  {
+    field: "funeral_section_one_image_one",
+    resize: { width: 195, height: 267 },
+  },
+  {
+    field: "funeral_section_one_image_two",
+    resize: { width: 195, height: 267 },
+  },
+  { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
+  { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
+  {
+    field: "offer_three_image",
+    resize: resizeConstants.offerImageOptions,
+  },
+  { field: "boxBackgroundImage", resize: { width: 1280, height: 420 } },
+  {
+    field: "picture",
+    resize: { width: 228, height: 140, fit: "cover" },
+    avifOptions: { quality: 50 },
+  },
+];
 
 const companyController = {
   // REFACTORED CREATE FLORIST COMPANY CODE ----
   createFloristCompany: async (req, res) => {
     try {
-      const date = Date.now();
       const { heading, phone, title, description, background } = req.body;
       const userId = req.user.id;
       const floristCompany = await CompanyPage.create({
@@ -80,7 +124,6 @@ const companyController = {
       if (picturePath) {
         await floristCompany.update({ background: picturePath });
       }
-      console.log(`Time taken => ${(Date.now() - date) / 1000} seconds `)
 
       return res.status(httpStatus.OK).json({ message: "Florsit Company create Successfully", company: floristCompany });
 
@@ -95,7 +138,6 @@ const companyController = {
   //REFACTORED CREATE FUNERAL COMPANY CODE ------
   createFuneralCompany: async (req, res) => {
     try {
-      const date = Date.now()
       const { name, facebook, address, email, phone, website, background } =
         req.body;
       const userId = req.user.id;
@@ -152,7 +194,6 @@ const companyController = {
         background: backgroundUrl,
         logo: logoUrl, company_logo: companylogoUrl
       });
-      console.log(`Time taken => ${(Date.now() - date) / 1000} seconds `)
 
       return res.status(httpStatus.OK).json({
         message: "Funeral Company Created Successfully",
@@ -179,53 +220,6 @@ const companyController = {
 
       const updateData = { ...req.body };
       const companyId = company.id;
-
-      const fileFields = [
-        {
-          field: "background",
-          resize: resizeConstants.funeralBackgroundSize,
-          avifOptions: { quality: 60, effort: 5, chromaSubsampling: "4:4:4" },
-        },
-        {
-          field: "logo",
-          resize: {
-            width: 228,
-            height: 140,
-            fit: "contain",
-            background: { r: 255, g: 255, b: 255, alpha: 0 },
-          },
-        },
-        {
-          field: "company_logo",
-          resize: {
-            width: 228,
-            height: 140,
-            fit: "contain",
-            background: { r: 255, g: 255, b: 255, alpha: 0 },
-          },
-        },
-        { field: "secondary_image", resize: { width: 195, height: 267 } },
-        {
-          field: "funeral_section_one_image_one",
-          resize: { width: 195, height: 267 },
-        },
-        {
-          field: "funeral_section_one_image_two",
-          resize: { width: 195, height: 267 },
-        },
-        { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
-        { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
-        {
-          field: "offer_three_image",
-          resize: resizeConstants.offerImageOptions,
-        },
-        { field: "boxBackgroundImage", resize: { width: 1280, height: 420 } },
-        {
-          field: "picture",
-          resize: { width: 228, height: 140, fit: "cover" },
-          avifOptions: { quality: 50 },
-        },
-      ];
 
       const uploadPromises = fileFields.map(async ({ field, resize, avifOptions }) => {
         const file = req.files?.[field]?.[0];
@@ -313,6 +307,32 @@ const companyController = {
   },
   //-----------------------------------------------------------
 
+  //GET MY COMPANY------------------------
+  getMyCompany: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      const company = await CompanyPage.findOne({
+        where: { userId },
+      });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      return res.status(httpStatus.OK).json({
+        message: "success",
+        company,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+  // -------------------------------------
 
   creatFlorist: async (req, res) => {
     try {
