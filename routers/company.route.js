@@ -65,7 +65,13 @@ router.get(
 router.patch(
   "/:id",
   [authenticationMiddleware, uploadFields],
-  companyController.updateCompanyPage
+  companyController.updateCompany
+);
+
+router.get(
+  "/additional-data/:id",
+  // [authenticationMiddleware],
+  companyController.getCompanyAdditionalData
 );
 
 module.exports = router;

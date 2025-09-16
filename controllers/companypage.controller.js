@@ -56,6 +56,8 @@ async function processAndUploadImage({
   return encodeURI(publicUrl(remotePath));
 }
 
+const DBTableMap = { faqs: FAQ, cementry: Cemetry, packages: Package, slides: FloristSlide, shops: FloristShop };
+
 
 const companyController = {
   // REFACTORED CREATE FLORIST COMPANY CODE ----
@@ -162,6 +164,155 @@ const companyController = {
     }
   },
   //---------------------------------------------
+
+  //REFACTORED UPDATE COMPANY CODE -------------
+  updateCompany: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await CompanyPage.findByPk(id);
+
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ error: "Company not found" });
+      }
+
+      const updateData = { ...req.body };
+      const companyId = company.id;
+
+      const fileFields = [
+        {
+          field: "background",
+          resize: resizeConstants.funeralBackgroundSize,
+          avifOptions: { quality: 60, effort: 5, chromaSubsampling: "4:4:4" },
+        },
+        {
+          field: "logo",
+          resize: {
+            width: 228,
+            height: 140,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        },
+        {
+          field: "company_logo",
+          resize: {
+            width: 228,
+            height: 140,
+            fit: "contain",
+            background: { r: 255, g: 255, b: 255, alpha: 0 },
+          },
+        },
+        { field: "secondary_image", resize: { width: 195, height: 267 } },
+        {
+          field: "funeral_section_one_image_one",
+          resize: { width: 195, height: 267 },
+        },
+        {
+          field: "funeral_section_one_image_two",
+          resize: { width: 195, height: 267 },
+        },
+        { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
+        { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
+        {
+          field: "offer_three_image",
+          resize: resizeConstants.offerImageOptions,
+        },
+        { field: "boxBackgroundImage", resize: { width: 1280, height: 420 } },
+        {
+          field: "picture",
+          resize: { width: 228, height: 140, fit: "cover" },
+          avifOptions: { quality: 50 },
+        },
+      ];
+
+      const uploadPromises = fileFields.map(async ({ field, resize, avifOptions }) => {
+        const file = req.files?.[field]?.[0];
+
+        if (file) {
+          const uploadedUrl = await processAndUploadImage({
+            file,
+            companyId,
+            resizeOptions: resize,
+            avifOptions: avifOptions ? avifOptions : { quality: 60 },
+            prefix: field,
+          });
+
+          if (field === "picture") {
+            updateData.logo = uploadedUrl;
+          } else {
+            updateData[field] = uploadedUrl;
+          }
+        } else if (req.body[field]) {
+          updateData[field] = req.body[field];
+        }
+      });
+
+      await Promise.all(uploadPromises); // uploads in parallel
+
+      updateData.modifiedTimestamp = new Date();
+
+      if (req.body.allowStatus === "send") {
+        updateData.sentTimestamp = new Date();
+        updateData.status = "SENT_FOR_APPROVAL";
+      } else if (company.status === "SENT_FOR_APPROVAL") {
+        updateData.status = "SENT_FOR_APPROVAL";
+      } else if (company.status === "PUBLISHED") {
+        updateData.status = "PUBLISHED";
+      }
+
+      await company.update(updateData);
+
+      // const companyType = company.type;
+      const companyData = company.toJSON();
+
+      // if (companyType === "FUNERAL") {
+      //   const faqs = await FAQ.findAll({ where: { companyId } });
+      //   const cemeteries = await Cemetry.findAll({ where: { companyId } });
+      //   companyData.faqs = faqs;
+      //   companyData.cemeteries = cemeteries;
+      // } else if (companyType === "FLORIST") {
+      //   const packages = await Package.findAll({ where: { companyId } });
+      //   const slides = await FloristSlide.findAll({ where: { companyId } });
+      //   const shops = await FloristShop.findAll({ where: { companyId } });
+      //   companyData.packages = packages;
+      //   companyData.slides = slides;
+      //   companyData.shops = shops;
+      // }
+
+      return res.status(httpStatus.OK).json({
+        message: "Company page updated successfully",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error while updating 'Company': ", error);
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+  //--------------------------------------------
+
+  //SEPARATE API FOR (FAQS,CEMENTRIES, PACKAGES, SLIDES, SHOPS)
+  getCompanyAdditionalData: async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const table = req.query.table?.toLowerCase();
+      const model = DBTableMap[table];
+      if (!table) return res.status(httpStatus.BAD_REQUEST).json({ error: "Refrence table name is required" });
+      if (!model) {
+        throw new Error(`Invalid table: ${table}`);
+      }
+      const data = await model.findAll({ where: { companyId } });
+      return res.status(httpStatus.OK).json({ message: `Data fetched Successfully`, data })
+    } catch (error) {
+      console.error("Error in fetching company additional data: ", error);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+    }
+  },
+  //-----------------------------------------------------------
+
 
   creatFlorist: async (req, res) => {
     try {
