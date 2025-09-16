@@ -504,9 +504,9 @@ const obituaryController = {
     if (city) {
       whereClause.city = city;
     }
-    // if (region) {
-    //   whereClause.region = region;
-    // }
+    if (region) {
+      whereClause.region = region;
+    }
     if (startDate && endDate) {
       // Convert the date strings to proper date range for filtering
       const startOfDay = new Date(startDate);
