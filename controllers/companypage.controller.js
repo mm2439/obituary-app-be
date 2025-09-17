@@ -155,14 +155,15 @@ const companyController = {
       const companyId = funeralCompany.id;
 
       const backgroundPromise = (req.files?.background?.[0]) ? processAndUploadImage({
-        file: req.files?.background?.[0], companyId, resizeOptions: resizeConstants.funeralBackgroundSize
-        , avifOption: {
+        file: req.files?.background?.[0],
+        companyId,
+        resizeOptions: resizeConstants.funeralBackgroundSize,
+        avifOptions: {
           quality: 60,
           effort: 5,
           chromaSubsampling: "4:4:4",
         }
       }) : typeof background === "string" ? Promise.resolve(background) : Promise.resolve(null);
-
       const logoPromise = (req.files?.logo?.[0]) ? (async () => {
         const logoFile = req.files.logo[0];
         const metaData = await sharp(logoFile.buffer).metadata();
