@@ -12,13 +12,329 @@ const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
 const { sharpHelpers } = require("../helpers/sharp");
 const { Obituary } = require("../models/obituary.model");
-const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
+const { uploadBuffer, publicUrl, buildRemotePath, uploadStream } = require("../config/bunny");
 const { sanitize } = require("../helpers/sanitize");
 const { compareSync } = require("bcrypt");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
+async function processBackgroundImage(files, fallbackBackground, companyId) {
+  if (files?.background?.[0]) {
+    const pictureFile = files.background[0];
+    const avifBuffer = sharp(pictureFile.buffer).resize(resizeConstants.funeralBackgroundSize)
+      .toFormat("avif", { quality: 60, effort: 5, chromaSubsampling: "4:4:4" });
+
+    const baseName = sanitize(path.parse(pictureFile.originalname).name);
+    const fileName = `${Date.now()}-${baseName}.avif`;
+    const remotePath = buildRemotePath("companyUploads", String(companyId), fileName);
+    await uploadStream(avifBuffer, remotePath, "image/avif");
+    return encodeURI(publicUrl(remotePath));
+  }
+  if (typeof fallbackBackground === "string") {
+    return fallbackBackground;
+  }
+  return null;
+}
+
+async function processAndUploadImage({
+  file,
+  companyId,
+  resizeOptions,
+  avifOptions,
+  prefix,
+}) {
+  const base = sanitize(path.parse(file.originalname).name);
+  const fileName = prefix ? `${prefix}-${Date.now()}-${base}.avif` : `${Date.now()}-${base}.avif`;
+  const remotePath = buildRemotePath("companyUploads", String(companyId), fileName);
+
+  const transform = sharp(file.buffer)
+    .resize(resizeOptions)
+    .toFormat("avif", avifOptions);
+
+  await uploadStream(transform, remotePath, "image/avif");
+
+  return encodeURI(publicUrl(remotePath));
+}
+
+const DBTableMap = { faqs: FAQ, cementry: Cemetry, packages: Package, slides: FloristSlide, shops: FloristShop };
+const fileFields = [
+  {
+    field: "background",
+    resize: resizeConstants.funeralBackgroundSize,
+    avifOptions: { quality: 60, effort: 5, chromaSubsampling: "4:4:4" },
+  },
+  {
+    field: "logo",
+    resize: {
+      width: 228,
+      height: 140,
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    },
+  },
+  {
+    field: "company_logo",
+    resize: {
+      width: 228,
+      height: 140,
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    },
+  },
+  { field: "secondary_image", resize: { width: 195, height: 267 } },
+  {
+    field: "funeral_section_one_image_one",
+    resize: { width: 195, height: 267 },
+  },
+  {
+    field: "funeral_section_one_image_two",
+    resize: { width: 195, height: 267 },
+  },
+  { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
+  { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
+  {
+    field: "offer_three_image",
+    resize: resizeConstants.offerImageOptions,
+  },
+  { field: "boxBackgroundImage", resize: { width: 1280, height: 420 } },
+  {
+    field: "picture",
+    resize: { width: 228, height: 140, fit: "cover" },
+    avifOptions: { quality: 50 },
+  },
+];
+
 const companyController = {
+  // REFACTORED CREATE FLORIST COMPANY CODE ----
+  createFloristCompany: async (req, res) => {
+    try {
+      const { heading, phone, title, description, background } = req.body;
+      const userId = req.user.id;
+      const floristCompany = await CompanyPage.create({
+        userId,
+        type: "FLORIST",
+        heading,
+        phone,
+        title,
+        description,
+      });
+
+      const picturePath = await processBackgroundImage(req.files, background, floristCompany?.id,)
+
+      if (picturePath) {
+        await floristCompany.update({ background: picturePath });
+      }
+
+      return res.status(httpStatus.OK).json({ message: "Florsit Company create Successfully", company: floristCompany });
+
+
+    } catch (error) {
+      console.error("Error while creating 'Florist Company' :", error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong!" });
+    }
+  },
+  //----------------------------------------------
+
+  //REFACTORED CREATE FUNERAL COMPANY CODE ------
+  createFuneralCompany: async (req, res) => {
+    try {
+      const { name, facebook, address, email, phone, website, background } =
+        req.body;
+      const userId = req.user.id;
+
+      const funeralCompany = await CompanyPage.create({
+        userId,
+        type: "FUNERAL",
+        name,
+        facebook,
+        address,
+        email,
+        phone,
+        website,
+      });
+      const companyId = funeralCompany.id;
+
+      const backgroundPromise = (req.files?.background?.[0]) ? processAndUploadImage({
+        file: req.files?.background?.[0],
+        companyId,
+        resizeOptions: resizeConstants.funeralBackgroundSize,
+        avifOptions: {
+          quality: 60,
+          effort: 5,
+          chromaSubsampling: "4:4:4",
+        }
+      }) : typeof background === "string" ? Promise.resolve(background) : Promise.resolve(null);
+      const logoPromise = (req.files?.logo?.[0]) ? (async () => {
+        const logoFile = req.files.logo[0];
+        const metaData = await sharp(logoFile.buffer).metadata();
+        const { width, height } = resizeConstants.getTargetResizeDimensions(200, 80, metaData);
+        return await processAndUploadImage({
+          file: logoFile, companyId, resizeOptions: {
+            width, height, fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 },
+          }, avifOptions: { quality: 60, effort: 5 }
+        });
+      })() : Promise.resolve(null);
+
+      const companyLogoPromise = (req.files?.company_logo?.[0]) ? (async () => {
+        const logoFile = req.files.company_logo[0];
+        const metaData = await sharp(logoFile.buffer).metadata();
+        const { width, height } = resizeConstants.getTargetResizeDimensions(200, 80, metaData);
+        return await processAndUploadImage({
+          file: logoFile, companyId, resizeOptions: {
+            width, height, fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 },
+          }, avifOptions: { quality: 60, effort: 5 }
+        });
+      })() : Promise.resolve(null);
+
+      const picturePromise = (req.files?.picture?.[0]) ? processAndUploadImage({
+        file: req.files?.picture?.[0], resizeOptions: { width: 195, height: 267, fit: "cover" }, avifOptions: { quality: 50 }, prefix: "picture"
+      }) : Promise.resolve(null);
+
+      const [backgroundUrl, logoUrl, companylogoUrl, pictureUrl] = await Promise.all([backgroundPromise, logoPromise, companyLogoPromise, picturePromise]);
+      await funeralCompany.update({
+        background: backgroundUrl,
+        logo: logoUrl, company_logo: companylogoUrl
+      });
+
+      return res.status(httpStatus.OK).json({
+        message: "Funeral Company Created Successfully",
+        company: funeralCompany
+      });
+    } catch (error) {
+      console.error("Error while creating 'Funeral Company' :", error);
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+    }
+  },
+  //---------------------------------------------
+
+  //REFACTORED UPDATE COMPANY CODE -------------
+  updateCompany: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await CompanyPage.findByPk(id);
+
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ error: "Company not found" });
+      }
+
+      const updateData = { ...req.body };
+      const companyId = company.id;
+
+      const uploadPromises = fileFields.map(async ({ field, resize, avifOptions }) => {
+        const file = req.files?.[field]?.[0];
+
+        if (file) {
+          const uploadedUrl = await processAndUploadImage({
+            file,
+            companyId,
+            resizeOptions: resize,
+            avifOptions: avifOptions ? avifOptions : { quality: 60 },
+            prefix: field,
+          });
+
+          if (field === "picture") {
+            updateData.logo = uploadedUrl;
+          } else {
+            updateData[field] = uploadedUrl;
+          }
+        } else if (req.body[field]) {
+          updateData[field] = req.body[field];
+        }
+      });
+
+      await Promise.all(uploadPromises); // uploads in parallel
+
+      updateData.modifiedTimestamp = new Date();
+
+      if (req.body.allowStatus === "send") {
+        updateData.sentTimestamp = new Date();
+        updateData.status = "SENT_FOR_APPROVAL";
+      } else if (company.status === "SENT_FOR_APPROVAL") {
+        updateData.status = "SENT_FOR_APPROVAL";
+      } else if (company.status === "PUBLISHED") {
+        updateData.status = "PUBLISHED";
+      }
+
+      await company.update(updateData);
+
+      // const companyType = company.type;
+      const companyData = company.toJSON();
+
+      // if (companyType === "FUNERAL") {
+      //   const faqs = await FAQ.findAll({ where: { companyId } });
+      //   const cemeteries = await Cemetry.findAll({ where: { companyId } });
+      //   companyData.faqs = faqs;
+      //   companyData.cemeteries = cemeteries;
+      // } else if (companyType === "FLORIST") {
+      //   const packages = await Package.findAll({ where: { companyId } });
+      //   const slides = await FloristSlide.findAll({ where: { companyId } });
+      //   const shops = await FloristShop.findAll({ where: { companyId } });
+      //   companyData.packages = packages;
+      //   companyData.slides = slides;
+      //   companyData.shops = shops;
+      // }
+
+      return res.status(httpStatus.OK).json({
+        message: "Company page updated successfully",
+        company: companyData,
+      });
+    } catch (error) {
+      console.error("Error while updating 'Company': ", error);
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+  //--------------------------------------------
+
+  //SEPARATE API FOR (FAQS,CEMENTRIES, PACKAGES, SLIDES, SHOPS)
+  getCompanyAdditionalData: async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const table = req.query.table?.toLowerCase();
+      const model = DBTableMap[table];
+      if (!table) return res.status(httpStatus.BAD_REQUEST).json({ error: "Refrence table name is required" });
+      if (!model) {
+        throw new Error(`Invalid table: ${table}`);
+      }
+      const data = await model.findAll({ where: { companyId } });
+      return res.status(httpStatus.OK).json({ message: `Data fetched Successfully`, data })
+    } catch (error) {
+      console.error("Error in fetching company additional data: ", error);
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+    }
+  },
+  //-----------------------------------------------------------
+
+  //GET MY COMPANY------------------------
+  getMyCompany: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      const company = await CompanyPage.findOne({
+        where: { userId },
+      });
+      if (!company) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ message: "No Company Found" });
+      }
+
+      return res.status(httpStatus.OK).json({
+        message: "success",
+        company,
+      });
+    } catch (error) {
+      console.error("Error :", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Something went wrong" });
+    }
+  },
+  // -------------------------------------
+
   creatFlorist: async (req, res) => {
     try {
       const { heading, phone, title, description, background } = req.body;
@@ -581,7 +897,7 @@ const companyController = {
           "name",
           "email",
           "city",
-          "secondaryCity","thirdCity","fourthCity","fifthCity","sixthCity","seventhCity","eightCity",
+          "secondaryCity", "thirdCity", "fourthCity", "fifthCity", "sixthCity", "seventhCity", "eightCity",
           "company",
         ],
         include: [
