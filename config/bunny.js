@@ -34,26 +34,61 @@ const BUNNY_CDN = process.env.BUNNY_CDN_HOSTNAME;
     },
   };
 
-  await new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      if (res.statusCode >= 200 && res.statusCode < 300) return resolve();
-      let body = "";
-      res.on("data", (c) => (body += c));
-      res.on("end", () => reject(new Error(`Bunny upload failed ${res.statusCode}: ${body}`)));
-    });
-    req.on("error", reject);
-
-    if (isStream) {
-      input.pipe(req);
-    } else {
-      req.write(input);
-      req.end();
+await new Promise((resolve, reject) => {
+  const req = https.request(options, (res) => {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      res.resume(); // drain response
+      cleanup();
+      return resolve();
     }
+
+    let body = "";
+    res.setEncoding("utf8");
+    res.on("data", (chunk) => {
+      if (body.length < 5000) body += chunk; // limit error body
+    });
+    res.on("end", () => {
+      cleanup();
+      reject(
+        new Error(
+          `Bunny upload failed ${res.statusCode}: ${body || "No response body"} [${options.method} ${options.path}]`
+        )
+      );
+    });
   });
 
-  const cdnUrl = BUNNY_CDN ? `https://${BUNNY_CDN}/${remotePath}` : null;
-  return { storageUrl: `https://${BUNNY_HOST}/${BUNNY_ZONE}/${remotePath}`, cdnUrl };
-}
+  const cleanup = () => {
+    req.removeAllListeners();
+    if (isStream) input.removeAllListeners();
+  };
+
+  req.on("error", (err) => {
+    cleanup();
+    reject(err);
+  });
+
+  const TIMEOUT = options.timeout || 60000; // configurable
+  req.setTimeout(TIMEOUT, () => {
+    cleanup();
+    req.destroy();
+    reject(new Error(`Upload timeout after ${TIMEOUT} ms`));
+  });
+
+  if (isStream) {
+    input.on("error", (err) => {
+      cleanup();
+      req.destroy(err);
+      reject(err);
+    });
+    input.on("end", () => {
+      req.end();
+    });
+    input.pipe(req);
+  } else {
+    req.write(input);
+    req.end();
+  }
+});
 
 
 async function uploadBuffer(
