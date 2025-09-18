@@ -125,7 +125,7 @@ const companyController = {
         await floristCompany.update({ background: picturePath });
       }
 
-      return res.status(httpStatus.OK).json({ message: "Florsit Company create Successfully", company: floristCompany });
+      return res.status(httpStatus.OK).json({ message: "Florist Company Created Successfully", company: floristCompany });
 
 
     } catch (error) {
