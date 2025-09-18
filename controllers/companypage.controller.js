@@ -155,8 +155,8 @@ const companyController = {
       const companyId = funeralCompany.id;
 
       const backgroundPromise = (req.files?.background?.[0]) ? processAndUploadImage({
-        file: req.files?.background?.[0], companyId, resizeOptions: resizeConstants.funeralBackgroundSize
-        , avifOption: {
+        file: req.files?.background?.[0], companyId, resizeOptions: resizeConstants.funeralBackgroundSize,
+        avifOption: {
           quality: 60,
           effort: 5,
           chromaSubsampling: "4:4:4",
@@ -186,13 +186,14 @@ const companyController = {
       })() : Promise.resolve(null);
 
       const picturePromise = (req.files?.picture?.[0]) ? processAndUploadImage({
-        file: req.files?.picture?.[0], resizeOptions: { width: 195, height: 267, fit: "cover" }, avifOptions: { quality: 50 }, prefix: "picture"
+        file: req.files?.picture?.[0], companyId, resizeOptions: { width: 195, height: 267, fit: "cover" }, avifOptions: { quality: 50 }, prefix: "picture"
       }) : Promise.resolve(null);
 
       const [backgroundUrl, logoUrl, companylogoUrl, pictureUrl] = await Promise.all([backgroundPromise, logoPromise, companyLogoPromise, picturePromise]);
       await funeralCompany.update({
         background: backgroundUrl,
-        logo: logoUrl, company_logo: companylogoUrl
+        logo: logoUrl,
+        company_logo: companylogoUrl
       });
 
       return res.status(httpStatus.OK).json({
