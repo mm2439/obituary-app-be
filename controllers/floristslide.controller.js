@@ -77,7 +77,8 @@ const florsitSlideController = {
             String(newSlide.id),
             filename
           );
-
+          const cdnUrl = null;
+          const storageUrl = null;
           await uploadBuffer(avifBuffer, remotePath, "image/avif");
           const imageUrl = cdnUrl || storageUrl || publicUrl(remotePath);
 
