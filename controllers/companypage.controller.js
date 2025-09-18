@@ -12,7 +12,7 @@ const { Cemetry } = require("../models/cemetry.model");
 const { resizeConstants } = require("../constants/resize");
 const { sharpHelpers } = require("../helpers/sharp");
 const { Obituary } = require("../models/obituary.model");
-const { uploadBuffer, publicUrl, buildRemotePath, uploadStream } = require("../config/bunny");
+const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
 const { sanitize } = require("../helpers/sanitize");
 const { compareSync } = require("bcrypt");
 
@@ -21,13 +21,13 @@ const httpStatus = require("http-status-codes").StatusCodes;
 async function processBackgroundImage(files, fallbackBackground, companyId) {
   if (files?.background?.[0]) {
     const pictureFile = files.background[0];
-    const avifBuffer = sharp(pictureFile.buffer).resize(resizeConstants.funeralBackgroundSize)
-      .toFormat("avif", { quality: 60, effort: 5, chromaSubsampling: "4:4:4" });
+    const avifBuffer = await sharp(pictureFile.buffer).resize(resizeConstants.funeralBackgroundSize)
+      .toFormat("avif", { quality: 60, effort: 5, chromaSubsampling: "4:4:4" }).toBuffer();
 
     const baseName = sanitize(path.parse(pictureFile.originalname).name);
     const fileName = `${Date.now()}-${baseName}.avif`;
     const remotePath = buildRemotePath("companyUploads", String(companyId), fileName);
-    await uploadStream(avifBuffer, remotePath, "image/avif");
+    await uploadBuffer(avifBuffer, remotePath, "image/avif");
     return encodeURI(publicUrl(remotePath));
   }
   if (typeof fallbackBackground === "string") {
@@ -47,11 +47,11 @@ async function processAndUploadImage({
   const fileName = prefix ? `${prefix}-${Date.now()}-${base}.avif` : `${Date.now()}-${base}.avif`;
   const remotePath = buildRemotePath("companyUploads", String(companyId), fileName);
 
-  const transform = sharp(file.buffer)
+  const transform = await sharp(file.buffer)
     .resize(resizeOptions)
-    .toFormat("avif", avifOptions);
+    .toFormat("avif", avifOptions).toBuffer();
 
-  await uploadStream(transform, remotePath, "image/avif");
+  await uploadBuffer(transform, remotePath, "image/avif");
 
   return encodeURI(publicUrl(remotePath));
 }
