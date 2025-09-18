@@ -6,6 +6,7 @@ const BUNNY_KEY = process.env.BUNNY_STORAGE_ACCESS_KEY;
 const BUNNY_HOST = process.env.BUNNY_STORAGE_HOST || "storage.bunnycdn.com";
 const BUNNY_CDN = process.env.BUNNY_CDN_HOSTNAME;
 
+
 async function uploadBuffer(
   buffer,
   remotePath,
