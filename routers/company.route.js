@@ -25,12 +25,12 @@ const router = express.Router();
 router.post(
   "/funeral",
   [authenticationMiddleware, uploadFields],
-  companyController.creatFuneral
+  companyController.createFuneralCompany
 );
 router.post(
   "/florist",
   [authenticationMiddleware, uploadFields],
-  companyController.creatFlorist
+  companyController.createFloristCompany
 );
 router.get(
   "/funeral",
@@ -65,7 +65,17 @@ router.get(
 router.patch(
   "/:id",
   [authenticationMiddleware, uploadFields],
-  companyController.updateCompanyPage
+  companyController.updateCompany
+);
+
+router.get(
+  "/my",
+  [authenticationMiddleware],
+  companyController.getMyCompany);
+router.get(
+  "/additional-data/:id",
+  [authenticationMiddleware],
+  companyController.getCompanyAdditionalData
 );
 
 module.exports = router;
