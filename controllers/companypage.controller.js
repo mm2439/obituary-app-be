@@ -81,14 +81,14 @@ const fileFields = [
       background: { r: 255, g: 255, b: 255, alpha: 0 },
     },
   },
-  { field: "secondary_image", resize: { width: 195, height: 267 } },
+  { field: "secondary_image", resize: { width: 372, height: 266 } },
   {
     field: "funeral_section_one_image_one",
-    resize: { width: 195, height: 267 },
+    resize: { width: 368, height: 256 },
   },
   {
     field: "funeral_section_one_image_two",
-    resize: { width: 195, height: 267 },
+    resize: { width: 223, height: 156 },
   },
   { field: "offer_one_image", resize: resizeConstants.offerImageOptions },
   { field: "offer_two_image", resize: resizeConstants.offerImageOptions },
