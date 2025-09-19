@@ -138,14 +138,14 @@ const companyController = {
   //REFACTORED CREATE FUNERAL COMPANY CODE ------
   createFuneralCompany: async (req, res) => {
     try {
-      const { name, facebook, address, email, phone, website, background } =
+      const { heading, facebook, address, email, phone, website, background } =
         req.body;
       const userId = req.user.id;
 
       const funeralCompany = await CompanyPage.create({
         userId,
         type: "FUNERAL",
-        name,
+        heading,
         facebook,
         address,
         email,
