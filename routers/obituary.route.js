@@ -17,7 +17,9 @@ router.post(
 );
 
 router.get("/", obituaryController.getObituary);
+router.get("/company-page", obituaryController.getCompanyPageObituary);
 router.get("/funerals", obituaryController.getFunerals);
+router.get("/company-page/funerals", obituaryController.getCompanyPageFunerals);
 router.get("/memory", obituaryController.getMemory);
 router.get(
   "/memories",
