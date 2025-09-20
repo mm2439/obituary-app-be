@@ -2,7 +2,7 @@ const express = require("express");
 const authenticationMiddleware = require("../middlewares/authentication");
 const adminAuth = require("../middlewares/adminAuth");
 const router = express.Router();
-
+const contactController = require("../controllers/contact.controller");
 // Admin routes - all protected with authentication and admin role
 router.use(authenticationMiddleware);
 router.use(adminAuth);
@@ -634,7 +634,7 @@ router.get("/compines-for-approval", async (req, res) => {
     const companies = await CompanyPage.findAll({
       // where: { status: "SENT_FOR_APPROVAL" },
       attributes: [
-        'id','userId', 'type', 'city', 'createdTimestamp', 'modifiedTimestamp', 'status', 'approvedTimestamp', 'sentTimestamp',
+        'id', 'userId', 'type', 'city', 'createdTimestamp', 'modifiedTimestamp', 'status', 'approvedTimestamp', 'sentTimestamp',
       ],
       include: [{
         model: User,
@@ -682,5 +682,6 @@ router.patch("/approve-request/:id", async (req, res) => {
   }
 });
 
+router.get("/contact-list", contactController.fetchContacts)
 
 module.exports = router; 

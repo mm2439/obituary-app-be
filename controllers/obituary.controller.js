@@ -2,7 +2,7 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
-const { Op,fn, col, where, literal  } = require("sequelize");
+const { Op, fn, col, where, literal } = require("sequelize");
 const { Sequelize } = require("sequelize");
 const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
 const moment = require("moment");
@@ -281,6 +281,81 @@ const obituaryController = {
       return res.status(500).json({ message: "Internal Server Error" });
     }
   },
+  getCompanyPageObituary: async (req, res) => {
+    try {
+      const {
+        userId, city, search
+      } = req.query;
+      const whereClause = { [Op.or]: [{ userId }, { city }] };
+
+      if (city && userId) {
+        const orConditions = whereClause[Op.or] ?? [];
+
+        if (userId) orConditions.push({ userId });
+        if (city) orConditions.push({ city });
+
+        whereClause[Op.or] = orConditions;
+      }
+
+      if (search) {
+        const searchTerm = `%${search.toLowerCase()}%`;
+
+        // whereClause[Op.and] = [
+        //   {
+        //     [Op.or]: [
+        //       where(fn('LOWER', col('name')), { [Op.like]: searchTerm }),
+        //       where(fn('LOWER', col('sirName')), { [Op.like]: searchTerm }),
+        //     ]
+        //   }
+        // ];
+        whereClause[Op.and] = [
+          { name: { [Op.like]: `%${search}%` } },
+          { sirName: { [Op.like]: `%${search}%` } },
+        ];
+      }
+
+      let totalObit = [];
+
+      const myobituaries = await Obituary.findAndCountAll({
+        where: {
+          ...whereClause,
+        },
+        order: [["createdTimestamp", "DESC"]],
+        include: [
+          {
+            model: User,
+          },
+          {
+            model: Cemetry,
+          },
+        ],
+      });
+      totalObit = myobituaries;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+      const funeralCount = await Obituary.count({
+        where: {
+          ...(city && { funeralLocation: city }),
+          funeralTimestamp: {
+            [Op.between]: [today, tomorrow],
+          },
+        },
+      });
+      res.status(httpStatus.OK).json({
+        total: totalObit.count,
+        obituaries: totalObit.rows,
+        funeralCount: funeralCount,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  },
+
   getMemory: async (req, res) => {
     const { id, slugKey } = req.query;
     const whereClause = {};
@@ -359,7 +434,7 @@ const obituaryController = {
         // ipAddress: ipAddress,
       },
     });
-           
+
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const formattedDate = oneWeekAgo.toISOString().split('T')[0];
@@ -367,7 +442,7 @@ const obituaryController = {
     const currentWeekVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
-         [Op.and]: [where(fn('DATE', col('createdTimestamp')), '>=', formattedDate),],
+        [Op.and]: [where(fn('DATE', col('createdTimestamp')), '>=', formattedDate),],
       },
     });
 
@@ -531,6 +606,55 @@ const obituaryController = {
       obituaries: obituaries.rows,
     });
   },
+
+  getCompanyPageFunerals: async (req, res) => {
+    const { userId, city, search, startDate, endDate, } = req.query;
+
+    const whereClause = {
+      [Op.or]: [{ userId }, { city }]
+    }
+    if (startDate && endDate) {
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      whereClause.funeralTimestamp = {
+        [Op.between]: [startOfDay, endOfDay],
+      };
+    }
+    // if (search) {
+    //   whereClause[Op.or].push({ [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { sirName: { [Op.iLike]: `%${search}%` } }] });
+    // }
+
+
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+
+      whereClause[Op.and] = [
+        {
+          [Op.or]: [
+            where(fn('LOWER', col('obituaries.name')), { [Op.like]: searchTerm }),
+            where(fn('LOWER', col('obituaries.sirName')), { [Op.like]: searchTerm }),
+          ]
+        }
+      ];
+    }
+
+    const obituaries = await Obituary.findAndCountAll({
+      where: whereClause,
+      order: [["funeralTimestamp", "ASC"]], // Order by time ascending
+      include: [
+        {
+          model: User,
+        },
+      ],
+    });
+    res.status(httpStatus.OK).json({
+      total: obituaries.count,
+      obituaries: obituaries.rows,
+    });
+  },
+
   updateObituary: async (req, res) => {
     const obituaryId = req.params.id;
     const allow = req.query?.allow;
