@@ -41,7 +41,7 @@ const cemetryController = {
 
           if (file) {
             const avifBuffer = await sharp(file.buffer)
-              .resize(195, 267, { fit: "cover" })
+              .resize(440, 320, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
               .toBuffer();
 
@@ -88,7 +88,7 @@ const cemetryController = {
 
         if (file) {
           const avifBuffer = await sharp(file.buffer)
-            .resize(195, 267, { fit: "cover" })
+            .resize(440, 320, { fit: "cover" })
             .toFormat("avif", { quality: 50 })
             .toBuffer();
 

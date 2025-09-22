@@ -6,6 +6,7 @@ const { sharpHelpers } = require("../helpers/sharp");
 const fs = require("fs");
 const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
 const sharp = require("sharp");
+const { User } = require("../models/user.model");
 
 const florsitShopController = {
   addFloristShop: async (req, res) => {
@@ -195,7 +196,8 @@ const florsitShopController = {
         include: [
           {
             model: CompanyPage,
-            attributes: ["id", "name", "type", "userId"],
+            attributes: ["id", "name", "type", "userId", "status"],
+            include:[{model:User, attributes:["slugKey"]}]
           },
         ],
       });

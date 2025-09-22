@@ -22,5 +22,10 @@ router.post(
   [authenticationMiddleware, upload.any()],
   florsitSlideController.addFloristSlide
 );
+router.delete(
+  "/",
+  [authenticationMiddleware],
+  florsitSlideController.deleteFloristSlide
+);
 
 module.exports = router;

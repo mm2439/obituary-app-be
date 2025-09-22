@@ -24,7 +24,7 @@ const florsitSlideController = {
 
           if (file) {
             const avifBuffer = await sharp(file.buffer)
-              .resize(195, 267, { fit: "cover" })
+              .resize(351, 351, { fit: "cover" })
               .toFormat("avif", { quality: 50 })
               .toBuffer();
 
@@ -102,6 +102,30 @@ const florsitSlideController = {
     } catch (error) {
       console.error("Error processing slides:", error);
       return res.status(500).json({ message: "Internal server error." });
+    }
+  },
+  deleteFloristSlide: async (req, res) => {
+    try {
+      const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ success: false, message: "Invalid parameter" });
+      }
+      await FloristSlide.destroy({
+        where: {
+          id,
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Slide deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error in deleting florist slide:", error);
+      return res.status(500).json({
+        message: "Internal server error.",
+        error: error.message,
+      });
     }
   },
 };
