@@ -966,6 +966,7 @@ const companyController = {
             model: CompanyPage,
             include: dynamicInclude,
             where: companyWhereClause,
+            include:[{model:User, attributes:["slugKey"]}]
           },
         ],
       });
