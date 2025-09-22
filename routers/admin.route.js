@@ -658,11 +658,17 @@ router.patch("/approve-request/:id", async (req, res) => {
     const { CompanyPage } = require("../models/company_page.model");
 
     const id = req.params?.id
+    const status = req.body?.status;
 
-    if (!id) {
+    if (!id || !status) {
       return res.status(400).json({ success: false, message: "Missing required parameter" });
     }
-    const payload = { status: "PUBLISHED", approvedTimestamp: Date.now(), isNotified: false };
+    if (status !== "PUBLISHED" && status !== "DRAFT") {
+      return res.status(400).json({ success: false, message: "Invalid parameter" });
+
+    }
+    const timestamp = status === "DRAFT" ? null : Date.now();
+    const payload = { status: status, approvedTimestamp: timestamp, isNotified: false };
     const [updatedRowsCount] = await CompanyPage.update(payload, { where: { id } });
 
     if (updatedRowsCount === 0) {
