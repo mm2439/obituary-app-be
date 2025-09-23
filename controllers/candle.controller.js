@@ -32,7 +32,7 @@ const candleController = {
       if (lastBurned) {
         return res
           .status(409)
-          .json({ message: "You can only burn one candle per 24 hours." });
+          .json({ message: "Prižgeš lahko samo eno svečko vsakih 24 ur" });
       }
 
       const newCandle = await Candle.create({
@@ -48,10 +48,10 @@ const candleController = {
 
       return res
         .status(201)
-        .json({ message: "Candle burned successfully.", candle: newCandle });
+        .json({ message: "Svečka je zagorela", candle: newCandle });
     } catch (error) {
       console.error("Error burning candle:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 };

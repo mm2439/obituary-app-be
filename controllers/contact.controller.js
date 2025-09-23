@@ -15,7 +15,7 @@ const contactsController = {
             return res.status(httpStatus.OK).json({ message: `Contacts fetched Successfully`, data })
         } catch (error) {
             console.error("Error in fetching contacts: ", error);
-            return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+            return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake" });
         }
     },
 

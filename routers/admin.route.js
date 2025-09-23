@@ -88,7 +88,7 @@ router.delete("/users/:id", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Prevent deleting superadmin
@@ -100,7 +100,7 @@ router.delete("/users/:id", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "User deleted successfully"
+      message: "Uporabnik je bil izbrisan"
     });
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -117,7 +117,7 @@ router.patch("/users/:id/role", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Prevent changing superadmin role
@@ -266,7 +266,7 @@ router.patch("/users/:id/permissions", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Prevent modifying superadmin permissions
@@ -353,7 +353,7 @@ router.patch("/users/:id/block", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Prevent blocking superadmin
@@ -385,7 +385,7 @@ router.patch("/users/:id/notes", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Validate notes length
@@ -464,7 +464,7 @@ router.patch("/users/:id/admin-fields", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Validate adminRating length
@@ -498,7 +498,7 @@ router.delete("/users/:id", async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Podatki se je ujemajo" });
     }
 
     // Check if user is a regular user (not a company)
@@ -510,7 +510,7 @@ router.delete("/users/:id", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "User deleted successfully"
+      message: "Uporabnik je bil izbrisan"
     });
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -526,7 +526,7 @@ router.delete("/obituaries/:id", async (req, res) => {
 
     const obituary = await Obituary.findByPk(obituaryId);
     if (!obituary) {
-      return res.status(404).json({ error: "Obituary not found" });
+      return res.status(404).json({ error: "Osmrtnica ne obstaja" });
     }
 
     // Soft delete - mark as deleted but keep for 1 month
@@ -553,7 +553,7 @@ router.patch("/obituaries/:id/visibility", async (req, res) => {
 
     const obituary = await Obituary.findByPk(obituaryId);
     if (!obituary) {
-      return res.status(404).json({ error: "Obituary not found" });
+      return res.status(404).json({ error: "Osmrtnica ne obstaja" });
     }
 
     obituary.isHidden = isHidden;
@@ -579,7 +579,7 @@ router.patch("/obituaries/:id/memory-visibility", async (req, res) => {
 
     const obituary = await Obituary.findByPk(obituaryId);
     if (!obituary) {
-      return res.status(404).json({ error: "Obituary not found" });
+      return res.status(404).json({ error: "Osmrtnica ne obstaja" });
     }
 
     obituary.isMemoryBlocked = isMemoryBlocked;
@@ -605,7 +605,7 @@ router.patch("/obituaries/:id/admin-notes", async (req, res) => {
 
     const obituary = await Obituary.findByPk(obituaryId);
     if (!obituary) {
-      return res.status(404).json({ error: "Obituary not found" });
+      return res.status(404).json({ error: "Osmrtnica ne obstaja" });
     }
 
     obituary.adminNotes = adminNotes;
@@ -638,7 +638,7 @@ router.get("/compines-for-approval", async (req, res) => {
       ],
       include: [{
         model: User,
-        attributes: ["company"]
+        attributes: ["company", "city", "slugKey"]
       }]
     });
 
@@ -684,7 +684,7 @@ router.patch("/approve-request/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching companies:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Prišlo je do napake" });
   }
 });
 
