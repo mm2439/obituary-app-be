@@ -638,7 +638,7 @@ router.get("/compines-for-approval", async (req, res) => {
       ],
       include: [{
         model: User,
-        attributes: ["company"]
+        attributes: ["company", "city", "slugKey"]
       }]
     });
 
