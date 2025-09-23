@@ -101,7 +101,7 @@ const florsitSlideController = {
       });
     } catch (error) {
       console.error("Error processing slides:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
   deleteFloristSlide: async (req, res) => {
@@ -123,7 +123,7 @@ const florsitSlideController = {
     } catch (error) {
       console.error("Error in deleting florist slide:", error);
       return res.status(500).json({
-        message: "Internal server error.",
+        message: "Prišlo je do napake",
         error: error.message,
       });
     }

@@ -25,7 +25,7 @@ const keeperController = {
       if (!user) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ error: "User not found" });
+          .json({ error: "Podatki se je ujemajo" });
       }
       const userId = user.id;
 
@@ -34,7 +34,7 @@ const keeperController = {
       });
       if (existingKeeper) {
         return res.status(httpStatus.CONFLICT).json({
-          error: "User is already assigned as a keeper for this obituary",
+          error: "Uporabnik je že Skrbnik te spominske strani",
         });
       }
 
@@ -101,12 +101,12 @@ const keeperController = {
 
       res
         .status(httpStatus.CREATED)
-        .json({ message: "Keeper assigned successfully", keeper });
+        .json({ message: "Skrbnik je bil dodan", keeper });
     } catch (error) {
       console.error("Error assigning keeper:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

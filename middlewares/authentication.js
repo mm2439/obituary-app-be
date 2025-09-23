@@ -22,7 +22,7 @@ async function verifyUser(id) {
 
     return {
       success: false,
-      error: "Your account has been blocked. Please contact administrator.",
+      error: "Uporabniški račun je bil blokiran. Prosim kontaktiraj administratorja",
     };
   }
 

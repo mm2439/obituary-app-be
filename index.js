@@ -27,7 +27,7 @@ app.use(
 );
 
 app.get("/test", (req, res) => {
-  return res.status(200).json({ message: "Working great" });
+  return res.status(200).json({ message: "Deluje" });
 });
 
 // Load routes and models

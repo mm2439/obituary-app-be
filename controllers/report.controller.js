@@ -22,7 +22,7 @@ const reportController = {
 
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+          .json({ error: `Napačni format: ${error}` });
       }
       const report = await Report.create({
         userId,
@@ -36,7 +36,7 @@ const reportController = {
       console.error("Error adding photo:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

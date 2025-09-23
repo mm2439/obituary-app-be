@@ -148,13 +148,13 @@ const florsitShopController = {
       const allShops = await FloristShop.findAll({ where: { companyId } });
 
       return res.status(201).json({
-        message: "Shops processed successfully.",
+        message: "Uspešno",
         shops: allShops,
       });
     } catch (error) {
       console.error("Error processing shops:", error);
       return res.status(500).json({
-        message: "Internal server error.",
+        message: "Prišlo je do napake",
         error: error.message,
       });
     }
@@ -185,7 +185,7 @@ const florsitShopController = {
           filter.companyId = company.id;
         } else {
           return res.status(200).json({
-            message: "No company found for this user.",
+            message: "Uspešno",
             shops: [],
           });
         }
@@ -209,7 +209,7 @@ const florsitShopController = {
     } catch (error) {
       console.error("Error fetching florist shops:", error);
       return res.status(500).json({
-        message: "Internal server error.",
+        message: "Prišlo je do napake",
         error: error.message,
       });
     }
@@ -226,13 +226,13 @@ const florsitShopController = {
       });
 
       return res.status(200).json({
-        message: "Florist shop deleted successfully.",
+        message: "Izbrisano",
         shops: [],
       });
     } catch (error) {
       console.error("Error fetching florist shops:", error);
       return res.status(500).json({
-        message: "Internal server error.",
+        message: "Prišlo je do napake",
         error: error.message,
       });
     }

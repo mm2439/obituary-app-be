@@ -25,12 +25,12 @@ const faqController = {
       const allFaqs = await FAQ.findAll({ where: { companyId } });
 
       return res.status(201).json({
-        message: "FAQs processed successfully.",
+        message: "Dodano",
         faqs: allFaqs,
       });
     } catch (error) {
       console.error("Error creating/updating FAQs:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
   deleteFaq: async (req, res) => {
@@ -48,19 +48,19 @@ const faqController = {
       const deleted = await FAQ.destroy({ where: { id } });
 
       if (!deleted) {
-        return res.status(404).json({ message: "FAQ not found." });
+        return res.status(404).json({ message: "Ne obstaja" });
       }
 
       // ✅ fetch updated FAQ list for this company
       const updatedFaqs = await FAQ.findAll({ where: { companyId } });
 
       return res.status(200).json({
-        message: "FAQ deleted successfully.",
+        message: "Izbrisano",
         faqs: updatedFaqs,
       });
     } catch (error) {
       console.error("Error deleting FAQ:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 };
