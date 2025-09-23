@@ -142,7 +142,7 @@ const photoController = {
       console.error("Error adding photo:", error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

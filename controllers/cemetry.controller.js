@@ -75,7 +75,7 @@ const cemetryController = {
         if (existing) {
           return res
             .status(409)
-            .json({ message: `Cemetery "${name}" already exists.` });
+            .json({ message: `Pokopališče že obstaja` });
         }
 
         const newCemetry = await Cemetry.create({
@@ -116,12 +116,12 @@ const cemetryController = {
       const allCemeteries = await Cemetry.findAll({ where: { companyId } });
 
       return res.status(201).json({
-        message: "Cemeteries processed successfully.",
+        message: "Uspešno",
         cemeteries: allCemeteries,
       });
     } catch (error) {
       console.error("Error creating/updating cemeteries:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 
@@ -140,10 +140,10 @@ const cemetryController = {
         where: whereClause,
       });
 
-      return res.status(201).json({ message: "Success.", cemetries });
+      return res.status(201).json({ message: "Uspešno", cemetries });
     } catch (error) {
       console.error("Error getting cemetries:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
   deleteCemetry: async (req, res) => {
@@ -154,7 +154,7 @@ const cemetryController = {
       // ✅ Check if cemetery exists
       const cemetry = await Cemetry.findOne({ where: { id, userId } });
       if (!cemetry) {
-        return res.status(404).json({ message: "Cemetery not found." });
+        return res.status(404).json({ message: "Tega pokopališča ni" });
       }
 
       // ✅ Delete from DB
@@ -173,12 +173,12 @@ const cemetryController = {
       });
 
       return res.status(200).json({
-        message: "Cemetery deleted successfully.",
+        message: "Pokopališče je bilo izbrisano",
         cemeteries: updatedCemeteries,
       });
     } catch (error) {
       console.error("Error deleting cemetery:", error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 };

@@ -15,7 +15,7 @@ const cardController = {
       if (!UserExists) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Such User Found" });
+          .json({ message: "Podatki se je ujemajo" });
       }
 
       const cardExists = await Card.findOne({
@@ -25,12 +25,12 @@ const cardController = {
       if (cardExists) {
         return res
           .status(httpStatus.CONFLICT)
-          .json({ message: "User Already has this card" });
+          .json({ message: "Uporabnik že ima to kartico" });
       }
 
       const { cardImages, cardPdfs } = req.files || {};
       if (!cardImages || !cardPdfs) {
-        return res.status(400).json({ message: "Missing required fields." });
+        return res.status(400).json({ message: "Izpolni vsa polja" });
       }
       const timestampName = (originalname) => {
         const now = Date.now();
@@ -92,7 +92,7 @@ const cardController = {
       console.error("Error generating card:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

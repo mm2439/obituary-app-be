@@ -65,7 +65,7 @@ const obituaryController = {
         console.warn(`Invalid data format: ${error}`);
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+          .json({ error: `Napačni format: ${error}` });
       }
       let slugKey = providedSlugKey;
       if (!slugKey) {
@@ -96,7 +96,7 @@ const obituaryController = {
         console.warn("Duplicate obituary detected");
         return res.status(httpStatus.CONFLICT).json({
           error:
-            "An obituary with the same name, and death date already exists for this user.",
+            "Osmrtnica s tem imenom in datumom smrti že obstaja",
         });
       }
       const newObituary = await Obituary.create({
@@ -159,7 +159,7 @@ const obituaryController = {
     } catch (err) {
       console.error("Error in createObituary:", err);
       return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Failed to create obituary. Please try again.",
+        error: "Prišlo je do napake ",
       });
     }
   },
@@ -278,7 +278,7 @@ const obituaryController = {
       });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ message: "Internal Server Error" });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
   getCompanyPageObituary: async (req, res) => {
@@ -352,7 +352,7 @@ const obituaryController = {
       });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ message: "Internal Server Error" });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 
@@ -374,7 +374,7 @@ const obituaryController = {
     if (!baseObituary) {
       return res
         .status(httpStatus.NOT_FOUND)
-        .json({ error: "Memory not found" });
+        .json({ error: "Spominska ne obstaja" });
     }
     const obituary = await Obituary.findOne({
       where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits', 'currentWeekVisits'] },
@@ -482,7 +482,7 @@ const obituaryController = {
     if (!obituary) {
       return res
         .status(httpStatus.NOT_FOUND)
-        .json({ error: "Memory not found" });
+        .json({ error: "Spominska ne obstaja" });
     }
     res.status(httpStatus.OK).json({
       obituary,
@@ -675,7 +675,7 @@ const obituaryController = {
     if (!existingObituary) {
       return res
         .status(httpStatus.NOT_FOUND)
-        .json({ error: "Obituary not found/Only Owner can update" });
+        .json({ error: "Osmrtnica ne obstaja" });
     }
 
     let picturePath = existingObituary.image;
@@ -812,7 +812,7 @@ const obituaryController = {
         console.warn("Obituary not found");
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ error: "Obituary not found" });
+          .json({ error: "Osmrtnica ne obstaja" });
       }
       const totalCandles = await Candle.count({
         where: { obituaryId: obituary.id },
@@ -1241,7 +1241,7 @@ const obituaryController = {
       console.error(error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+        .json({ message: "Prišlo je do napake" });
     }
   },
   getCompanyMonthlyObituaries: async (req, res) => {
@@ -1301,7 +1301,7 @@ const obituaryController = {
     } catch (error) {
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+        .json({ message: "Prišlo je do napake" });
     }
   },
   getCompanyMemoryLogs: async (req, res) => {
@@ -1355,14 +1355,14 @@ const obituaryController = {
       console.error(error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+        .json({ message: "Prišlo je do napake" });
     }
   },
   getMemoryId: async (req, res) => {
     try {
       const { date, city, type } = req.query;
       if (!date || !city || !type) {
-        return res.status(400).json({ message: "Missing required fields." });
+        return res.status(400).json({ message: "Izpolni vsa polja" });
       }
       const whereClause = {
         city,
@@ -1380,14 +1380,14 @@ const obituaryController = {
       });
       if (!obituary) {
         return res.status(404).json({
-          message: `No ${type} obituary found for the specified date and city.`,
+          message: `No ${type} Najdeno`,
         });
       }
       //
       return res.status(200).json(obituary);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ message: "Internal server error." });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
   // uploadTemplateCards: async (req, res) => {
@@ -1422,15 +1422,15 @@ const obituaryController = {
     try {
       const { id } = req.params;
       if (!id) {
-        return res.status(400).json({ message: "Missing obituary id." });
+        return res.status(400).json({ message: "Manjka številka osmrtnice" });
       }
       const obituary = await Obituary.findByPk(id);
       if (!obituary) {
-        return res.status(404).json({ message: "Obituary not found." });
+        return res.status(404).json({ message: "Osmrtnica ne obstaja" });
       }
       const { cardImages = [], cardPdfs = [] } = req.files || {};
       if (!cardImages.length && !cardPdfs.length) {
-        return res.status(400).json({ message: "No files provided." });
+        return res.status(400).json({ message: "Ni datoteke" });
       }
       const timestampName = (originalname) => {
         const now = Date.now();
@@ -1473,13 +1473,13 @@ const obituaryController = {
         cardPdfs: uploadedPdfUrls,
       });
       return res.status(200).json({
-        message: "Template cards uploaded successfully.",
+        message: "Kartice so bile dodane",
         cardImages: uploadedImageUrls,
         cardPdfs: uploadedPdfUrls,
       });
     } catch (error) {
       console.error("uploadTemplateCards error:", error);
-      return res.status(500).json({ message: "Internal Server Error" });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 };
