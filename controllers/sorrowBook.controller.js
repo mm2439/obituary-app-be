@@ -21,7 +21,7 @@ const sorrowBookController = {
         console.warn(`Invalid data format: ${error}`);
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+          .json({ error: `Napačni format: ${error}` });
       }
 
       // Check if user already added a name
@@ -30,7 +30,7 @@ const sorrowBookController = {
       });
       if (existingEntry) {
         return res.status(httpStatus.CONFLICT).json({
-          error: "You have already added a name to this sorrow book.",
+          error: "V to osmrtnico si že dodal svoje ime",
         });
       }
 
@@ -61,7 +61,7 @@ const sorrowBookController = {
       console.error("Error creating sorrow book:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

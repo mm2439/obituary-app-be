@@ -125,12 +125,12 @@ const companyController = {
         await floristCompany.update({ background: picturePath });
       }
 
-      return res.status(httpStatus.OK).json({ message: "Florist Company Created Successfully", company: floristCompany });
+      return res.status(httpStatus.OK).json({ message: "Cvetličarna je bila ustvarjena", company: floristCompany });
 
 
     } catch (error) {
       console.error("Error while creating 'Florist Company' :", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong!" });
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake!" });
     }
   },
   //----------------------------------------------
@@ -197,12 +197,12 @@ const companyController = {
       });
 
       return res.status(httpStatus.OK).json({
-        message: "Funeral Company Created Successfully",
+        message: "Pogrebno podjetje je bilo ustvarjeno",
         company: funeralCompany
       });
     } catch (error) {
       console.error("Error while creating 'Funeral Company' :", error);
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake" });
     }
   },
   //---------------------------------------------
@@ -216,7 +216,7 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ error: "Company not found" });
+          .json({ error: "Podjetje ne obstaja" });
       }
 
       const updateData = { ...req.body };
@@ -277,14 +277,14 @@ const companyController = {
       // }
 
       return res.status(httpStatus.OK).json({
-        message: "Company page updated successfully",
+        message: "Podatki so bili dopolnjeni",
         company: companyData,
       });
     } catch (error) {
       console.error("Error while updating 'Company': ", error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
   //--------------------------------------------
@@ -300,10 +300,10 @@ const companyController = {
         throw new Error(`Invalid table: ${table}`);
       }
       const data = await model.findAll({ where: { companyId } });
-      return res.status(httpStatus.OK).json({ message: `Data fetched Successfully`, data })
+      return res.status(httpStatus.OK).json({ message: `Uspešno`, data })
     } catch (error) {
       console.error("Error in fetching company additional data: ", error);
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Something went wrong" });
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake" });
     }
   },
   //-----------------------------------------------------------
@@ -319,18 +319,18 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Company Found" });
+          .json({ message: "Podjetje ne obstaja" });
       }
 
       return res.status(httpStatus.OK).json({
-        message: "success",
+        message: "Uspešno",
         company,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
   // -------------------------------------
@@ -382,14 +382,14 @@ const companyController = {
       await floristCompany.save();
 
       res.status(httpStatus.OK).json({
-        message: `Florist Company Created Successfully `,
+        message: `Cvetličarna je bila ustvarjena`,
         company: floristCompany,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
   creatFuneral: async (req, res) => {
@@ -493,14 +493,14 @@ const companyController = {
       await funeralCompany.save();
 
       res.status(httpStatus.OK).json({
-        message: `Funeral Company Created Successfully `,
+        message: `Pogrebno podjetje je bilo ustvarjeno`,
         company: funeralCompany,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
   getFuneralCompany: async (req, res) => {
@@ -532,7 +532,7 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Company Found" });
+          .json({ message: "Podjetje ne obstaja" });
       }
 
       const companyId = company.id;
@@ -544,14 +544,14 @@ const companyController = {
       companyData.cemeteries = cemeteries;
 
       res.status(httpStatus.OK).json({
-        message: "success",
+        message: "Uspešno",
         company: companyData,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 
@@ -585,7 +585,7 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Company Found" });
+          .json({ message: "Podjetje ne obstaja" });
       }
 
       const companyId = company.id;
@@ -597,14 +597,14 @@ const companyController = {
       companyData.cemeteries = cemeteries;
 
       res.status(httpStatus.OK).json({
-        message: "success",
+        message: "Uspešno",
         company: companyData,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 
@@ -621,7 +621,7 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Company Found" });
+          .json({ message: "Podjetje ne obstaja" });
       }
 
       const companyId = company.id;
@@ -635,14 +635,14 @@ const companyController = {
       companyData.shops = shops;
 
       res.status(httpStatus.OK).json({
-        message: "success",
+        message: "Uspešno",
         company: companyData,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 
@@ -660,7 +660,7 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Company Found" });
+          .json({ message: "Podjetje ne obstaja" });
       }
 
       const companyId = company.id;
@@ -674,14 +674,14 @@ const companyController = {
       companyData.shops = shops;
 
       res.status(httpStatus.OK).json({
-        message: "success",
+        message: "Uspešno",
         company: companyData,
       });
     } catch (error) {
       console.error("Error :", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 
@@ -693,7 +693,7 @@ const companyController = {
       if (!company) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ error: "Company not found" });
+          .json({ error: "Podjetje ne obstaja" });
       }
 
       const updateData = { ...req.body };
@@ -864,14 +864,14 @@ const companyController = {
       }
 
       res.status(httpStatus.OK).json({
-        message: "Company page updated successfully",
+        message: "Podatki so bili dopolnjeni",
         company: companyData,
       });
     } catch (error) {
       console.error("Update Error:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
   getFullCompanyDetails: async (req, res) => {
@@ -909,16 +909,16 @@ const companyController = {
       });
 
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "Podatki se je ujemajo" });
       }
 
       return res.status(200).json({
-        message: "success",
+        message: "Uspešno",
         user,
       });
     } catch (error) {
       console.error("Error:", error);
-      res.status(500).json({ error: "Something went wrong" });
+      res.status(500).json({ error: "Prišlo je do napake" });
     }
   },
   getCompanies: async (req, res) => {
@@ -1002,18 +1002,18 @@ const companyController = {
 
       if (!users || users.length === 0) {
         return res.status(404).json({
-          message: "No Company Found",
+          message: "Podjetje ne obstaja",
           companies: [],
         });
       }
 
       return res.status(200).json({
-        message: "success",
+        message: "Uspešno",
         companies: users,
       });
     } catch (error) {
       console.error("Error:", error);
-      res.status(500).json({ error: "Something went wrong" });
+      res.status(500).json({ error: "Prišlo je do napake" });
     }
   },
 };

@@ -12,11 +12,11 @@ const authController = {
     const { error } = Auth.validateAuth(req.body);
 
     if (error) {
-      console.warn(`Invalid data format: ${error}`);
+      console.warn(`Napačni format: ${error}`);
 
       return res
         .status(httpStatus.BAD_REQUEST)
-        .json({ error: `Invalid data format: ${error}` });
+        .json({ error: `Napačni format: ${error}` });
     }
 
     const user = await User.findOne({
@@ -30,7 +30,7 @@ const authController = {
 
       return res
         .status(httpStatus.UNAUTHORIZED)
-        .json({ error: "Invalid Email" });
+        .json({ error: "Napačni email" });
     }
 
     // Check if user is blocked
@@ -40,7 +40,7 @@ const authController = {
       return res
         .status(httpStatus.FORBIDDEN)
         .json({
-          error: "Your account has been blocked. Please contact administrator.",
+          error: "Uporabniški račun je bil blokiran. Prosim kontaktiraj administratorja",
         });
     }
 
@@ -51,7 +51,7 @@ const authController = {
 
       return res
         .status(httpStatus.UNAUTHORIZED)
-        .json({ error: "Invalid   password" });
+        .json({ error: "Napačno geslo" });
     }
 
     const isAdmin = user.role === "SUPERADMIN";
@@ -69,7 +69,7 @@ const authController = {
     );
 
     res.status(httpStatus.OK).json({
-      message: "Login Successful!",
+      message: "Prijava je uspela",
       token,
       user: user.toSafeObject(),
     });
@@ -82,11 +82,11 @@ const authController = {
     console.log({ userId, adminId });
 
     if (!userId ) {
-      console.warn(`Invalid data format`);
+      console.warn(`Napačni format`);
 
       return res
         .status(httpStatus.BAD_REQUEST)
-        .json({ error: `Invalid data format` });
+        .json({ error: `Napačni format` });
     }
 
     const user = await User.findOne({
@@ -102,7 +102,7 @@ const authController = {
 
       return res
         .status(httpStatus.NOT_FOUND)
-        .json({ error: "User not found" });
+        .json({ error: "Podatki se je ujemajo" });
     }
 
     const isAdmin = user.role === "SUPERADMIN";
