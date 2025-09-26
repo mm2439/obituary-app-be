@@ -969,6 +969,7 @@ const companyController = {
             include:[{model:User, attributes:["slugKey"]}]
           },
         ],
+        group: ["User.id"],
       });
 
       console.log("Found users count:", users.length);
