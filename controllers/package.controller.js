@@ -119,7 +119,6 @@ const packageController = {
   getPackages: async (req, res) => {
     try {
       const { companyId } = req.query;
-      console.log("hereeeeeeeeee");
       const allPackages = await Package.findAll({
         where: { companyId },
         limit: 3,
