@@ -23,6 +23,7 @@ const visitController = require("./visit.controller");
 const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const { generateQRCode } = require("../utils/generateQRCode.js");
 const timestampName = require("../helpers/sanitize").timestampName;
 const sanitize = require("../helpers/sanitize").sanitize;
 
@@ -154,7 +155,14 @@ const obituaryController = {
       }
       newObituary.image = pictureUrl;
       newObituary.deathReport = deathReportUrl;
+      const url = `${process.env.CORS_ORIGIN}/m/${slugKey}`
+      const qrRes = await generateQRCode(url, obituaryId);
+
+      if (qrRes) {
+        newObituary.qr_code = qrRes
+      }
       await newObituary.save();
+
       return res.status(httpStatus.CREATED).json(newObituary);
     } catch (err) {
       console.error("Error in createObituary:", err);
@@ -438,7 +446,6 @@ const obituaryController = {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const formattedDate = oneWeekAgo.toISOString().split('T')[0];
-    console.log('One week ago (date only):', formattedDate);
     const currentWeekVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
@@ -1482,6 +1489,31 @@ const obituaryController = {
       return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
+
+  generateQr: async (req, res) => {
+    try {
+      const payload = req.body;
+      if (!payload.slugKey || !payload.id) {
+        return res.status(400).json({ message: "Neveljavna vrednost" });
+      }
+      const url = `${process.env.CORS_ORIGIN}/m/${payload.slugKey}`
+
+      const qrRes = await generateQRCode(url, payload.id);
+
+      if (qrRes) {
+        const resp = await Obituary.update({
+          qr_code: qrRes,
+        }, { where: { id: payload.id } });
+
+        return res.status(200).json({ success: true, qr_code: qrRes });
+      }
+
+    } catch (error) {
+      console.error("generateQr error:", error);
+      return res.status(500).json({ message: "Prišlo je do napake" });
+    }
+  }
+
 };
 
 module.exports = obituaryController;
