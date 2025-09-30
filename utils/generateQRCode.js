@@ -3,7 +3,7 @@ import fs from 'fs';
 import { buildRemotePath, publicUrl, uploadBuffer } from '../config/bunny.js';
 
 export async function generateQRCode(data, id) {
-    const url = 'https://api.qrcode-monkey.com//qr/custom';
+    const url = 'https://api.qrcode-monkey.com/qr/custom';
 
     const postData = {
         data: data,
