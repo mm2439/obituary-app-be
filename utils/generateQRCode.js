@@ -1,8 +1,7 @@
-import axios from 'axios';
-import fs from 'fs';
-import { buildRemotePath, publicUrl, uploadBuffer } from '../config/bunny.js';
+const axios = require("axios");
+const { buildRemotePath, publicUrl, uploadBuffer } = require('../config/bunny.js');
 
-export async function generateQRCode(data, id) {
+async function generateQRCode(data, id) {
     const url = 'https://api.qrcode-monkey.com/qr/custom';
 
     const postData = {
@@ -29,7 +28,7 @@ export async function generateQRCode(data, id) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            responseType: 'arraybuffer', 
+            responseType: 'arraybuffer',
         });
         const remotePath = buildRemotePath(
             "qr-code",
@@ -48,3 +47,5 @@ export async function generateQRCode(data, id) {
         console.error('Error generating QR code:', error.response?.data || error.message);
     }
 }
+
+module.exports = { generateQRCode }
