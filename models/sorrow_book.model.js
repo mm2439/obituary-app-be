@@ -65,8 +65,8 @@ SorrowBook.init(
 
 const validateSorrowBook = (sorrowBook) => {
   const sorrowBookSchema = Joi.object({
-    name: Joi.string().min(3).max(100).required(),
-    relation: Joi.string().min(3).max(100).allow(null, "").optional(),
+    name: Joi.string().min(1).max(100).required(),
+    relation: Joi.string().min(1).max(100).allow(null, "").optional(),
   });
 
   return sorrowBookSchema.validate(sorrowBook);

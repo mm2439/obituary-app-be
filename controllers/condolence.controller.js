@@ -23,7 +23,7 @@ const condolenceController = {
 
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+          .json({ error: `Napačni format: ${error}` });
       }
 
       const oneDayAgo = new Date();
@@ -40,7 +40,7 @@ const condolenceController = {
 
       if (recentCondolence) {
         return res.status(httpStatus.CONFLICT).json({
-          error: "You can only add a condolence once every 24 hours.",
+          error: "Prižgeš lahko samo eno svečko vsakih 24 ur",
         });
       }
       const status = isKeeper
@@ -77,7 +77,7 @@ const condolenceController = {
       console.error("Error creating condolence:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

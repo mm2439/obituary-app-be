@@ -12,11 +12,11 @@ const authController = {
     const { error } = Auth.validateAuth(req.body);
 
     if (error) {
-      console.warn(`Invalid data format: ${error}`);
+      console.warn(`Napačni format: ${error}`);
 
       return res
         .status(httpStatus.BAD_REQUEST)
-        .json({ error: `Invalid data format: ${error}` });
+        .json({ error: `Napačni format: ${error}` });
     }
 
     const user = await User.findOne({
@@ -30,7 +30,7 @@ const authController = {
 
       return res
         .status(httpStatus.UNAUTHORIZED)
-        .json({ error: "Invalid Email" });
+        .json({ error: "Napačni email" });
     }
 
     // Check if user is blocked
@@ -40,7 +40,7 @@ const authController = {
       return res
         .status(httpStatus.FORBIDDEN)
         .json({
-          error: "Your account has been blocked. Please contact administrator.",
+          error: "Uporabniški račun je bil blokiran. Prosim kontaktiraj administratorja",
         });
     }
 
@@ -51,7 +51,7 @@ const authController = {
 
       return res
         .status(httpStatus.UNAUTHORIZED)
-        .json({ error: "Invalid   password" });
+        .json({ error: "Napačno geslo" });
     }
 
     const isAdmin = user.role === "SUPERADMIN";
@@ -69,11 +69,66 @@ const authController = {
     );
 
     res.status(httpStatus.OK).json({
-      message: "Login Successful!",
+      message: "Prijava je uspela",
       token,
       user: user.toSafeObject(),
     });
   },
+
+  ghostLogin: async (req, res) => {
+
+    const { userId, adminId } = req.body;
+
+    console.log({ userId, adminId });
+
+    if (!userId ) {
+      console.warn(`Napačni format`);
+
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json({ error: `Napačni format` });
+    }
+
+    const user = await User.findOne({
+      where: {
+        id: userId,
+      },
+    });
+
+    console.log('>>>>> user', user, userId);
+
+    if (!user) {
+      console.warn("User not found");
+
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
+    }
+
+    const isAdmin = user.role === "SUPERADMIN";
+
+    // handle token management
+    const token = TokenManagement.createToken(
+      {
+        sub: user.id.toString(),
+        _id: user.id,
+        email: user.email,
+        isAdmin: isAdmin,
+        role: user.role,
+      },
+      "login"
+    );
+    const userObj = user.toSafeObject();
+    if (adminId) {
+      userObj.adminId = adminId
+    }
+    res.status(httpStatus.OK).json({
+      token,
+      user: { ...userObj, isGhost: isAdmin ? false : true }
+      ,
+    });
+  },
+
 };
 
 module.exports = authController;

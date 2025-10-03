@@ -9,6 +9,6 @@ const upload = multer({
 });
 
 const uploadFields = upload.fields([{ name: "deathReport", maxCount: 1 }]);
-router.post("/", [uploadFields], keeperController.assignKeeper);
+router.post("/", [authenticationMiddleware, uploadFields], keeperController.assignKeeper);
 
 module.exports = router;

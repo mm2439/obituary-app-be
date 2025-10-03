@@ -4,31 +4,24 @@ const authenticationMiddleware = require("../middlewares/authentication");
 const checkPermission = require("../middlewares/checkPermission");
 const router = express.Router();
 const obituaryController = require("../controllers/obituary.controller");
-const { obituaryUploadsFields } = require("../config/upload");
-
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-});
-
-const uploadFields = upload.fields([
-  { name: "picture", maxCount: 1 },
-  { name: "deathReport", maxCount: 1 },
-]);
+const { obituaryUploadsFields, uploadFields } = require("../config/upload");
 
 router.post(
   "/",
   [
     authenticationMiddleware,
-    checkPermission("createObituaryPermission"), // Temporarily commented
+    // checkPermission("createObituaryPermission"),
     uploadFields,
   ],
   obituaryController.createObituary
 );
 
 router.get("/", obituaryController.getObituary);
+router.get("/company-page", obituaryController.getCompanyPageObituary);
 router.get("/funerals", obituaryController.getFunerals);
+router.get("/company-page/funerals", obituaryController.getCompanyPageFunerals);
 router.get("/memory", obituaryController.getMemory);
+router.post("/generate-qr", obituaryController.generateQr);
 router.get(
   "/memories",
   [authenticationMiddleware],
@@ -73,7 +66,7 @@ router.patch(
   [authenticationMiddleware, uploadFields],
   obituaryController.updateObituary
 );
-router.patch("/visits/:id", obituaryController.updateVisitCounts);
+router.patch("/visits/:id", [authenticationMiddleware], obituaryController.updateVisitCounts);
 router.get(
   "/logs/",
   [authenticationMiddleware],

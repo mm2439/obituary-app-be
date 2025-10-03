@@ -6,7 +6,9 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const memoryLogsController = require("./memoryLogs.controller");
+const { KeeperNotification } = require("../models/keeper_notification");
 const KEEPER_DEATH_DOCS = path.join(__dirname, "../keeperDocs");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 
 const keeperController = {
   assignKeeper: async (req, res) => {
@@ -23,7 +25,7 @@ const keeperController = {
       if (!user) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ error: "User not found" });
+          .json({ error: "Podatki se je ujemajo" });
       }
       const userId = user.id;
 
@@ -32,7 +34,7 @@ const keeperController = {
       });
       if (existingKeeper) {
         return res.status(httpStatus.CONFLICT).json({
-          error: "User is already assigned as a keeper for this obituary",
+          error: "Uporabnik je že Skrbnik te spominske strani",
         });
       }
 
@@ -45,7 +47,7 @@ const keeperController = {
         relation,
         name,
         isNotified: false,
-        time
+        time,
       });
 
       const keeperId = keeper.id;
@@ -54,18 +56,35 @@ const keeperController = {
         fs.mkdirSync(keeperFolder, { recursive: true });
       }
 
+      if (keeperId) {
+        await KeeperNotification.create({
+          sender: req.user.id,
+          receiver: userId,
+          obituaryId,
+          isNotified: false,
+          time
+        });
+      }
+
       let deathReport = null;
 
       if (req.files?.deathReport) {
-        const fileName = req.files.deathReport[0].originalname;
-        const localPath = path.join("keeperDocs", String(keeperId), fileName);
+        const file = req.files.deathReport[0];
+        const ext = path.extname(file.originalname) || ".pdf";
+        const base = path.parse(file.originalname).name;
+        const fileName = `${Date.now()}-${base}${ext}`;
 
-        fs.writeFileSync(
-          path.join(__dirname, "../", localPath),
-          req.files.deathReport[0].buffer
+        const remotePath = buildRemotePath(
+          "keeperDocs",
+          String(keeper.id),
+          fileName
         );
-
-        deathReport = `${localPath.replace(/\\/g, "/")}`;
+        await uploadBuffer(
+          file.buffer,
+          remotePath,
+          file.mimetype || "application/pdf"
+        );
+        deathReport = encodeURI(publicUrl(remotePath));
       }
       keeper.deathReport = deathReport;
       await keeper.save();
@@ -82,12 +101,12 @@ const keeperController = {
 
       res
         .status(httpStatus.CREATED)
-        .json({ message: "Keeper assigned successfully", keeper });
+        .json({ message: "Skrbnik je bil dodan", keeper });
     } catch (error) {
       console.error("Error assigning keeper:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

@@ -2,6 +2,7 @@ const { Card } = require("../models/card.model");
 const { User } = require("../models/user.model");
 const memoryLogsController = require("./memoryLogs.controller");
 const { dbUploadObituaryUserCardsPath } = require("../config/upload");
+const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
 
 const httpStatus = require("http-status-codes").StatusCodes;
 
@@ -14,29 +15,54 @@ const cardController = {
       if (!UserExists) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ message: "No Such User Found" });
+          .json({ message: "Podatki se je ujemajo" });
       }
 
       const cardExists = await Card.findOne({
         where: { email, obituaryId, cardId },
       });
 
-      // if (cardExists) {
-      //   return res
-      //     .status(httpStatus.CONFLICT)
-      //     .json({ message: "User Already has this card" });
-      // }
+      if (cardExists) {
+        return res
+          .status(httpStatus.CONFLICT)
+          .json({ message: "Uporabnik že ima to kartico" });
+      }
 
       const { cardImages, cardPdfs } = req.files || {};
       if (!cardImages || !cardPdfs) {
-        return res.status(400).json({ message: "Missing required fields." });
+        return res.status(400).json({ message: "Izpolni vsa polja" });
       }
-
-      const newCardImages = cardImages.map((image) =>
-        dbUploadObituaryUserCardsPath(image?.filename)
+      const timestampName = (originalname) => {
+        const now = Date.now();
+        return `${now}-${originalname}`;
+      };
+      const uploadedImageUrls = await Promise.all(
+        cardImages.map(async (image) => {
+          const fileName = timestampName(image.originalname);
+          const remotePath = buildRemotePath(
+            "template-cards",
+            String(obituaryId),
+            fileName
+          );
+          await uploadBuffer(
+            image.buffer,
+            remotePath,
+            image.mimetype || "image/*"
+          );
+          return publicUrl(remotePath);
+        })
       );
-      const newCardPdfs = cardPdfs.map((pdf) =>
-        dbUploadObituaryUserCardsPath(pdf?.filename)
+      const pdfUrls = await Promise.all(
+        cardPdfs.map(async (file) => {
+          const filename = timestampName(file.originalname || "card.pdf");
+          const remotePath = buildRemotePath("template-cards", filename);
+          await uploadBuffer(
+            file.buffer,
+            remotePath,
+            file.mimetype || "application/pdf"
+          );
+          return publicUrl(remotePath);
+        })
       );
 
       const card = await Card.create({
@@ -44,9 +70,11 @@ const cardController = {
         userId: UserExists.id,
         obituaryId,
         cardId,
-        cardImage: newCardImages[0],
-        cardPdf: newCardPdfs[0],
-        isDownloaded: false
+        cardImage: uploadedImageUrls[0],
+        cardPdf: pdfUrls[0],
+        isDownloaded: false,
+        isNotified: false,
+        sender: req.user.id
       });
 
       await memoryLogsController.createLog(
@@ -64,7 +92,7 @@ const cardController = {
       console.error("Error generating card:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

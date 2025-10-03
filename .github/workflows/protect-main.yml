@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Check if push is from an allowed user
         env:
-          ALLOWED_USERS: "mm2439,mohid-faizi,curioussensie"
+          ALLOWED_USERS: "mm2439,curioussensie"
         run: |
           USERNAME="${{ github.actor }}"
           if [[ ",${ALLOWED_USERS// /}," == *",${USERNAME},"* ]]; then

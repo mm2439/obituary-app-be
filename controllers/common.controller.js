@@ -15,6 +15,7 @@ const { Obituary } = require("../models/obituary.model");
 const { Photo } = require("../models/photo.model");
 const { MemoryLog } = require("../models/memory_logs.model");
 const { Contact } = require("../models/contact.model");
+const { ObitNotification } = require("../models/obit_notification");
 
 // Define a mapping for dynamic model selection
 const models = { condolence: Condolence, dedication: Dedication, photo: Photo };
@@ -27,7 +28,7 @@ const commonController = {
       if (!interactionId || !type || !models[type]) {
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: "Invalid type or interactionId" });
+          .json({ error: "Prišlo je do napake" });
       }
 
       const post = await models[type].findByPk(interactionId);
@@ -35,7 +36,7 @@ const commonController = {
       if (!post) {
         return res
           .status(httpStatus.NOT_FOUND)
-          .json({ error: "Post not found" });
+          .json({ error: "Vnos ne obstaja" });
       }
 
       await post.update({ status: action });
@@ -48,14 +49,14 @@ const commonController = {
       console.log(`Post ${interactionId} (${type}) has been ${action}`);
 
       res.status(httpStatus.OK).json({
-        message: `Post successfully ${action}`,
+        message: `Uspešno vnešeno ${action}`,
         post,
       });
     } catch (error) {
       console.error("Error approving/denying post:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
     }
   },
   getApprovedPosts: async (req, res) => {
@@ -164,7 +165,7 @@ const commonController = {
       console.log(error);
       return res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ message: "Internal Server Error" });
+        .json({ message: "Prišlo je do napake" });
     }
   },
 
@@ -198,13 +199,31 @@ const commonController = {
       // });
 
       res.status(httpStatus.OK).json({
-        message: `Contact submitted successfully`
+        message: `Poslano`
       });
     } catch (error) {
       console.error("Error:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Something went wrong" });
+        .json({ error: "Prišlo je do napake" });
+    }
+  },
+
+  saveObitNotification: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { emails, obituaryId, message } = req.body;
+      console.log('>>>>>> userId', userId);
+      await ObitNotification.create({ obituaryId, message, emails: JSON.stringify(emails), userId: userId });
+
+      res.status(httpStatus.OK).json({
+        message: `Poslano`
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Prišlo je do napake" });
     }
   },
 };

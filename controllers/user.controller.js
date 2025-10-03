@@ -9,6 +9,8 @@ const COMPANY_FOLDER_UPLOAD = path.join(__dirname, "../companyUploads");
 const { Card } = require("../models/card.model");
 const { Keeper } = require("../models/keeper.model");
 const { Obituary } = require("../models/obituary.model");
+const { KeeperNotification } = require("../models/keeper_notification");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 
 const userController = {
   register: async (req, res) => {
@@ -22,7 +24,7 @@ const userController = {
 
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Invalid data format: ${error}` });
+          .json({ error: `Napačni format: ${error}` });
       }
 
       const existingUser = await User.findOne({ where: { email } });
@@ -32,7 +34,7 @@ const userController = {
 
         return res
           .status(httpStatus.CONFLICT)
-          .json({ error: "User already registered" });
+          .json({ error: "Uporabnik že obstaja" });
       }
 
       const newUser = await User.create({
@@ -46,13 +48,13 @@ const userController = {
       });
 
       res.status(httpStatus.CREATED).json({
-        message: "User registered successfully!",
+        message: "Registracija je uspela",
         user: newUser.toSafeObject(),
       });
     } catch (error) {
       console.error("Error in user registration:", error);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        error: "Something went wrong. Please try again!",
+        error: "Prišlo je do napake. Please try again!",
         details: error.message,
       });
     }
@@ -64,13 +66,14 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
     }
 
     res.status(httpStatus.OK).json(user.toSafeObject());
   },
 
   updateMyUser: async (req, res) => {
+
     const {
       email,
       company,
@@ -89,7 +92,7 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
     }
 
     if (email && email !== user.email) {
@@ -99,7 +102,7 @@ const userController = {
         console.warn("Email is already in use");
         return res
           .status(httpStatus.CONFLICT)
-          .json({ error: "Email is already in use" });
+          .json({ error: "Ta email je že v uporabi" });
       }
     }
 
@@ -123,18 +126,19 @@ const userController = {
     await user.save();
 
     res.status(httpStatus.OK).json({
-      message: "User updated successfully",
+      message: "Uspešno",
       updatedUser: user.toSafeObject(),
     });
   },
   updateMyUser: async (req, res) => {
+    
     const {
       email,
       company,
       region,
       city,
       secondaryCity,
-      thirdCity,
+      thirdCity,fourthCity,fifthCity,sixthCity,seventhCity,eightCity,
       sendGiftsPermission,
       sendMobilePermission,
       createObitaryPermission,
@@ -146,7 +150,7 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
     }
 
     if (email && email !== user.email) {
@@ -156,7 +160,7 @@ const userController = {
         console.warn("Email is already in use");
         return res
           .status(httpStatus.CONFLICT)
-          .json({ error: "Email is already in use" });
+          .json({ error: "Ta email je že v uporabi" });
       }
     }
 
@@ -176,11 +180,26 @@ const userController = {
     if (req.body.hasOwnProperty("thirdCity")) {
       user.thirdCity = thirdCity;
     }
+    if (req.body.hasOwnProperty("fourthCity")) {
+      user.fourthCity = fourthCity;
+    }
+    if (req.body.hasOwnProperty("fifthCity")) {
+      user.fifthCity = fifthCity;
+    }
+    if (req.body.hasOwnProperty("sixthCity")) {
+      user.sixthCity = sixthCity;
+    }
+    if (req.body.hasOwnProperty("seventhCity")) {
+      user.seventhCity = seventhCity;
+    }
+    if (req.body.hasOwnProperty("eightCity")) {
+      user.eightCity = eightCity;
+    }
 
     await user.save();
 
     res.status(httpStatus.OK).json({
-      message: "User updated successfully",
+      message: "Uspešno",
       updatedUser: user.toSafeObject(),
     });
   },
@@ -189,12 +208,12 @@ const userController = {
       const { id, userData } = req.body;
 
       if (!id || !userData) {
-        return res.status(400).json({ message: "Invalid Data" });
+        return res.status(400).json({ message: "Napačni podatki" });
       }
 
       const user = await User.findByPk(id);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: "Podatki se je ujemajo" });
       }
 
       if (userData.email && userData.email !== user.email) {
@@ -202,7 +221,7 @@ const userController = {
           where: { email: userData.email },
         });
         if (existingUser) {
-          return res.status(409).json({ error: "Email is already in use" });
+          return res.status(409).json({ error: "Ta email je že v uporabi" });
         }
       }
 
@@ -228,14 +247,14 @@ const userController = {
       await user.save();
 
       return res.status(200).json({
-        message: "User updated successfully",
+        message: "Uspešno",
         updatedUser: user.toSafeObject(),
       });
     } catch (error) {
       console.error("Update error:", error);
       return res
         .status(500)
-        .json({ message: "Server error", error: error.message });
+        .json({ message: "Prišlo je do napake", error: error.message });
     }
   },
   deleteMyUser: async (req, res) => {
@@ -244,13 +263,13 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
     }
 
     await user.destroy();
 
     res.status(httpStatus.OK).json({
-      message: "User deleted successfully",
+      message: "Uporabnik je bil izbrisan",
     });
   },
 
@@ -259,7 +278,7 @@ const userController = {
 
     if (!user) {
       console.warn("User not found");
-      return res.status(httpStatus.NOT_FOUND).json({ error: "User not found" });
+      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
     }
 
     const { slugKey } = req.body;
@@ -296,7 +315,7 @@ const userController = {
     await user.save();
 
     res.status(httpStatus.OK).json({
-      message: "SlugKey updated successfully",
+      message: "SlugKey Posodobljeno",
       updatedUser: user.toSafeObject(),
     });
   },
@@ -314,7 +333,7 @@ const userController = {
 
       const userExists = await User.findByPk(userId);
       if (!userExists) {
-        return res.status(404).json({ message: "No Such User Found" });
+        return res.status(404).json({ message: "Podatki se je ujemajo" });
       }
       if (email) userExists.email = email;
       if (name) userExists.name = name;
@@ -327,33 +346,25 @@ const userController = {
       if (!companyPage) {
         return res
           .status(200)
-          .json({ message: "Could not update company related data" });
-      }
-
-      const companyFolder = path.join(
-        COMPANY_FOLDER_UPLOAD,
-        String(companyPage.id)
-      );
-      if (!fs.existsSync(companyFolder)) {
-        fs.mkdirSync(companyFolder, { recursive: true });
+          .json({ message: "Podatki niso bili posodobljeni" });
       }
 
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
-        const fileName = `${path.parse(pictureFile.originalname).name}.avif`;
+        const avifBuffer = await sharp(pictureFile.buffer)
+          .resize(195, 267, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toBuffer();
 
-        const localPath = path.join(
+        const base = path.parse(pictureFile.originalname).name;
+        const fileName = `${Date.now()}-${base}.avif`;
+        const remotePath = buildRemotePath(
           "companyUploads",
           String(companyPage.id),
           fileName
         );
-
-        await sharp(pictureFile.buffer)
-          .resize(195, 267, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toFile(path.join(__dirname, "../", localPath));
-
-        logoPath = `${localPath.replace(/\\/g, "/")}`;
+        await uploadBuffer(avifBuffer, remotePath, "image/avif");
+        logoPath = encodeURI(publicUrl(remotePath));
       }
 
       if (website) companyPage.website = website;
@@ -363,13 +374,13 @@ const userController = {
       await companyPage.save();
 
       return res.status(200).json({
-        message: "Updated Successfully",
+        message: "Posodobljeno",
         user: userExists,
         company: companyPage,
       });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ message: "Internal Server Error" });
+      return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
 
@@ -392,12 +403,12 @@ const userController = {
 
       res.status(201).json({
         message: "Superadmin account created successfully",
-        user: superadmin.toSafeObject()
+        user: superadmin.toSafeObject(),
       });
     } catch (error) {
       console.error("Error creating superadmin:", error);
       res.status(500).json({
-        error: "Failed to create superadmin account"
+        error: "Failed to create superadmin account",
       });
     }
   },
@@ -409,7 +420,7 @@ const userController = {
     };
     const userCards = await Card.findAll({
       where: whereClause,
-      raw: true
+      raw: true,
     });
 
     let allCards = [];
@@ -419,18 +430,22 @@ const userController = {
           attributes: ["userId", "name", "sirName"],
           raw: true
         });
+        const sender = await User.findByPk(item.sender, { raw: true });
         if (obit) {
           const user = await User.findByPk(obit.userId, { raw: true });
           allCards.push({
             ...item,
             obit,
-            user
+            user,
+            senderUser: sender
           })
         }
       }));
     }
 
-    res.status(httpStatus.OK).json({ message: "Success.", userCards: allCards });
+    res
+      .status(httpStatus.OK)
+      .json({ message: "Uspešno", userCards: allCards });
   },
 
   downloadCard: async (req, res) => {
@@ -441,64 +456,93 @@ const userController = {
       await userCard.save();
     }
 
-    const fileName = path.basename(userCard.cardPdf);
-    const filePath = path.resolve(__dirname, '..', userCard.cardPdf);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: "File not found." });
+    if (!userCard.cardPdf) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ message: "No PDF URL on this card." });
     }
 
-    return res.download(filePath, fileName, (err) => {
-      if (err) {
-        console.error("Download error:", err);
-        if (!res.headersSent) {
-          return res.status(500).json({ message: "File download failed." });
-        }
-      }
-    });
+    return res.redirect(302, userCard.cardPdf);
   },
 
   getMyKeeperStatus: async (req, res) => {
     const userId = req.user.id;
     const whereClause = {
       userId: userId,
-      isNotified: false
+      isNotified: false,
     };
     let user = await Keeper.findOne({
       where: whereClause,
-      raw: true
+      raw: true,
     });
 
     if (user) {
       const obit = await Obituary.findByPk(user.obituaryId, {
         attributes: ["userId", "name", "sirName"],
-        raw: true
+        raw: true,
       });
       if (obit) {
         const userData = await User.findByPk(obit.userId, { raw: true });
         user = {
           ...user,
-          userData
-        }
+          userData,
+        };
       }
       user = {
         ...user,
-        obit
-      }
+        obit,
+      };
     }
 
-    res.status(httpStatus.OK).json({ message: "Success.", user });
+    res.status(httpStatus.OK).json({ message: "Uspešno", user });
   },
 
   updateNotified: async (req, res) => {
     const keeperId = req.params.keeperId;
-    const keeperRow = await Keeper.findByPk(keeperId);
+    const keeperRow = await KeeperNotification.findByPk(keeperId);
     if (keeperRow) {
       keeperRow.isNotified = true;
       await keeperRow.save();
     }
 
-    res.status(httpStatus.OK).json({ message: "Success." });
+    res.status(httpStatus.OK).json({ message: "Uspešno" });
+  },
+
+  getMyKeeperGifts: async (req, res) => {
+    const userId = req.user.id;
+    let notifications = await KeeperNotification.findAll({
+      where: {
+        receiver: userId
+      },
+      include: [
+        {
+          model: User,
+          as: "Sender"
+        },
+        {
+          model: User,
+          as: "Receiver"
+        },
+        {
+          model: Obituary,
+          as: "Obituary",
+          attributes: ["userId", "name", "sirName"],
+        },
+      ]
+    });
+
+    res.status(httpStatus.OK).json({ message: "Uspešno", notifications });
+  },
+
+  notifyCard: async (req, res) => {
+    const cardId = req.params.cardId;
+    const userCard = await Card.findByPk(cardId);
+    if (userCard) {
+      userCard.isNotified = true;
+      await userCard.save();
+    }
+
+    res.status(httpStatus.OK).json({ message: "Uspešno" });
   },
 };
 

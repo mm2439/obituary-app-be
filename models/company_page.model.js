@@ -3,7 +3,7 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
-class CompanyPage extends Model {}
+class CompanyPage extends Model { }
 
 CompanyPage.init(
   {
@@ -195,6 +195,24 @@ CompanyPage.init(
     box_two_text: {
       type: DataTypes.STRING(100),
       allowNull: true,
+    },
+
+    approvedTimestamp: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+
+    sentTimestamp: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+
+    isNotified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
 
     createdTimestamp: {
