@@ -10,7 +10,7 @@ router.post(
   "/",
   [
     authenticationMiddleware,
-    checkPermission("createObituaryPermission"),
+    // checkPermission("createObituaryPermission"),
     uploadFields,
   ],
   obituaryController.createObituary
@@ -21,6 +21,7 @@ router.get("/company-page", obituaryController.getCompanyPageObituary);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/company-page/funerals", obituaryController.getCompanyPageFunerals);
 router.get("/memory", obituaryController.getMemory);
+router.post("/generate-qr", obituaryController.generateQr);
 router.get(
   "/memories",
   [authenticationMiddleware],

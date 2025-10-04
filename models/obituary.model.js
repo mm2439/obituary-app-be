@@ -3,7 +3,7 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
-class Obituary extends Model {}
+class Obituary extends Model { }
 
 Obituary.init(
   {
@@ -143,6 +143,10 @@ Obituary.init(
       allowNull: true,
       defaultValue: [],
     },
+    qr_code: {
+      type: DataTypes.TEXT,
+      defaultValue: null
+    }
   },
   {
     sequelize,
