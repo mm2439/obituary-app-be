@@ -102,7 +102,7 @@ const obituaryController = {
       }
 
       
-      const birthDateToSave = birthDate != 'null' ? birthDate : new Date("1025-01-01");
+      const birthDateToSave = birthDate != 'null' && birthDate != '' ? birthDate : new Date("1025-01-01");
 
       const newObituary = await Obituary.create({
         name,
