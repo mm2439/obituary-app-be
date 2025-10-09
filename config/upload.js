@@ -30,10 +30,15 @@ const dbUploadObituaryUserCardsPath = (filename) => {
   return `obituaryUploads/user-cards/${filename}`;
 };
 
+const sponsorFields = upload.fields([
+  { name: "logo", maxCount: 1 }
+]);
+
 module.exports = {
   cardUploadsFields,
   uploadFields,
   obituaryUploadsFields,
   dbUploadObituaryTemplateCardsPath,
   dbUploadObituaryUserCardsPath,
+  sponsorFields
 };
