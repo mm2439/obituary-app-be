@@ -164,7 +164,7 @@ const validateObituary = (obituary) => {
     region: Joi.string().max(100).required(),
     city: Joi.string().max(100).required(),
     gender: Joi.string().valid("Male", "Female").default("Male").required(),
-    birthDate: Joi.date().required(),
+    birthDate: Joi.string().optional().allow(null, ''),
     deathDate: Joi.date().required(),
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),

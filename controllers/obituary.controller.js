@@ -100,6 +100,10 @@ const obituaryController = {
             "Osmrtnica s tem imenom in datumom smrti že obstaja",
         });
       }
+
+      
+      const birthDateToSave = birthDate != 'null' && birthDate != '' ? birthDate : new Date("1025-01-01");
+
       const newObituary = await Obituary.create({
         name,
         sirName,
@@ -107,7 +111,7 @@ const obituaryController = {
         region,
         city,
         gender,
-        birthDate,
+        birthDate: birthDateToSave,
         deathDate,
         funeralLocation,
         funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
