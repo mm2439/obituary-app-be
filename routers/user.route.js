@@ -44,5 +44,6 @@ router.patch(
 );
 
 router.get("/me/keeper-gifts", authenticationMiddleware, userController.getMyKeeperGifts);
+router.get("/me/sponsors", userController.fetchSponsors);
 
 module.exports = router;

@@ -3,6 +3,8 @@ const authenticationMiddleware = require("../middlewares/authentication");
 const adminAuth = require("../middlewares/adminAuth");
 const router = express.Router();
 const contactController = require("../controllers/contact.controller");
+const sponsorsController = require("../controllers/sponsor.controller");
+const { sponsorFields } = require("../config/upload");
 // Admin routes - all protected with authentication and admin role
 router.use(authenticationMiddleware);
 router.use(adminAuth);
@@ -689,5 +691,11 @@ router.patch("/approve-request/:id", async (req, res) => {
 });
 
 router.get("/contact-list", contactController.fetchContacts)
+
+
+router.get("/sponsor-list", sponsorsController.fetchSponsors);
+router.post("/create-sponsor", [sponsorFields], sponsorsController.createSponsor);
+router.post("/edit-sponsor/:id", [sponsorFields], sponsorsController.editSponsor);
+router.delete("/delete-sponsor/:id", sponsorsController.deleteSponsor);
 
 module.exports = router; 
