@@ -105,8 +105,9 @@ const sponsorsController = {
             await Sponsors.destroy({
                 where: { id }
             });
-            return res.status(httpStatus.OK).json({ message: `Sponsors created Successfully`, data })
+            return res.status(httpStatus.OK).json({ message: `Sponsors created Successfully` })
         } catch (error) {
+            console.log('>>>>>> error', error);
             return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake" });
         }
     },
