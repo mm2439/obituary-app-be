@@ -20,7 +20,7 @@ class Token {
   constructor() {}
 
   createToken(payload, tokenType = "login", rememberMe) {
-    const expiresIn = "24h";
+    const expiresIn = "90d";
     return jwt.sign({ ...payload, tokenType }, secret, { expiresIn });
   }
 

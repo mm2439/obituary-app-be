@@ -11,6 +11,7 @@ const { Keeper } = require("../models/keeper.model");
 const { Obituary } = require("../models/obituary.model");
 const { KeeperNotification } = require("../models/keeper_notification");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const { Sponsors } = require("../models/sponsor.model");
 
 const userController = {
   register: async (req, res) => {
@@ -131,14 +132,14 @@ const userController = {
     });
   },
   updateMyUser: async (req, res) => {
-    
+
     const {
       email,
       company,
       region,
       city,
       secondaryCity,
-      thirdCity,fourthCity,fifthCity,sixthCity,seventhCity,eightCity,
+      thirdCity, fourthCity, fifthCity, sixthCity, seventhCity, eightCity,
       sendGiftsPermission,
       sendMobilePermission,
       createObitaryPermission,
@@ -543,6 +544,40 @@ const userController = {
     }
 
     res.status(httpStatus.OK).json({ message: "Uspešno" });
+  },
+
+  fetchSponsors: async (req, res) => {
+    const region = req?.query?.region || null;
+    const city = req?.query?.city || null;
+    const page = req?.query?.page || null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let whereClause = {};
+
+    if (region && city == 'null') {
+      whereClause.regions = {
+        [Op.like]: `%${region}%`
+      };
+    }
+
+    if (city != 'null') {
+      whereClause.cities = {
+        [Op.like]: `%${city}%`
+      };
+    }
+
+    whereClause.startDate = { [Op.lte]: today };
+    whereClause.endDate = { [Op.gte]: today };
+
+    whereClause.page = page;
+
+    let data = await Sponsors.findAll({
+      where: whereClause
+    });
+
+    res.status(httpStatus.OK).json({ message: "Uspešno", data });
   },
 };
 
