@@ -173,20 +173,20 @@ const memoryLogsController = {
           .json({ error: "Image file is required" });
       }
 
-      const fileName = `${file.originalname}-preview.avif`;
-      // 📁 Build remote storage path
-      const remotePath = buildRemotePath("memory", fileName);
+      const pngName = timestampName(
+        `${path.parse(file.originalname).name}.png`
+      );
+      const pngPath = buildRemotePath("memory", pngName);
 
-      // 🪄 Optimize image for Facebook preview
-      const optimizedBuffer = await sharp(file.buffer)
-        .toFormat("avif", { quality: 80 })
+      // If you want, you can still optimize with sharp
+      const pngBuffer = await sharp(file.buffer)
+        .png({ compressionLevel: 9, adaptiveFiltering: true })
         .toBuffer();
 
-      // ☁️ Upload to your storage (S3 / local / CDN)
-      await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
+      await uploadBuffer(pngBuffer, pngPath, "image/png");
 
       // 🌍 Get public URL
-      const imageUrl = publicUrl(remotePath);
+      const imageUrl = publicUrl(pngPath);
       await Obituary.update({ fbImage: imageUrl }, { where: { slugKey } });
       return res.status(httpStatus.OK).json({
         success: true,
