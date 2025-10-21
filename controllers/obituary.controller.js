@@ -861,7 +861,7 @@ const obituaryController = {
       }
       // One single DB update call here
       await obituary.update(updates);
-      await visitController.visitMemory(req.user.id, ipAddress, obituaryId);
+      await visitController.visitMemory(req?.user?.id ?? null, ipAddress, obituaryId);
       // 1. Get the city and user
       const city = obituary.city;
       const user = obituary.User;

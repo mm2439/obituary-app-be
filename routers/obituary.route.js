@@ -66,7 +66,7 @@ router.patch(
   [authenticationMiddleware, uploadFields],
   obituaryController.updateObituary
 );
-router.patch("/visits/:id", [authenticationMiddleware], obituaryController.updateVisitCounts);
+router.patch("/visits/:id", obituaryController.updateVisitCounts);
 router.get(
   "/logs/",
   [authenticationMiddleware],
