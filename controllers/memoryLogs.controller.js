@@ -9,6 +9,10 @@ const { Condolence } = require("../models/condolence.model");
 const { Dedication } = require("../models/dedication.model");
 const { Photo } = require("../models/photo.model");
 const { Obituary } = require("../models/obituary.model");
+const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const timestampName = require("../helpers/sanitize").timestampName;
+const sharp = require("sharp");
+const path = require("path");
 
 const models = { condolence: Condolence, dedication: Dedication, photo: Photo };
 const memoryLogsController = {
@@ -20,7 +24,7 @@ const memoryLogsController = {
     status,
     name,
     typeInSl,
-    time = ''
+    time = ""
   ) => {
     try {
       if (!type || !obituaryId || !userId || !status) {
@@ -36,7 +40,7 @@ const memoryLogsController = {
         interactionId: interactionId || null,
         userName: name || null,
         typeInSL: typeInSl,
-        time
+        time,
       });
 
       return log;
@@ -114,7 +118,7 @@ const memoryLogsController = {
   getUserCardAndKeeperLogs: async (req, res) => {
     try {
       const userId = req.user.id;
-      console.log('>>>>>> userId', userId);
+      console.log(">>>>>> userId", userId);
 
       const userObituaries = await Obituary.findAll({
         where: { userId },
@@ -141,11 +145,11 @@ const memoryLogsController = {
         ],
         order: [["createdTimestamp", "DESC"]],
       });
-      
+
       const formattedLogs = logs.map((log) => ({
         city: log.Obituary.city,
-        name: log.Obituary.name, 
-        slugKey: log.Obituary.slugKey, 
+        name: log.Obituary.name,
+        slugKey: log.Obituary.slugKey,
         sirName: log.Obituary.sirName,
         giftedTo: log.userName,
         createdAt: log.createdTimestamp,
@@ -157,6 +161,42 @@ const memoryLogsController = {
     } catch (error) {
       console.error("Error fetching logs:", error);
       res.status(500).json({ message: "Failed to fetch logs" });
+    }
+  },
+  uploadMemoryImage: async (req, res) => {
+    try {
+      const file = req.files?.memory?.[0];
+      const slugKey = req.body?.slugKey;
+      if (!file) {
+        return res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ error: "Image file is required" });
+      }
+
+      const pngName = timestampName(
+        `${path.parse(file.originalname).name}.png`
+      );
+      const pngPath = buildRemotePath("memory", pngName);
+
+      // If you want, you can still optimize with sharp
+      const pngBuffer = await sharp(file.buffer)
+        .png({ compressionLevel: 9, adaptiveFiltering: true })
+        .toBuffer();
+
+      await uploadBuffer(pngBuffer, pngPath, "image/png");
+
+      // 🌍 Get public URL
+      const imageUrl = publicUrl(pngPath);
+      await Obituary.update({ fbImage: imageUrl }, { where: { slugKey } });
+      return res.status(httpStatus.OK).json({
+        success: true,
+        url: imageUrl,
+      });
+    } catch (err) {
+      console.error("Error uploading memory image:", err);
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Error uploading image" });
     }
   },
 };
