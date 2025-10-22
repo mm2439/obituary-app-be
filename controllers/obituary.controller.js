@@ -101,7 +101,7 @@ const obituaryController = {
         });
       }
 
-      
+
       const birthDateToSave = birthDate != 'null' && birthDate != '' ? birthDate : new Date("1025-01-01");
 
       const newObituary = await Obituary.create({
@@ -861,7 +861,7 @@ const obituaryController = {
       }
       // One single DB update call here
       await obituary.update(updates);
-      await visitController.visitMemory(req.user.id, ipAddress, obituaryId);
+      await visitController.visitMemory(req?.user?.id ?? null, ipAddress, obituaryId);
       // 1. Get the city and user
       const city = obituary.city;
       const user = obituary.User;
@@ -1018,8 +1018,26 @@ const obituaryController = {
           },
         ],
       });
+
+      let obits = [];
+      console.log('>>>>>>>>> obituaries', obituaries);
+      if (obituaries && obituaries?.length) {
+        obits = await Promise.all(obituaries.map(async (obituary) => {
+          const totalVisits = await Visit.count({
+            where: { obituaryId: obituary.id },
+          });
+
+          const plainObituary = obituary.toJSON();
+
+          return {
+            ...plainObituary,
+            totalVisits,
+          };
+        }));
+      }
+
       res.status(httpStatus.OK).json({
-        obituaries,
+        obituaries: obits,
         keeperObituaries,
       });
     } catch (error) {

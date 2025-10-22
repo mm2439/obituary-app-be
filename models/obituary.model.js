@@ -45,7 +45,7 @@ Obituary.init(
     },
     birthDate: {
       type: DataTypes.DATEONLY,
-      allowNull: false,
+      allowNull: true,
     },
     deathDate: {
       type: DataTypes.DATEONLY,
