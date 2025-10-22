@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const { Op } = require("sequelize");
+const { Keeper } = require("../models/keeper.model");
 
 const { User } = require("../models/user.model");
 const memoryLogsController = require("./memoryLogs.controller");
@@ -108,12 +109,21 @@ const photoController = {
         console.log("Photo uploaded to Bunny:", publicFileUrl);
       }
 
+      let photoStatus = 'pending';
+      const existingKeeper = await Keeper.findOne({
+        where: { userId, obituaryId },
+      });
+
+      if (existingKeeper) {
+        photoStatus = 'approved';
+      }
+
       const photo = await Photo.create({
         userId,
         obituaryId,
         // Store PUBLIC, directly usable URL in DB:
         fileUrl: publicFileUrl, // ⬅️ public URL saved
-        status: "pending",
+        status: photoStatus,
         // status: isKeeper ? "approved" : "pending", // Old logic
       });
 
