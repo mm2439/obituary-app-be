@@ -3,7 +3,7 @@ const Joi = require("joi");
 
 const { sequelize } = require("../startup/db");
 
-class Obituary extends Model { }
+class Obituary extends Model {}
 
 Obituary.init(
   {
@@ -145,8 +145,13 @@ Obituary.init(
     },
     qr_code: {
       type: DataTypes.TEXT,
-      defaultValue: null
-    }
+      defaultValue: null,
+    },
+    fbImage: {
+      type: DataTypes.TEXT,
+      allowNull: true, // can be null initially
+      defaultValue: null,
+    },
   },
   {
     sequelize,
@@ -164,7 +169,7 @@ const validateObituary = (obituary) => {
     region: Joi.string().max(100).required(),
     city: Joi.string().max(100).required(),
     gender: Joi.string().valid("Male", "Female").default("Male").required(),
-    birthDate: Joi.string().optional().allow(null, ''),
+    birthDate: Joi.string().optional().allow(null, ""),
     deathDate: Joi.date().required(),
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),
@@ -175,6 +180,7 @@ const validateObituary = (obituary) => {
     deathReport: Joi.any().allow(null, "").optional(),
     obituary: Joi.string().required(),
     slugKey: Joi.string().max(150).optional(),
+    fbImage: Joi.string().uri().allow(null, "").optional(),
   });
 
   return obituarySchema.validate(obituary);
