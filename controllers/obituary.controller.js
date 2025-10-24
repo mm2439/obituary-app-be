@@ -101,7 +101,7 @@ const obituaryController = {
         });
       }
 
-      
+
       const birthDateToSave = birthDate != 'null' && birthDate != '' ? birthDate : new Date("1025-01-01");
 
       const newObituary = await Obituary.create({
@@ -224,7 +224,10 @@ const obituaryController = {
           [Op.gte]: threeWeeksAgo,
         };
       }
-      let totalObit = [];
+      let totalObit = {
+        count: 0,
+        rows: []
+      };
       if (allow === "allow") {
         const arr = userId ? [
           { userId }, { city }
