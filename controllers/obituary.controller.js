@@ -224,7 +224,10 @@ const obituaryController = {
           [Op.gte]: threeWeeksAgo,
         };
       }
-      let totalObit = [];
+      let totalObit = {
+        count: 0,
+        rows: []
+      };
       if (allow === "allow") {
         const arr = userId ? [
           { userId }, { city }
