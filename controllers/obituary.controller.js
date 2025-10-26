@@ -520,6 +520,7 @@ const obituaryController = {
         "birthDate",
         "funeralTimestamp",
         "totalVisits",
+        "slugKey"
       ],
       include: [
         {
@@ -1072,7 +1073,8 @@ const obituaryController = {
       });
       const totalCandle = await Candle.findAll({
         where: {
-          [Op.or]: [{ userId: req.user?.id }, { ipAddress: ipAddress }],
+          [Op.or]: [{ userId: req.user?.id }],
+          // [Op.or]: [{ userId: req.user?.id }, { ipAddress: ipAddress }],
         },
         attributes: ["id"],
       });
