@@ -55,7 +55,9 @@ Order.init(
         'advertiser_monthly_capital_city',
         'advertiser_yearly_small_city',
         'advertiser_yearly_large_city',
-        'advertiser_yearly_capital_city'
+        'advertiser_yearly_capital_city',
+        'custom_one',
+        'custom_two'
       ),
       allowNull: false,
     },
@@ -104,7 +106,9 @@ const validateOrder = (order) => {
       'advertiser_monthly_capital_city',
       'advertiser_yearly_small_city',
       'advertiser_yearly_large_city',
-      'advertiser_yearly_capital_city'
+      'advertiser_yearly_capital_city',
+      'custom_one',
+      'custom_two'
     ).required(),
     metadata: Joi.object().optional(),
     amount: Joi.number().positive().required(),

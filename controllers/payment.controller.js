@@ -1,5 +1,5 @@
 const { StatusCodes } = require("http-status-codes");
-const { stripe, PACKAGE_CONFIG } = require("../config/stripe");
+const { stripe, PACKAGE_CONFIG, getPriceDetails } = require("../config/stripe");
 const { Order, validateOrder } = require("../models/order.model");
 const { User } = require("../models/user.model");
 const { Obituary } = require("../models/obituary.model");
@@ -29,7 +29,35 @@ const createPayment = async (req, res) => {
       });
     }
 
-    const package_info = PACKAGE_CONFIG[packageType];
+    const package_config = PACKAGE_CONFIG[packageType];
+
+    // Validate price_id exists
+    if (!package_config.price_id) {
+      console.log(
+        `[${requestId}] Missing price_id for package: ${packageType}`
+      );
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Konfiguracija paketa ni pravilna",
+      });
+    }
+
+    // Get price details from Stripe
+    let price_details;
+    try {
+      price_details = await getPriceDetails(package_config.price_id);
+      console.log(
+        `[${requestId}] Retrieved price details for ${packageType}: ${price_details.product.name}`
+      );
+    } catch (error) {
+      console.log(
+        `[${requestId}] Failed to fetch price details: ${error.message}`
+      );
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Napaka pri pridobivanju podatkov o paketu",
+      });
+    }
     let userId = req.user?.id || null;
     let customerData = {};
 
@@ -102,6 +130,20 @@ const createPayment = async (req, res) => {
         email: metadata.email,
         name: metadata.name || "Oglaševalec",
       };
+    } else if (packageType.startsWith("custom_")) {
+      // Custom package payment - requires logged in user for florists, or email/name for advertisers
+      if (!metadata.email || !metadata.name) {
+        console.log(`[${requestId}] Missing custom package data`);
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Manjkajo podatki za prilagojeni paket",
+        });
+      }
+
+      customerData = {
+        email: metadata.email,
+        name: metadata.name,
+      };
     }
 
     // Create order in database
@@ -113,7 +155,7 @@ const createPayment = async (req, res) => {
         userEmail: customerData.email,
         userName: customerData.name,
       },
-      amount: package_info.amount / 100, // Already in cents for Stripe
+      amount: price_details.amount, // Amount in cents from Stripe
     };
 
     const { error } = validateOrder(orderData);
@@ -162,28 +204,20 @@ const createPayment = async (req, res) => {
       await order.update({ stripeCustomerId: stripeCustomer.id });
     }
 
+    const isKeeper = price_details?.product?.name
+      ?.toLowerCase()
+      .includes("skrbnik");
+
     // Create Stripe Checkout Session
     const sessionData = {
       payment_method_types: ["card"],
       line_items: [
         {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: package_info.description,
-            },
-            unit_amount: package_info.amount,
-            ...(package_info.type === "subscription" && {
-              recurring: {
-                interval: package_info.interval,
-                interval_count: package_info.interval_count,
-              },
-            }),
-          },
+          price: price_details.id,
           quantity: 1,
         },
       ],
-      mode: package_info.type === "subscription" ? "subscription" : "payment",
+      mode: package_config.type === "subscription" ? "subscription" : "payment",
       success_url: `${process.env.FRONTEND_URL}/payment/return?orderId=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL}/payment/return?orderId=${order.id}&canceled=true`,
       metadata: {
@@ -191,21 +225,48 @@ const createPayment = async (req, res) => {
         packageType,
         userId: userId?.toString() || null,
       },
+
       locale: "sl",
       allow_promotion_codes: true,
-      phone_number_collection: { enabled: true },
+
+      // Always collect full billing and shipping addresses
       billing_address_collection: "required",
-      custom_fields: [
-        {
-          key: "tax_id",
-          label: {
-            type: "custom",
-            custom: "Davčna številka (Tax ID)",
-          },
-          type: "text",
-          optional: false,
-        },
-      ],
+      shipping_address_collection: {
+        allowed_countries: ["SI"],
+      },
+
+      custom_fields: isKeeper
+        ? [
+            {
+              key: "relation_to_deceased",
+              label: {
+                type: "custom",
+                custom: "Sorodstvena vez s pokojno/im",
+              },
+              type: "text",
+              optional: false,
+            },
+          ]
+        : [
+            {
+              key: "business_name",
+              label: {
+                type: "custom",
+                custom: "Naziv podjetja",
+              },
+              type: "text",
+              optional: false,
+            },
+            {
+              key: "tax_id",
+              label: {
+                type: "custom",
+                custom: "ID za DDV",
+              },
+              type: "text",
+              optional: false,
+            },
+          ],
     };
 
     if (stripeCustomer) {
@@ -296,7 +357,7 @@ const handleWebhook = async (req, res) => {
             `[${webhookId}] Subscription created: ${session.subscription}`
           );
         }
-        
+
         if (Object.keys(updateData).length > 0) {
           await order.update(updateData);
         }
@@ -371,7 +432,7 @@ const handleWebhook = async (req, res) => {
           // Try to find by customer ID
           order = await Order.findOne({
             where: { stripeCustomerId: canceledSubscription.customer },
-            order: [['createdAt', 'DESC']]
+            order: [["createdAt", "DESC"]],
           });
         }
 
@@ -386,12 +447,12 @@ const handleWebhook = async (req, res) => {
       case "customer.subscription.updated":
         // Handle subscription updates (e.g., canceled but still active until period end)
         const updatedSubscription = event.data.object;
-        
+
         if (updatedSubscription.cancel_at_period_end) {
           console.log(
             `[${webhookId}] Subscription ${updatedSubscription.id} set to cancel at period end`
           );
-          
+
           order = await Order.findOne({
             where: { stripeSubscriptionId: updatedSubscription.id },
           });
@@ -399,7 +460,7 @@ const handleWebhook = async (req, res) => {
           if (!order) {
             order = await Order.findOne({
               where: { stripeCustomerId: updatedSubscription.customer },
-              order: [['createdAt', 'DESC']]
+              order: [["createdAt", "DESC"]],
             });
           }
 
@@ -452,15 +513,19 @@ const handleSuccessfulPayment = async (order, payment) => {
         });
 
         if (keeper) {
-          const package_info = PACKAGE_CONFIG[order.packageType];
-          const currentExpiry = new Date(keeper.expiry);
-          const newExpiry = new Date(currentExpiry);
-          newExpiry.setMonth(newExpiry.getMonth() + package_info.duration);
+          const package_config = PACKAGE_CONFIG[order.packageType];
+          if (package_config.duration) {
+            const currentExpiry = new Date(keeper.expiry);
+            const newExpiry = new Date(currentExpiry);
+            newExpiry.setMonth(newExpiry.getMonth() + package_config.duration);
 
-          await keeper.update({ expiry: newExpiry });
-          console.log(
-            `Keeper ${keeper.id} expiry extended to ${newExpiry.toISOString()}`
-          );
+            await keeper.update({ expiry: newExpiry });
+            console.log(
+              `Keeper ${
+                keeper.id
+              } expiry extended to ${newExpiry.toISOString()}`
+            );
+          }
         } else {
           console.log(
             `Keeper not found for user ${order.userId} and obituary ${obituary.id}`
@@ -592,7 +657,7 @@ const getPaymentStatus = async (req, res) => {
         orderId: order.id,
         status: order.status,
         packageType: order.packageType,
-        amount: order.amount / 100, // Convert back from cents to euros for display
+        amount: order.amount / 100, // Convert from cents to euros for display
         createdAt: order.createdAt,
       },
     });
