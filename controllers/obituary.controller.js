@@ -1024,7 +1024,6 @@ const obituaryController = {
       });
 
       let obits = [];
-      console.log('>>>>>>>>> obituaries', obituaries);
       if (obituaries && obituaries?.length) {
         obits = await Promise.all(obituaries.map(async (obituary) => {
           const totalVisits = await Visit.count({
