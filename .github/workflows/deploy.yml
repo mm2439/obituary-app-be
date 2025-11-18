@@ -22,7 +22,7 @@ jobs:
         script: |
           cd /home/jenkins/deployment/obituary-app/obituary-fe
           sleep 1
-          git branch main
+          git checkout main
           git stash
           git pull origin main
           sleep 3
