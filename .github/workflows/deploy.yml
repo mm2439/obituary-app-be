@@ -21,6 +21,10 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY }}
         script: |
           cd /home/jenkins/deployment/obituary-app/obituary-fe
+          sleep 1
+          git branch main
+          git stash
+          git pull origin main
           sleep 3
           npm install
           /root/.nvm/versions/node/v21.7.3/bin/pm2 restart obituary-be
