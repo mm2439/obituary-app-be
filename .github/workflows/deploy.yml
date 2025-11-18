@@ -20,7 +20,7 @@ jobs:
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.DEPLOY_KEY }}
         script: |
-          cd /home/jenkins/deployment/obituary-app/obituary-fe
+          cd /home/jenkins/deployment/obituary-app/obituary-be
           sleep 1
           git checkout main
           git stash
