@@ -25,6 +25,6 @@ jobs:
           git checkout main
           git stash
           git pull origin main
-          sleep 3
+          sleep 2
           npm install
           /root/.nvm/versions/node/v21.7.3/bin/pm2 restart obituary-be
