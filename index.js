@@ -11,15 +11,26 @@ const app = express();
 connectToDB();
 
 // CORS configuration
+// app.use(
+//   cors({
+//     origin: ["http://localhost:3000", "http://localhost:3001", "https://staging.osmrtnica.com", "https://osmrtnica.com", "https://www.osmrtnica.com"],
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//     allowedHeaders: [
+//       "Content-Type",
+//       "Authorization",
+//     ],
+//   })
+// );
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001", "https://staging.osmrtnica.com", "https://osmrtnica.com", "https://www.osmrtnica.com"],
+    origin: function (origin, callback) {
+      callback(null, true); // allow all origins
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-    ],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
