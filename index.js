@@ -13,7 +13,7 @@ connectToDB();
 // CORS configuration
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001", "https://staging.osmrtnica.com", "https://osmrtnica.com", "https://www.osmrtnica.com"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://staging.osmrtnica.com", "https://osmrtnica.com", "https://www.osmrtnica.com", "https://www.savus.si", "https://savus.si"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
