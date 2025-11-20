@@ -34,7 +34,7 @@ FloristShop.init(
       allowNull: false,
     },
     hours: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(23),
       allowNull: true,
     },
     city: {
@@ -47,15 +47,15 @@ FloristShop.init(
     },
 
     secondaryHours: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(23),
       allowNull: true,
     },
     tertiaryHours: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(23),
       allowNull: true,
     },
     quaternaryHours: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(23),
       allowNull: true,
     },
 
