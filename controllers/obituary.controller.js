@@ -60,6 +60,8 @@ const obituaryController = {
         obituary,
         symbol,
         slugKey: providedSlugKey,
+        showMemoryPageIcon,
+        memoryPageMessage,
       } = req.body;
       const { error } = validateObituary(req.body);
       if (error) {
@@ -122,6 +124,8 @@ const obituaryController = {
         symbol,
         userId: req.user.id,
         slugKey,
+        showMemoryPageIcon: showMemoryPageIcon === "true" || showMemoryPageIcon === true,
+        memoryPageMessage: memoryPageMessage && String(memoryPageMessage).trim() ? String(memoryPageMessage).trim() : null,
       });
       const obituaryId = newObituary.id;
       let pictureUrl = null;
@@ -170,8 +174,11 @@ const obituaryController = {
       return res.status(httpStatus.CREATED).json(newObituary);
     } catch (err) {
       console.error("Error in createObituary:", err);
+      console.error("Error details:", err.message);
+      console.error("Error stack:", err.stack);
       return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
         error: "Prišlo je do napake ",
+        details: process.env.NODE_ENV === "development" ? err.message : undefined,
       });
     }
   },
@@ -758,6 +765,10 @@ const obituaryController = {
     if (req.body.obituary !== undefined)
       fieldsToUpdate.obituary = req.body.obituary;
     if (req.body.symbol !== undefined) fieldsToUpdate.symbol = req.body.symbol;
+    if (req.body.showMemoryPageIcon !== undefined)
+      fieldsToUpdate.showMemoryPageIcon = req.body.showMemoryPageIcon === "true" || req.body.showMemoryPageIcon === true;
+    if (req.body.memoryPageMessage !== undefined)
+      fieldsToUpdate.memoryPageMessage = req.body.memoryPageMessage || null;
     if (picturePath !== existingObituary.image) {
       fieldsToUpdate.image = picturePath;
     }
