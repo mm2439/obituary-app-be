@@ -698,4 +698,25 @@ router.post("/create-sponsor", [sponsorFields], sponsorsController.createSponsor
 router.post("/edit-sponsor/:id", [sponsorFields], sponsorsController.editSponsor);
 router.delete("/delete-sponsor/:id", sponsorsController.deleteSponsor);
 
+
+// Get all cemeteries (admin only)
+router.get("/cemeteries", async (req, res) => {
+  try {
+    const { Cemetry } = require("../models/cemetry.model");
+    
+    const cemeteries = await Cemetry.findAll({
+      order: [['createdTimestamp', 'DESC']],
+      attributes: ['id', 'name', 'address', 'city', 'image', 'createdTimestamp', 'modifiedTimestamp']
+    });
+
+    res.status(200).json({
+      success: true,
+      data: cemeteries
+    });
+  } catch (error) {
+    console.error("Error fetching cemeteries:", error);
+    res.status(500).json({ error: "Failed to fetch cemeteries" });
+  }
+});
+
 module.exports = router; 
