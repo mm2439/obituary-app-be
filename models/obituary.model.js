@@ -152,6 +152,16 @@ Obituary.init(
       allowNull: true, // can be null initially
       defaultValue: null,
     },
+    showMemoryPageIcon: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    memoryPageMessage: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     sequelize,
@@ -181,6 +191,8 @@ const validateObituary = (obituary) => {
     obituary: Joi.string().required(),
     slugKey: Joi.string().max(150).optional(),
     fbImage: Joi.string().uri().allow(null, "").optional(),
+    showMemoryPageIcon: Joi.boolean().optional(),
+    memoryPageMessage: Joi.string().max(500).allow(null, "").optional(),
   });
 
   return obituarySchema.validate(obituary);
