@@ -195,14 +195,13 @@ const cemetryController = {
     try {
       const userId = req.user.id;
       const { city } = req.query;
-      
-      // If city is provided, fetch all cemeteries for that city (regardless of userId)
-      // This allows users to see admin-created cemeteries
-      // If no city is provided, fetch only user's cemeteries
-      const whereClause = city 
-        ? { city: city }
-        : { userId: userId };
-      
+      const whereClause = {
+        userId: userId,
+      };
+
+      if (city) {
+        whereClause.city = city;
+      }
       const cemetries = await Cemetry.findAll({
         where: whereClause,
         order: [["name", "ASC"]],
