@@ -36,7 +36,7 @@ Cemetry.init(
     },
     address: {
       type: DataTypes.STRING(500),
-      allowNull: true,
+      allowNull: false,
     },
     name: {
       type: DataTypes.STRING(100),
