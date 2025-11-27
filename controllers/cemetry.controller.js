@@ -19,63 +19,25 @@ function getAllFiles(req) {
   }
   return [];
 }
-const parseCompanyId = (rawCompanyId) => {
-  if (
-    rawCompanyId === undefined ||
-    rawCompanyId === null ||
-    rawCompanyId === "" ||
-    rawCompanyId === "null"
-  ) {
-    return null;
-  }
-  const parsed = Number(rawCompanyId);
-  return Number.isNaN(parsed) ? null : parsed;
-};
-
 const cemetryController = {
   addCemetry: async (req, res) => {
     try {
       const { companyId, cemeteries } = req.body;
       const userId = req.user.id;
-      const normalizedCompanyId = parseCompanyId(companyId);
-
-      if (!Array.isArray(cemeteries) || cemeteries.length === 0) {
-        return res
-          .status(400)
-          .json({ message: "Manjkajo podatki o pokopališču." });
-      }
 
       const createdCemeteries = [];
       for (let i = 0; i < cemeteries.length; i++) {
         const cemetery = cemeteries[i];
         const { id, updated, name, address, city, image } = cemetery; // include `image`
 
-        const trimmedName = name?.trim();
-        const trimmedCity = city?.trim();
-        const normalizedAddress = address?.trim() || null;
-
-        if (!trimmedName || !trimmedCity) {
-          return res
-            .status(400)
-            .json({ message: "Pokopališče potrebuje ime in mesto." });
-        }
-
         const files = getAllFiles(req);
         const file = files.find(
           (f) => f.fieldname === `cemeteries[${i}][image]`
         );
 
-        const storageBucket =
-          normalizedCompanyId !== null
-            ? String(normalizedCompanyId)
-            : `user-${userId}`;
-
         // === Update existing cemetery ===
         if (id && updated) {
-          await Cemetry.update(
-            { name: trimmedName, address: normalizedAddress, city: trimmedCity },
-            { where: { id } }
-          );
+          await Cemetry.update({ name, address, city }, { where: { id } });
 
           if (file) {
             const avifBuffer = await sharp(file.buffer)
@@ -86,7 +48,12 @@ const cemetryController = {
             const filename = timestampName(
               file.originalname || "cemetery.avif"
             );
-            const remotePath = buildRemotePath("cemeteries", storageBucket, String(id), filename);
+            const remotePath = buildRemotePath(
+              "cemeteries",
+              String(companyId),
+              String(id),
+              filename
+            );
             await uploadBuffer(avifBuffer, remotePath, "image/avif");
 
             const imageUrl = publicUrl(remotePath);
@@ -104,9 +71,7 @@ const cemetryController = {
         }
 
         // === Create new cemetery ===
-        const existing = await Cemetry.findOne({
-          where: { name: trimmedName, city: trimmedCity, userId },
-        });
+        const existing = await Cemetry.findOne({ where: { name } });
         if (existing) {
           return res
             .status(409)
@@ -115,10 +80,10 @@ const cemetryController = {
 
         const newCemetry = await Cemetry.create({
           userId,
-          name: trimmedName,
-          city: trimmedCity,
-          address: normalizedAddress,
-          companyId: normalizedCompanyId,
+          name,
+          city,
+          address,
+          companyId,
         });
 
         if (file) {
@@ -130,7 +95,7 @@ const cemetryController = {
           const filename = timestampName(file.originalname || "cemetery.avif");
           const remotePath = buildRemotePath(
             "cemeteries",
-            storageBucket,
+            String(companyId),
             String(newCemetry.id),
             filename
           );
@@ -148,13 +113,7 @@ const cemetryController = {
         createdCemeteries.push(newCemetry);
       }
 
-      const responseFilter =
-        normalizedCompanyId !== null
-          ? { companyId: normalizedCompanyId }
-          : { userId };
-      const allCemeteries = await Cemetry.findAll({
-        where: responseFilter,
-      });
+      const allCemeteries = await Cemetry.findAll({ where: { companyId } });
 
       return res.status(201).json({
         message: "Uspešno",
