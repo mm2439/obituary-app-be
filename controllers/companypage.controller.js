@@ -104,27 +104,6 @@ const fileFields = [
   },
 ];
 
-const buildCemeteryWhereClause = (companyInstance) => {
-  if (!companyInstance) return {};
-
-  const targetCity = (companyInstance.city || companyInstance?.User?.city || "")
-    ?.trim?.() || "";
-
-  if (targetCity) {
-    return { city: targetCity };
-  }
-
-  return { companyId: companyInstance.id };
-};
-
-const fetchCemeteriesForCompany = async (companyInstance) => {
-  const whereClause = buildCemeteryWhereClause(companyInstance);
-  return Cemetry.findAll({
-    where: whereClause,
-    order: [["name", "ASC"]],
-  });
-};
-
 const companyController = {
   // REFACTORED CREATE FLORIST COMPANY CODE ----
   createFloristCompany: async (req, res) => {
@@ -316,43 +295,11 @@ const companyController = {
       const companyId = req.params.id;
       const table = req.query.table?.toLowerCase();
       const model = DBTableMap[table];
-      
-      if (!table) {
-        return res.status(httpStatus.BAD_REQUEST).json({ error: "Refrence table name is required" });
-      }
+      if (!table) return res.status(httpStatus.BAD_REQUEST).json({ error: "Refrence table name is required" });
       if (!model) {
         throw new Error(`Invalid table: ${table}`);
       }
-      
-      // Validate companyId is a valid number
-      const parsedCompanyId = parseInt(companyId, 10);
-      if (isNaN(parsedCompanyId)) {
-        return res.status(httpStatus.BAD_REQUEST).json({ error: "Neveljaven ID podjetja" });
-      }
-      
-      // For cemeteries, ensure proper isolation by filtering by companyId
-      // This ensures cemeteries are completely separated by company
-      if (table === "cementry") {
-        // Fetch company to ensure it exists and determine its city
-        const company = await CompanyPage.findOne({ where: { id: parsedCompanyId } });
-        if (!company) {
-          return res.status(httpStatus.NOT_FOUND).json({ error: "Podjetje ne obstaja" });
-        }
-
-        const cemeteryWhereClause = buildCemeteryWhereClause({
-          id: parsedCompanyId,
-          city: company.city,
-        });
-
-        const data = await model.findAll({
-          where: cemeteryWhereClause,
-          order: [["name", "ASC"]],
-        });
-        return res.status(httpStatus.OK).json({ message: `Uspešno`, data });
-      }
-      
-      // For other tables, just filter by companyId
-      const data = await model.findAll({ where: { companyId: parsedCompanyId } });
+      const data = await model.findAll({ where: { companyId } });
       return res.status(httpStatus.OK).json({ message: `Uspešno`, data })
     } catch (error) {
       console.error("Error in fetching company additional data: ", error);
@@ -590,7 +537,7 @@ const companyController = {
 
       const companyId = company.id;
       const faqs = await FAQ.findAll({ where: { companyId } });
-      const cemeteries = await fetchCemeteriesForCompany(company);
+      const cemeteries = await Cemetry.findAll({ where: { companyId } });
       const companyData = company.toJSON();
 
       companyData.faqs = faqs;
@@ -643,7 +590,7 @@ const companyController = {
 
       const companyId = company.id;
       const faqs = await FAQ.findAll({ where: { companyId } });
-      const cemeteries = await fetchCemeteriesForCompany(company);
+      const cemeteries = await Cemetry.findAll({ where: { companyId } });
       const companyData = company.toJSON();
 
       companyData.faqs = faqs;
@@ -904,7 +851,7 @@ const companyController = {
 
       if (companyType === "FUNERAL") {
         const faqs = await FAQ.findAll({ where: { companyId } });
-        const cemeteries = await fetchCemeteriesForCompany(company);
+        const cemeteries = await Cemetry.findAll({ where: { companyId } });
         companyData.faqs = faqs;
         companyData.cemeteries = cemeteries;
       } else if (companyType === "FLORIST") {

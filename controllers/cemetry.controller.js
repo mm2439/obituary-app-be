@@ -46,7 +46,6 @@ const cemetryController = {
       }
 
       const createdCemeteries = [];
-      const processedCities = new Set();
       for (let i = 0; i < cemeteries.length; i++) {
         const cemetery = cemeteries[i];
         const { id, updated, name, address, city, image } = cemetery; // include `image`
@@ -61,8 +60,6 @@ const cemetryController = {
             .json({ message: "Pokopališče potrebuje ime in mesto." });
         }
 
-        processedCities.add(trimmedCity);
-
         const files = getAllFiles(req);
         const file = files.find(
           (f) => f.fieldname === `cemeteries[${i}][image]`
@@ -75,23 +72,8 @@ const cemetryController = {
 
         // === Update existing cemetery ===
         if (id && updated) {
-          // Verify the cemetery belongs to this company before updating
-          const existingCemetery = await Cemetry.findOne({ where: { id } });
-          if (!existingCemetery) {
-            return res.status(404).json({ message: "Pokopališče ne obstaja" });
-          }
-          // Ensure companyId is preserved and matches the request
-          if (normalizedCompanyId !== null && existingCemetery.companyId !== normalizedCompanyId) {
-            return res.status(403).json({ message: "Pokopališče ne pripada temu podjetju" });
-          }
-          
           await Cemetry.update(
-            { 
-              name: trimmedName, 
-              address: normalizedAddress, 
-              city: trimmedCity,
-              companyId: normalizedCompanyId !== null ? normalizedCompanyId : existingCemetery.companyId
-            },
+            { name: trimmedName, address: normalizedAddress, city: trimmedCity },
             { where: { id } }
           );
 
@@ -166,19 +148,12 @@ const cemetryController = {
         createdCemeteries.push(newCemetry);
       }
 
-      const cityFilters = Array.from(processedCities).filter(Boolean);
-      let responseFilter;
-      if (cityFilters.length === 1) {
-        responseFilter = { city: cityFilters[0] };
-      } else {
-        responseFilter =
-          normalizedCompanyId !== null
-            ? { companyId: normalizedCompanyId }
-            : { userId };
-      }
+      const responseFilter =
+        normalizedCompanyId !== null
+          ? { companyId: normalizedCompanyId }
+          : { userId };
       const allCemeteries = await Cemetry.findAll({
         where: responseFilter,
-        order: [["name", "ASC"]],
       });
 
       return res.status(201).json({
@@ -204,7 +179,6 @@ const cemetryController = {
       }
       const cemetries = await Cemetry.findAll({
         where: whereClause,
-        order: [["name", "ASC"]],
       });
 
       return res.status(201).json({ message: "Uspešno", cemetries });
@@ -236,8 +210,7 @@ const cemetryController = {
 
       // ✅ Fetch updated cemeteries of the user
       const updatedCemeteries = await Cemetry.findAll({
-        where: cemetry.city ? { city: cemetry.city } : { userId },
-        order: [["name", "ASC"]],
+        where: { userId },
       });
 
       return res.status(200).json({
