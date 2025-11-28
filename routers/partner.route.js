@@ -21,6 +21,29 @@ router.post(
   partnerController.createPartner
 );
 router.get("/", authenticationMiddleware, partnerController.getAllPartners);
+router.get(
+  "/local-news-partner",
+  authenticationMiddleware,
+  partnerController.getLocalNewsPartner
+);
+
+router.get(
+  "/regional-partner/:region",
+  authenticationMiddleware,
+  partnerController.getRegionalPartner
+);
+
+router.get(
+  "/category-partner/:category",
+  authenticationMiddleware,
+  partnerController.getCategoryPartner
+);
+
+router.get(
+  "/city-partner/:city",
+  authenticationMiddleware,
+  partnerController.getCityPartner
+);
 router.delete(
   "/:id",
   authenticationMiddleware,

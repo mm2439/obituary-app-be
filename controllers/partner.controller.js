@@ -1,5 +1,6 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const { Partner } = require("../models/partner.model");
+const { Category } = require("../models/category.model");
 
 const { Op } = require("sequelize");
 const fs = require("fs");
@@ -98,6 +99,77 @@ const partnerController = {
     }
   },
 
+  getLocalNewsPartner: async (req, res) => {
+    try {
+      const partners = await Partner.findAll({ where: { isLocalNews: true } });
+      res.status(httpStatus.OK).json(partners);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
+  },
+
+  getRegionalPartner: async (req, res) => {
+    try {
+      const partners = await Partner.findAll({
+        where: { region: req.params.region },
+      });
+      res.status(httpStatus.OK).json(partners);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
+  },
+
+  getCityPartner: async (req, res) => {
+    try {
+      const partners = await Partner.findAll({
+        where: { city: req.params.city },
+      });
+      res.status(httpStatus.OK).json(partners);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
+  },
+
+  getCategoryPartner: async (req, res) => {
+    try {
+      const categoryName = req.params.category; // example: "Stone work"
+      if (!categoryName) {
+        return res.status(httpStatus.OK).json([]);
+      }
+
+      // 1. Find category by name
+      const category = await Category.findOne({
+        where: { name: categoryName },
+      });
+
+      // 2. If category not found → return empty array
+      if (!category) {
+        return res.status(httpStatus.OK).json([]);
+      }
+
+      // 3. Get partners that match this category ID
+      const partners = await Partner.findAll({
+        where: { category: category.id },
+      });
+
+      return res.status(httpStatus.OK).json(partners);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
+  },
+
   getAllPartners: async (req, res) => {
     try {
       const partners = await Partner.findAll();
@@ -120,7 +192,7 @@ const partnerController = {
       }
       const partnerPath = path.join(PARTNER_FOLDER_UPLOAD, id.toString());
       if (fs.existsSync(partnerPath)) {
-        fs.rmdirSync(partnerPath, { recursive: true });
+        fs.rmSync(partnerPath, { recursive: true });
       }
       await partner.destroy();
       res
