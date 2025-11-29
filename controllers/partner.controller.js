@@ -270,8 +270,13 @@ const partnerController = {
         website,
         mainImageDescription,
         secondaryImageDescription,
-        isLocalNews,
       } = req.body;
+      const isLocalNews =
+        req.body.isLocalNews === "true"
+          ? true
+          : req.body.isLocalNews === "false"
+          ? false
+          : partner.isLocalNews;
 
       const partner = await Partner.findByPk(id);
 
@@ -384,7 +389,7 @@ const partnerController = {
       partner.city = city ?? partner.city;
       partner.region = region ?? partner.region;
       partner.website = website ?? partner.website;
-      partner.isLocalNews = isLocalNews ?? partner.isLocalNews;
+      partner.isLocalNews = isLocalNews;
 
       await partner.save();
 

@@ -109,13 +109,13 @@ const photoController = {
         console.log("Photo uploaded to Bunny:", publicFileUrl);
       }
 
-      let photoStatus = 'pending';
+      let photoStatus = "pending";
       const existingKeeper = await Keeper.findOne({
         where: { userId, obituaryId },
       });
 
       if (existingKeeper) {
-        photoStatus = 'approved';
+        photoStatus = "approved";
       }
 
       const photo = await Photo.create({
