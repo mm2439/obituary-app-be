@@ -302,7 +302,7 @@ const partnerController = {
 
       //
       // -------------------------------------------------------
-      // Helper: Convert → Resize (340×340) → Upload → Return URL
+      // Helper: Convert → Resize (320×340) → Upload → Return URL
       // -------------------------------------------------------
       //
       const convertAndUploadAvif = async (file) => {
@@ -313,7 +313,7 @@ const partnerController = {
 
         // Convert to AVIF
         const optimizedBuffer = await sharp(file.buffer)
-          .resize(340, 340, { fit: "cover" })
+          .resize(320, 340, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toBuffer();
 
