@@ -50,9 +50,7 @@ Cemeteries.init(
         sequelize,
         modelName: "Cemeteries",
         tableName: "cemeteries",
-        timestamps: true,
-        createdAt: 'createdTimestamp',
-        updatedAt: 'modifiedTimestamp',
+        timestamps: false,
     }
 );
 
