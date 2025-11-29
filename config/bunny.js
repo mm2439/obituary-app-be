@@ -6,7 +6,6 @@ const BUNNY_KEY = process.env.BUNNY_STORAGE_ACCESS_KEY;
 const BUNNY_HOST = process.env.BUNNY_STORAGE_HOST || "storage.bunnycdn.com";
 const BUNNY_CDN = process.env.BUNNY_CDN_HOSTNAME;
 
-
 async function uploadBuffer(
   buffer,
   remotePath,
@@ -51,6 +50,40 @@ async function uploadBuffer(
   return { storageUrl, cdnUrl };
 }
 
+/* -------------------------------------------------------
+    DELETE FILE FROM BUNNY STORAGE
+-------------------------------------------------------- */
+async function deleteFile(remotePath) {
+  if (!remotePath) return;
+
+  const pathname = `/${encodeURIComponent(BUNNY_ZONE)}/${remotePath}`;
+
+  const options = {
+    host: BUNNY_HOST,
+    method: "DELETE",
+    path: pathname,
+    headers: {
+      AccessKey: BUNNY_KEY,
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      if (res.statusCode === 200 || res.statusCode === 204) {
+        return resolve(true);
+      }
+      let body = "";
+      res.on("data", (c) => (body += c));
+      res.on("end", () =>
+        reject(new Error(`Bunny delete failed ${res.statusCode}: ${body}`))
+      );
+    });
+
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 function buildRemotePath(...parts) {
   return path.posix.join(...parts.map(String));
 }
@@ -65,4 +98,4 @@ function publicUrl(remotePath) {
     : `https://${host}/${zone}/${remotePath}`;
 }
 
-module.exports = { uploadBuffer, buildRemotePath, publicUrl };
+module.exports = { uploadBuffer, deleteFile, buildRemotePath, publicUrl };

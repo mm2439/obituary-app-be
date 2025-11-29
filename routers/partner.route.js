@@ -22,6 +22,11 @@ router.post(
 );
 router.get("/", authenticationMiddleware, partnerController.getAllPartners);
 router.get(
+  "/all",
+  authenticationMiddleware,
+  partnerController.getAllPartnersPlusLocals
+);
+router.get(
   "/local-news-partner",
   authenticationMiddleware,
   partnerController.getLocalNewsPartner
@@ -50,11 +55,14 @@ router.delete(
   authorization("SUPERADMIN"),
   partnerController.deletePartner
 );
-router.patch(
+router.put(
   "/:id",
   authenticationMiddleware,
   authorization("SUPERADMIN"),
-  uploadFields,
+  upload.fields([
+    { name: "mainImage", maxCount: 1 },
+    { name: "secondaryImage", maxCount: 1 },
+  ]),
   partnerController.updatePartner
 );
 router.get("/:id", authenticationMiddleware, partnerController.getPartnerById);

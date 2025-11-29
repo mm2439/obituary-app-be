@@ -1,13 +1,17 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const { Partner } = require("../models/partner.model");
 const { Category } = require("../models/category.model");
-
 const { Op } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const PARTNER_FOLDER_UPLOAD = path.join(process.cwd(), "partnerUploads");
-const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const {
+  uploadBuffer,
+  buildRemotePath,
+  publicUrl,
+  deleteFile,
+} = require("../config/bunny");
 
 const partnerController = {
   createPartner: async (req, res) => {
@@ -27,7 +31,6 @@ const partnerController = {
       const mainImage = req.files?.mainImage?.[0];
       const secondaryImage = req.files?.secondaryImage?.[0];
 
-      // Create partner DB row
       const partner = await Partner.create({
         name,
         notes,
@@ -40,57 +43,75 @@ const partnerController = {
         isLocalNews,
       });
 
-      // Correctly build local folder path: partnerUploads/{id}/
       const partnerFolder = path.join(
         PARTNER_FOLDER_UPLOAD,
         partner.id.toString()
       );
-      const remotePath = buildRemotePath(
-        "partnerUploads",
-        partner.id,
-        mainImage.originalname
-      );
-
-      // Create folder recursively if not exists
       fs.mkdirSync(partnerFolder, { recursive: true });
 
-      // Upload main image
-      if (mainImage) {
-        // const savePath = path.join(partnerFolder, mainImage.originalname);
+      //
+      // --- Helper function: Convert + Upload AVIF Image ---
+      //
+      const processAndUploadAvif = async (file) => {
+        if (!file) return null;
 
-        // await uploadBuffer(mainImage.buffer, savePath);
-        const { cdnUrl } = await uploadBuffer(
-          mainImage.buffer,
-          remotePath,
-          mainImage.mimetype
+        const extLessName = path.parse(file.originalname).name;
+        const fileName = `${extLessName}.avif`;
+
+        // Convert to AVIF
+        const optimizedBuffer = await sharp(file.buffer)
+          .resize(320, 340, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toBuffer();
+
+        // Build remote Bunny path
+        const remotePath = buildRemotePath(
+          "partnerUploads",
+          partner.id,
+          fileName
         );
-        partner.mainImage = cdnUrl;
-        // // FIX: Correct CDN public URL
-        // partner.mainImage = publicUrl(
-        //   `partnerUploads/${partner.id}/${mainImage.originalname}`
-        // );
+
+        // Upload to Bunny
+        const { cdnUrl } = await uploadBuffer(
+          optimizedBuffer,
+          remotePath,
+          "image/avif"
+        );
+
+        return cdnUrl;
+      };
+
+      //
+      // --- Process Main Image ---
+      //
+      if (mainImage) {
+        const url = await processAndUploadAvif(mainImage);
+        if (url) partner.mainImage = url;
       }
 
-      // Upload secondary image
+      //
+      // --- Process Secondary Image ---
+      //
       if (secondaryImage) {
-        // const savePath = path.join(partnerFolder, secondaryImage.originalname);
-
-        // await uploadBuffer(secondaryImage.buffer, savePath);
-        const { cdnUrl } = await uploadBuffer(
-          secondaryImage.buffer,
-          remotePath,
-          secondaryImage.mimetype
-        );
-        partner.secondaryImage = cdnUrl;
-
-        // partner.secondaryImage = publicUrl(
-        //   `partnerUploads/${partner.id}/${secondaryImage.originalname}`
-        // );
+        const url = await processAndUploadAvif(secondaryImage);
+        if (url) partner.secondaryImage = url;
       }
 
       await partner.save();
 
       res.status(httpStatus.OK).json(partner);
+    } catch (error) {
+      console.error(error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
+  },
+
+  getAllPartnersPlusLocals: async (req, res) => {
+    try {
+      const partners = await Partner.findAll();
+      res.status(httpStatus.OK).json(partners);
     } catch (error) {
       console.error(error);
       res
@@ -114,7 +135,7 @@ const partnerController = {
   getRegionalPartner: async (req, res) => {
     try {
       const partners = await Partner.findAll({
-        where: { region: req.params.region },
+        where: { region: req.params.region, isLocalNews: false },
       });
       res.status(httpStatus.OK).json(partners);
     } catch (error) {
@@ -128,7 +149,7 @@ const partnerController = {
   getCityPartner: async (req, res) => {
     try {
       const partners = await Partner.findAll({
-        where: { city: req.params.city },
+        where: { city: req.params.city, isLocalNews: false },
       });
       res.status(httpStatus.OK).json(partners);
     } catch (error) {
@@ -158,7 +179,7 @@ const partnerController = {
 
       // 3. Get partners that match this category ID
       const partners = await Partner.findAll({
-        where: { category: category.id },
+        where: { category: category.id, isLocalNews: false },
       });
 
       return res.status(httpStatus.OK).json(partners);
@@ -172,7 +193,11 @@ const partnerController = {
 
   getAllPartners: async (req, res) => {
     try {
-      const partners = await Partner.findAll();
+      const partners = await Partner.findAll({
+        where: {
+          isLocalNews: false,
+        },
+      });
       res.status(httpStatus.OK).json(partners);
     } catch (error) {
       console.error(error);
@@ -184,17 +209,44 @@ const partnerController = {
   deletePartner: async (req, res) => {
     try {
       const { id } = req.params;
+
       const partner = await Partner.findByPk(id);
       if (!partner) {
         return res
           .status(httpStatus.NOT_FOUND)
           .json({ error: "Partner not found" });
       }
+
+      // Extract CDN path from full URL
+      const extractCDNPath = (url) => {
+        if (!url) return null;
+        const parts = url.split(".net/");
+        return parts[1] || null;
+      };
+
+      const mainPath = extractCDNPath(partner.mainImage);
+      const secondaryPath = extractCDNPath(partner.secondaryImage);
+
+      if (mainPath) {
+        deleteFile(mainPath).catch((err) =>
+          console.error("Failed to delete main image:", err.message)
+        );
+      }
+
+      if (secondaryPath) {
+        deleteFile(secondaryPath).catch((err) =>
+          console.error("Failed to delete secondary image:", err.message)
+        );
+      }
+
+      // Remove local folder
       const partnerPath = path.join(PARTNER_FOLDER_UPLOAD, id.toString());
       if (fs.existsSync(partnerPath)) {
         fs.rmSync(partnerPath, { recursive: true });
       }
+
       await partner.destroy();
+
       res
         .status(httpStatus.OK)
         .json({ message: "Partner deleted successfully" });
@@ -208,24 +260,143 @@ const partnerController = {
   updatePartner: async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description } = req.body;
+
+      const {
+        name,
+        notes,
+        category,
+        city,
+        region,
+        website,
+        mainImageDescription,
+        secondaryImageDescription,
+        isLocalNews,
+      } = req.body;
+
       const partner = await Partner.findByPk(id);
+
       if (!partner) {
         return res
           .status(httpStatus.NOT_FOUND)
           .json({ error: "Partner not found" });
       }
-      partner.name = name;
-      partner.description = description;
+
+      const mainImage = req.files?.mainImage?.[0];
+      const secondaryImage = req.files?.secondaryImage?.[0];
+
+      //
+      // --------------------------
+      // Extract Bunny CDN Path
+      // --------------------------
+      //
+      const extractCDNPath = (url) => {
+        if (!url) return null;
+        const parts = url.split(".net/");
+        return parts[1] || null;
+      };
+
+      //
+      // -------------------------------------------------------
+      // Helper: Convert → Resize (340×340) → Upload → Return URL
+      // -------------------------------------------------------
+      //
+      const convertAndUploadAvif = async (file) => {
+        if (!file) return null;
+
+        const extLess = path.parse(file.originalname).name;
+        const newFileName = `${extLess}.avif`;
+
+        // Convert to AVIF
+        const optimizedBuffer = await sharp(file.buffer)
+          .resize(340, 340, { fit: "cover" })
+          .toFormat("avif", { quality: 50 })
+          .toBuffer();
+
+        // Storage path in Bunny
+        const remotePath = buildRemotePath(
+          "partnerUploads",
+          partner.id,
+          newFileName
+        );
+
+        const { cdnUrl } = await uploadBuffer(
+          optimizedBuffer,
+          remotePath,
+          "image/avif"
+        );
+
+        return cdnUrl;
+      };
+
+      //
+      // -----------------------------
+      // Update MAIN IMAGE
+      // -----------------------------
+      //
+      if (mainImage) {
+        // Delete old Bunny image
+        const oldMainPath = extractCDNPath(partner.mainImage);
+        if (oldMainPath) {
+          deleteFile(oldMainPath).catch((err) =>
+            console.error("Failed to delete old main image:", err.message)
+          );
+        }
+
+        // Upload new AVIF image
+        const mainURL = await convertAndUploadAvif(mainImage);
+        if (mainURL) {
+          partner.mainImage = mainURL;
+        }
+
+        partner.mainImageDescription = mainImageDescription;
+      }
+
+      //
+      // -------------------------------
+      // Update SECONDARY IMAGE
+      // -------------------------------
+      //
+      if (secondaryImage) {
+        // Delete previous Bunny image
+        const oldSecondaryPath = extractCDNPath(partner.secondaryImage);
+        if (oldSecondaryPath) {
+          deleteFile(oldSecondaryPath).catch((err) =>
+            console.error("Failed to delete old secondary image:", err.message)
+          );
+        }
+
+        const secondaryURL = await convertAndUploadAvif(secondaryImage);
+        if (secondaryURL) {
+          partner.secondaryImage = secondaryURL;
+        }
+
+        partner.secondaryImageDescription = secondaryImageDescription;
+      }
+
+      //
+      // -----------------------
+      // Update Other Fields
+      // -----------------------
+      //
+      partner.name = name ?? partner.name;
+      partner.notes = notes ?? partner.notes;
+      partner.category = category ?? partner.category;
+      partner.city = city ?? partner.city;
+      partner.region = region ?? partner.region;
+      partner.website = website ?? partner.website;
+      partner.isLocalNews = isLocalNews ?? partner.isLocalNews;
+
       await partner.save();
+
       res.status(httpStatus.OK).json(partner);
     } catch (error) {
-      console.error(error);
+      console.error("Update Partner Error:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: error.message });
     }
   },
+
   getPartnerById: async (req, res) => {
     try {
       const { id } = req.params;
