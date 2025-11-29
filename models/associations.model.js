@@ -11,6 +11,7 @@ const { Condolence } = require("./condolence.model");
 const { Candle } = require("./candle.model");
 const { Visit } = require("./visit.model");
 const { Cemetry } = require("./cemetry.model");
+const { Cemeteries } = require("./cemetery.model");
 const { CompanyPage } = require("./company_page.model");
 const { FAQ } = require("./faq.model");
 const { FloristSlide } = require("./florist_slide.model");
@@ -40,6 +41,9 @@ Cemetry.belongsTo(CompanyPage, { foreignKey: "companyId" });
 
 Cemetry.hasMany(Obituary, { foreignKey: "funeralCemetery" });
 Obituary.belongsTo(Cemetry, { foreignKey: "funeralCemetery" });
+
+Cemeteries.hasMany(Obituary, { foreignKey: "funeralCemeteryId" });
+Obituary.belongsTo(Cemeteries, { foreignKey: "funeralCemeteryId", as: "Cemeteries" });
 
 CompanyPage.hasMany(FloristSlide, { foreignKey: "companyId" });
 FloristSlide.belongsTo(CompanyPage, { foreignKey: "companyId" });
