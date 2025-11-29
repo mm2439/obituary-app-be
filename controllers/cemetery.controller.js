@@ -73,6 +73,13 @@ const cemeteryController = {
     editCemetery: async (req, res) => {
         try {
             const id = req.params.id;
+            
+            // Check if cemetery exists before updating
+            const existingCemetery = await Cemeteries.findByPk(id);
+            if (!existingCemetery) {
+                return res.status(httpStatus.NOT_FOUND).json({ error: "Cemetery not found" });
+            }
+
             let picUrl = null;
             let cemeteryData = { ...req.body };
             
@@ -104,9 +111,14 @@ const cemeteryController = {
                 cemeteryData.pic = picUrl;
             }
 
-            await Cemeteries.update(cemeteryData, {
+            const [affectedCount] = await Cemeteries.update(cemeteryData, {
                 where: { id }
             });
+            
+            if (affectedCount === 0) {
+                return res.status(httpStatus.NOT_FOUND).json({ error: "Cemetery not found" });
+            }
+            
             return res.status(httpStatus.OK).json({ message: `Cemetery updated Successfully` })
         } catch (error) {
             return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake" });
@@ -116,9 +128,21 @@ const cemeteryController = {
     deleteCemetery: async (req, res) => {
         try {
             const id = req.params.id;
-            await Cemeteries.destroy({
+            
+            // Check if cemetery exists before deleting
+            const existingCemetery = await Cemeteries.findByPk(id);
+            if (!existingCemetery) {
+                return res.status(httpStatus.NOT_FOUND).json({ error: "Cemetery not found" });
+            }
+            
+            const deletedCount = await Cemeteries.destroy({
                 where: { id }
             });
+            
+            if (deletedCount === 0) {
+                return res.status(httpStatus.NOT_FOUND).json({ error: "Cemetery not found" });
+            }
+            
             return res.status(httpStatus.OK).json({ message: `Cemetery deleted Successfully` })
         } catch (error) {
             return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Prišlo je do napake" });
