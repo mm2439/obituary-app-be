@@ -34,16 +34,11 @@ const sponsorFields = upload.fields([
   { name: "logo", maxCount: 1 }
 ]);
 
-const cemeteryFields = upload.fields([
-  { name: "pic", maxCount: 1 }
-]);
-
 module.exports = {
   cardUploadsFields,
   uploadFields,
   obituaryUploadsFields,
   dbUploadObituaryTemplateCardsPath,
   dbUploadObituaryUserCardsPath,
-  sponsorFields,
-  cemeteryFields
+  sponsorFields
 };

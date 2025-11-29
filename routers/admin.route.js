@@ -4,8 +4,7 @@ const adminAuth = require("../middlewares/adminAuth");
 const router = express.Router();
 const contactController = require("../controllers/contact.controller");
 const sponsorsController = require("../controllers/sponsor.controller");
-const cemeteryController = require("../controllers/cemetery.controller");
-const { sponsorFields, cemeteryFields } = require("../config/upload");
+const { sponsorFields } = require("../config/upload");
 // Admin routes - all protected with authentication and admin role
 router.use(authenticationMiddleware);
 router.use(adminAuth);
@@ -698,10 +697,5 @@ router.get("/sponsor-list", sponsorsController.fetchSponsors);
 router.post("/create-sponsor", [sponsorFields], sponsorsController.createSponsor);
 router.post("/edit-sponsor/:id", [sponsorFields], sponsorsController.editSponsor);
 router.delete("/delete-sponsor/:id", sponsorsController.deleteSponsor);
-
-router.get("/cemetery-list", cemeteryController.fetchCemeteries);
-router.post("/create-cemetery", [cemeteryFields], cemeteryController.createCemetery);
-router.post("/edit-cemetery/:id", [cemeteryFields], cemeteryController.editCemetery);
-router.delete("/delete-cemetery/:id", cemeteryController.deleteCemetery);
 
 module.exports = router; 
