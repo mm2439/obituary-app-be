@@ -62,6 +62,11 @@ Sponsors.init(
             allowNull: true,
             defaultValue: null,
         },
+        websiteLink: {
+            type: DataTypes.STRING(500),
+            allowNull: true,
+            defaultValue: null,
+        },
         notes: {
             type: DataTypes.TEXT,
             allowNull: true,
