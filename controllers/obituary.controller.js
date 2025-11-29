@@ -18,10 +18,9 @@ const { Condolence } = require("../models/condolence.model");
 const { Candle } = require("../models/candle.model");
 const { MemoryLog } = require("../models/memory_logs.model");
 const { CompanyPage } = require("../models/company_page.model");
-const { Cemetry } = require("../models/cemetry.model");
-const { Cemeteries } = require("../models/cemetery.model");
 const { Visit } = require("../models/visit.model");
 const visitController = require("./visit.controller");
+const { Cemetry } = require("../models/cemetry.model");
 const OBITUARY_UPLOADS_PATH = path.join(__dirname, "../obituaryUploads");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 const { generateQRCode } = require("../utils/generateQRCode.js");
@@ -55,10 +54,8 @@ const obituaryController = {
         deathDate,
         funeralLocation,
         funeralCemetery,
-        funeralCemeteryId,
         funeralTimestamp,
         events,
-        refuseFlowersIcon,
         deathReportExists,
         obituary,
         symbol,
@@ -118,10 +115,8 @@ const obituaryController = {
         deathDate,
         funeralLocation,
         funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
-        funeralCemeteryId: funeralCemeteryId === "" || funeralCemeteryId === undefined ? null : parseInt(funeralCemeteryId),
         funeralTimestamp: funeralTimestamp || null,
         events: JSON.parse(events || "[]"),
-        refuseFlowersIcon: refuseFlowersIcon === true || refuseFlowersIcon === "true",
         deathReportExists,
         obituary,
         symbol,
@@ -254,12 +249,6 @@ const obituaryController = {
             },
             {
               model: Cemetry,
-              required: false,
-            },
-            {
-              model: Cemeteries,
-              required: false,
-              as: "Cemeteries",
             },
           ],
         });
@@ -277,12 +266,6 @@ const obituaryController = {
             },
             {
               model: Cemetry,
-              required: false,
-            },
-            {
-              model: Cemeteries,
-              required: false,
-              as: "Cemeteries",
             },
           ],
         });
@@ -422,11 +405,6 @@ const obituaryController = {
         {
           model: Cemetry,
           required: false,
-        },
-        {
-          model: Cemeteries,
-          required: false,
-          as: "Cemeteries",
         },
         {
           model: SorrowBook,
@@ -770,10 +748,6 @@ const obituaryController = {
       fieldsToUpdate.funeralLocation = req.body.funeralLocation;
     if (req.body.funeralCemetery !== undefined)
       fieldsToUpdate.funeralCemetery = req.body.funeralCemetery;
-    if (req.body.funeralCemeteryId !== undefined)
-      fieldsToUpdate.funeralCemeteryId = req.body.funeralCemeteryId === "" || req.body.funeralCemeteryId === undefined ? null : parseInt(req.body.funeralCemeteryId);
-    if (req.body.refuseFlowersIcon !== undefined)
-      fieldsToUpdate.refuseFlowersIcon = req.body.refuseFlowersIcon === true || req.body.refuseFlowersIcon === "true";
     if (req.body.funeralTimestamp !== undefined)
       fieldsToUpdate.funeralTimestamp = req.body.funeralTimestamp;
     if (req.body.verse !== undefined) fieldsToUpdate.verse = req.body.verse;
