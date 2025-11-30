@@ -305,17 +305,6 @@ const partnerController = {
       const secondaryImage = req.files?.secondaryImage?.[0];
 
       //
-      // --------------------------
-      // Extract Bunny CDN Path
-      // --------------------------
-      //
-      const extractCDNPath = (url) => {
-        if (!url) return null;
-        const parts = url.split(".net/");
-        return parts[1] || null;
-      };
-
-      //
       // -------------------------------------------------------
       // Helper: Convert → Resize (320×340) → Upload → Return URL
       // -------------------------------------------------------
