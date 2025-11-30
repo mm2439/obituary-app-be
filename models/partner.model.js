@@ -1,4 +1,4 @@
-const { Model,DataTypes } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 
 const Joi = require("joi");
 
@@ -98,7 +98,16 @@ Partner.init(
 
 const validatePartner = (partner) => {
   const partnerSchema = Joi.object({
-    //for future if needed
+    name: Joi.string().max(250).required(),
+    notes: Joi.string().max(250).required(),
+    category: Joi.number().integer().required(),
+    companyId: Joi.number().integer().optional(),
+    isLocalNews: Joi.boolean().optional(),
+    city: Joi.string().optional(),
+    region: Joi.string().optional(),
+    website: Joi.string().uri().optional(),
+    mainImageDescription: Joi.string().optional(),
+    secondaryImageDescription: Joi.string().optional(),
   });
 
   return partnerSchema.validate(partner);

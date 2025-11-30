@@ -1,7 +1,6 @@
 const httpStatus = require("http-status-codes").StatusCodes;
-const { Partner } = require("../models/partner.model");
+const { Partner, validatePartner } = require("../models/partner.model");
 const { Category } = require("../models/category.model");
-const { Op } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
@@ -9,13 +8,21 @@ const PARTNER_FOLDER_UPLOAD = path.join(process.cwd(), "partnerUploads");
 const {
   uploadBuffer,
   buildRemotePath,
-  publicUrl,
   deleteFile,
 } = require("../config/bunny");
 
 const partnerController = {
   createPartner: async (req, res) => {
+    const t = await sequelize.transaction(); // START TRANSACTION
+
     try {
+      const { error } = validatePartner(req.body);
+      if (error) {
+        return res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ error: error.message });
+      }
+
       const {
         name,
         notes,
@@ -31,26 +38,26 @@ const partnerController = {
       const mainImage = req.files?.mainImage?.[0];
       const secondaryImage = req.files?.secondaryImage?.[0];
 
-      const partner = await Partner.create({
-        name,
-        notes,
-        category,
-        city,
-        region,
-        website,
-        mainImageDescription,
-        secondaryImageDescription,
-        isLocalNews,
-      });
-
-      const partnerFolder = path.join(
-        PARTNER_FOLDER_UPLOAD,
-        partner.id.toString()
+      //
+      // --- Create Partner inside the Transaction ---
+      //
+      const partner = await Partner.create(
+        {
+          name,
+          notes,
+          category,
+          city,
+          region,
+          website,
+          mainImageDescription,
+          secondaryImageDescription,
+          isLocalNews,
+        },
+        { transaction: t }
       );
-      fs.mkdirSync(partnerFolder, { recursive: true });
 
       //
-      // --- Helper function: Convert + Upload AVIF Image ---
+      // --- Helper to convert + upload AVIF ---
       //
       const processAndUploadAvif = async (file) => {
         if (!file) return null;
@@ -58,20 +65,17 @@ const partnerController = {
         const extLessName = path.parse(file.originalname).name;
         const fileName = `${extLessName}.avif`;
 
-        // Convert to AVIF
         const optimizedBuffer = await sharp(file.buffer)
           .resize(320, 340, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toBuffer();
 
-        // Build remote Bunny path
         const remotePath = buildRemotePath(
           "partnerUploads",
           partner.id,
           fileName
         );
 
-        // Upload to Bunny
         const { cdnUrl } = await uploadBuffer(
           optimizedBuffer,
           remotePath,
@@ -86,7 +90,7 @@ const partnerController = {
       //
       if (mainImage) {
         const url = await processAndUploadAvif(mainImage);
-        if (url) partner.mainImage = url;
+        partner.mainImage = url;
       }
 
       //
@@ -94,14 +98,28 @@ const partnerController = {
       //
       if (secondaryImage) {
         const url = await processAndUploadAvif(secondaryImage);
-        if (url) partner.secondaryImage = url;
+        partner.secondaryImage = url;
       }
 
-      await partner.save();
+      //
+      // --- Save final Partner fields (inside transaction) ---
+      //
+      await partner.save({ transaction: t });
+
+      //
+      // --- Commit Transaction ---
+      //
+      await t.commit();
 
       res.status(httpStatus.OK).json(partner);
     } catch (error) {
-      console.error(error);
+      console.error("Create Partner Error:", error);
+
+      //
+      // --- Rollback Transaction ---
+      //
+      if (t) await t.rollback();
+
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: error.message });
@@ -218,12 +236,6 @@ const partnerController = {
       }
 
       // Extract CDN path from full URL
-      const extractCDNPath = (url) => {
-        if (!url) return null;
-        const parts = url.split(".net/");
-        return parts[1] || null;
-      };
-
       const mainPath = extractCDNPath(partner.mainImage);
       const secondaryPath = extractCDNPath(partner.secondaryImage);
 
@@ -271,14 +283,15 @@ const partnerController = {
         mainImageDescription,
         secondaryImageDescription,
       } = req.body;
+
+      const partner = await Partner.findByPk(id);
+
       const isLocalNews =
         req.body.isLocalNews === "true"
           ? true
           : req.body.isLocalNews === "false"
           ? false
           : partner.isLocalNews;
-
-      const partner = await Partner.findByPk(id);
 
       if (!partner) {
         return res
@@ -353,7 +366,9 @@ const partnerController = {
           partner.mainImage = mainURL;
         }
 
-        partner.mainImageDescription = mainImageDescription;
+        if (mainImageDescription !== undefined) {
+          partner.mainImageDescription = mainImageDescription;
+        }
       }
 
       //
@@ -375,7 +390,9 @@ const partnerController = {
           partner.secondaryImage = secondaryURL;
         }
 
-        partner.secondaryImageDescription = secondaryImageDescription;
+        if (secondaryImageDescription !== undefined) {
+          partner.secondaryImageDescription = secondaryImageDescription;
+        }
       }
 
       //

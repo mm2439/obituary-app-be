@@ -8,8 +8,6 @@ const authorization = require("../middlewares/authorization");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-const uploadFields = upload.fields([{ name: "picture", maxCount: 1 }]);
-
 router.post(
   "/",
   authenticationMiddleware,

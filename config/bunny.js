@@ -35,7 +35,7 @@ async function uploadBuffer(
     const req = https.request(options, (res) => {
       if (res.statusCode >= 200 && res.statusCode < 300) return resolve();
       let body = "";
-      res.on("data", (c) => (body += c));
+      res.on("data", (c) => (body = c));
       res.on("end", () =>
         reject(new Error(`Bunny upload failed ${res.statusCode}: ${body}`))
       );
@@ -50,13 +50,41 @@ async function uploadBuffer(
   return { storageUrl, cdnUrl };
 }
 
+/* --------------------------------------------------
+    EXTRACT CDN PATH FROM FULL URL
+---------------------------------------------------- */
+const extractCDNPath = (url) => {
+  if (!url) return null;
+  try {
+    const cdnHost = process.env.BUNNY_CDN_HOSTNAME;
+    const storageHost =
+      process.env.BUNNY_STORAGE_HOST || "storage.bunnycdn.com";
+    const zone = process.env.BUNNY_STORAGE_ZONE;
+
+    // Try CDN URL format
+    if (cdnHost && url.startsWith(`https://${cdnHost}/`)) {
+      return url.substring(`https://${cdnHost}/`.length);
+    }
+    // Try storage URL format
+    if (url.startsWith(`https://${storageHost}/${zone}/`)) {
+      return url.substring(`https://${storageHost}/${zone}/`.length);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 /* -------------------------------------------------------
     DELETE FILE FROM BUNNY STORAGE
 -------------------------------------------------------- */
 async function deleteFile(remotePath) {
   if (!remotePath) return;
 
-  const pathname = `/${encodeURIComponent(BUNNY_ZONE)}/${remotePath}`;
+  const pathname = `/${encodeURIComponent(BUNNY_ZONE)}/${remotePath
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
 
   const options = {
     host: BUNNY_HOST,
@@ -73,7 +101,7 @@ async function deleteFile(remotePath) {
         return resolve(true);
       }
       let body = "";
-      res.on("data", (c) => (body += c));
+      res.on("data", (c) => (body = c));
       res.on("end", () =>
         reject(new Error(`Bunny delete failed ${res.statusCode}: ${body}`))
       );
@@ -98,4 +126,10 @@ function publicUrl(remotePath) {
     : `https://${host}/${zone}/${remotePath}`;
 }
 
-module.exports = { uploadBuffer, deleteFile, buildRemotePath, publicUrl };
+module.exports = {
+  uploadBuffer,
+  deleteFile,
+  buildRemotePath,
+  publicUrl,
+  extractCDNPath,
+};
