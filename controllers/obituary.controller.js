@@ -41,6 +41,25 @@ const slugKeyFilter = (name) => {
     })
     .join("");
 };
+
+// Safely parse and validate funeralCemeteryId
+const safeParseFuneralCemeteryId = (funeralCemeteryId) => {
+  // Return null for empty string or undefined
+  if (funeralCemeteryId === "" || funeralCemeteryId === undefined || funeralCemeteryId === null) {
+    return null;
+  }
+  
+  // Attempt to parse as integer
+  const parsed = parseInt(funeralCemeteryId, 10);
+  
+  // Validate that it's a valid integer
+  if (Number.isNaN(parsed) || !Number.isInteger(parsed)) {
+    return null;
+  }
+  
+  return parsed;
+};
+
 const obituaryController = {
   createObituary: async (req, res) => {
     try {
@@ -118,7 +137,7 @@ const obituaryController = {
         deathDate,
         funeralLocation,
         funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
-        funeralCemeteryId: funeralCemeteryId === "" || funeralCemeteryId === undefined ? null : parseInt(funeralCemeteryId),
+        funeralCemeteryId: safeParseFuneralCemeteryId(funeralCemeteryId),
         funeralTimestamp: funeralTimestamp || null,
         events: JSON.parse(events || "[]"),
         refuseFlowersIcon: refuseFlowersIcon === true || refuseFlowersIcon === "true",
@@ -771,7 +790,7 @@ const obituaryController = {
     if (req.body.funeralCemetery !== undefined)
       fieldsToUpdate.funeralCemetery = req.body.funeralCemetery;
     if (req.body.funeralCemeteryId !== undefined)
-      fieldsToUpdate.funeralCemeteryId = req.body.funeralCemeteryId === "" || req.body.funeralCemeteryId === undefined ? null : parseInt(req.body.funeralCemeteryId);
+      fieldsToUpdate.funeralCemeteryId = safeParseFuneralCemeteryId(req.body.funeralCemeteryId);
     if (req.body.refuseFlowersIcon !== undefined)
       fieldsToUpdate.refuseFlowersIcon = req.body.refuseFlowersIcon === true || req.body.refuseFlowersIcon === "true";
     if (req.body.funeralTimestamp !== undefined)
