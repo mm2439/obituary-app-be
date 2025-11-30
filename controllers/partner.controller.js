@@ -3,12 +3,14 @@ const { Partner, validatePartner } = require("../models/partner.model");
 const { Category } = require("../models/category.model");
 const fs = require("fs");
 const path = require("path");
+const { sequelize } = require("../startup/db");
 const sharp = require("sharp");
 const PARTNER_FOLDER_UPLOAD = path.join(process.cwd(), "partnerUploads");
 const {
   uploadBuffer,
   buildRemotePath,
   deleteFile,
+  extractCDNPath,
 } = require("../config/bunny");
 
 const partnerController = {

@@ -35,7 +35,7 @@ async function uploadBuffer(
     const req = https.request(options, (res) => {
       if (res.statusCode >= 200 && res.statusCode < 300) return resolve();
       let body = "";
-      res.on("data", (c) => (body = c));
+      res.on("data", (c) => (body += c));
       res.on("end", () =>
         reject(new Error(`Bunny upload failed ${res.statusCode}: ${body}`))
       );
