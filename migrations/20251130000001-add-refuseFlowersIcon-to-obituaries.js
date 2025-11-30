@@ -2,15 +2,30 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn("obituaries", "refuseFlowersIcon", {
-      type: Sequelize.BOOLEAN,
-      allowNull: true,
-      defaultValue: false,
-    });
+    try {
+      const tableDescription = await queryInterface.describeTable("obituaries");
+      
+      if (!tableDescription.refuseFlowersIcon) {
+        await queryInterface.addColumn("obituaries", "refuseFlowersIcon", {
+          type: Sequelize.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
+        });
+      }
+    } catch (error) {
+      // Column might already exist, which is fine
+      if (!error.message.includes('Duplicate column name')) {
+        throw error;
+      }
+    }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn("obituaries", "refuseFlowersIcon");
+    const tableDescription = await queryInterface.describeTable("obituaries");
+    
+    if (tableDescription.refuseFlowersIcon) {
+      await queryInterface.removeColumn("obituaries", "refuseFlowersIcon");
+    }
   },
 };
 
