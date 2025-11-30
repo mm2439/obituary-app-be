@@ -105,7 +105,7 @@ const validatePartner = (partner) => {
     isLocalNews: Joi.boolean().optional(),
     city: Joi.string().optional(),
     region: Joi.string().optional(),
-    website: Joi.string().uri().optional(),
+    website: Joi.string().optional(),
     mainImageDescription: Joi.string().optional(),
     secondaryImageDescription: Joi.string().optional(),
   });
