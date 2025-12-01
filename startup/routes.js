@@ -24,8 +24,11 @@ const company = require("../routers/company.route");
 const card = require("../routers/card.route");
 const admin = require("../routers/admin.route");
 const sitemap = require("../routers/sitemap.route");
+const payment = require("../routers/payment.route");
 
 const report = require("../routers/report.route");
+const partner = require("../routers/partner.route");
+const category = require("../routers/category.route");
 
 const corsOptions = {
   origin:
@@ -92,5 +95,8 @@ module.exports = (app) => {
   app.use("/api/card", card);
   app.use("/api/admin", admin);
   app.use("/api/sitemap", sitemap);
+  app.use("/api/payment", payment);
+  app.use("/api/partner", partner);
+  app.use("/api/category", category);
   app.use(error);
 };

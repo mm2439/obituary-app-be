@@ -16,6 +16,7 @@ const { FAQ } = require("./faq.model");
 const { FloristSlide } = require("./florist_slide.model");
 const { FloristShop } = require("./florist_shop.model");
 const { KeeperNotification } = require("./keeper_notification");
+const { Order } = require("./order.model");
 
 User.hasMany(RefreshToken, { foreignKey: "userId" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
@@ -89,16 +90,20 @@ KeeperNotification.belongsTo(User, { foreignKey: "receiver", as: "Receiver" });
 KeeperNotification.belongsTo(Obituary, { foreignKey: "obituaryId", as: "Obituary" });
 Obituary.hasMany(KeeperNotification, { foreignKey: "obituaryId", as: "Notifications" });
 
+// Order associations
+User.hasMany(Order, { foreignKey: "userId" });
+Order.belongsTo(User, { foreignKey: "userId" });
+
 module.exports = {
   User,
   RefreshToken,
   Obituary,
   Event,
   Photo,
-
   MemoryLog,
   Keeper,
   SorrowBook,
   Dedication,
   Condolence,
+  Order,
 };
