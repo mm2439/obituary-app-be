@@ -10,7 +10,7 @@ router.post(
   authorization("SUPERADMIN"),
   categoryController.createCategory
 );
-router.get("/", authenticationMiddleware, categoryController.getAllCategories);
+router.get("/", categoryController.getAllCategories);
 router.delete(
   "/:id",
   authenticationMiddleware,
@@ -23,10 +23,6 @@ router.patch(
   authorization("SUPERADMIN"),
   categoryController.updateCategory
 );
-router.get(
-  "/:id",
-  authenticationMiddleware,
-  categoryController.getCategoryById
-);
+router.get("/:id", categoryController.getCategoryById);
 
 module.exports = router;

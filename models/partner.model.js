@@ -14,17 +14,6 @@ Partner.init(
       autoIncrement: true,
       allowNull: false,
     },
-
-    companyId: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: "companypages",
-        key: "id",
-      },
-      onDelete: "CASCADE",
-      onUpdate: "RESTRICT",
-    },
     isLocalNews: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -36,7 +25,8 @@ Partner.init(
     },
     notes: {
       type: DataTypes.STRING(250),
-      allowNull: false,
+      allowNull: true,
+      defaultValue: "",
     },
     city: {
       type: DataTypes.STRING,
@@ -53,6 +43,7 @@ Partner.init(
     mainImage: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue: "",
     },
     secondaryImage: {
       type: DataTypes.STRING,
@@ -61,6 +52,7 @@ Partner.init(
     mainImageDescription: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue: "",
     },
     secondaryImageDescription: {
       type: DataTypes.STRING,
@@ -99,15 +91,14 @@ Partner.init(
 const validatePartner = (partner) => {
   const partnerSchema = Joi.object({
     name: Joi.string().max(250).required(),
-    notes: Joi.string().max(250).required(),
+    notes: Joi.string().max(250).allow("").optional(),
     category: Joi.number().integer().required(),
-    companyId: Joi.number().integer().optional(),
     isLocalNews: Joi.boolean().optional(),
-    city: Joi.string().optional(),
-    region: Joi.string().optional(),
-    website: Joi.string().optional(),
-    mainImageDescription: Joi.string().optional(),
-    secondaryImageDescription: Joi.string().optional(),
+    city: Joi.string().required(),
+    region: Joi.string().required(),
+    website: Joi.string().allow("").optional(),
+    mainImageDescription: Joi.string().required(),
+    secondaryImageDescription: Joi.string().allow("").optional(),
   });
 
   return partnerSchema.validate(partner);
