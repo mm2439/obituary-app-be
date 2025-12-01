@@ -24,11 +24,7 @@ router.get("/local-news-partner", partnerController.getLocalNewsPartner);
 
 router.get("/regional-partner/:region", partnerController.getRegionalPartner);
 
-router.get(
-  "/category-partner/:category",
-  authenticationMiddleware,
-  partnerController.getCategoryPartner
-);
+router.get("/category-partner/:category", partnerController.getCategoryPartner);
 
 router.get("/city-partner/:city", partnerController.getCityPartner);
 router.delete(
