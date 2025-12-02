@@ -51,7 +51,7 @@ Partner.init(
     },
     mainImageDescription: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: false,
       defaultValue: "",
     },
     secondaryImageDescription: {
@@ -94,8 +94,8 @@ const validatePartner = (partner) => {
     notes: Joi.string().max(250).allow("").optional(),
     category: Joi.number().integer().required(),
     isLocalNews: Joi.boolean().optional(),
-    city: Joi.string().required(),
-    region: Joi.string().required(),
+    city: Joi.string().allow("").optional(),
+    region: Joi.string().allow("").optional(),
     website: Joi.string().allow("").optional(),
     mainImageDescription: Joi.string().required(),
     secondaryImageDescription: Joi.string().allow("").optional(),
