@@ -356,10 +356,6 @@ const partnerController = {
         if (mainURL) {
           partner.mainImage = mainURL;
         }
-
-        if (mainImageDescription !== undefined) {
-          partner.mainImageDescription = mainImageDescription;
-        }
       }
 
       //
@@ -380,10 +376,6 @@ const partnerController = {
         if (secondaryURL) {
           partner.secondaryImage = secondaryURL;
         }
-
-        if (secondaryImageDescription !== undefined) {
-          partner.secondaryImageDescription = secondaryImageDescription;
-        }
       }
 
       //
@@ -391,6 +383,14 @@ const partnerController = {
       // Update Other Fields
       // -----------------------
       //
+      if (mainImageDescription !== undefined) {
+        partner.mainImageDescription =
+          mainImageDescription ?? partner.mainImageDescription;
+      }
+      if (secondaryImageDescription !== undefined) {
+        partner.secondaryImageDescription =
+          secondaryImageDescription ?? partner.secondaryImageDescription;
+      }
       partner.name = name ?? partner.name;
       partner.notes = notes ?? partner.notes;
       partner.category = category ?? partner.category;
