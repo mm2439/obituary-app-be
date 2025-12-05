@@ -18,35 +18,15 @@ router.post(
   ]),
   partnerController.createPartner
 );
-router.get("/", authenticationMiddleware, partnerController.getAllPartners);
-router.get(
-  "/all",
-  authenticationMiddleware,
-  partnerController.getAllPartnersPlusLocals
-);
-router.get(
-  "/local-news-partner",
-  authenticationMiddleware,
-  partnerController.getLocalNewsPartner
-);
+router.get("/", partnerController.getAllPartners);
+router.get("/all", partnerController.getAllPartnersPlusLocals);
+router.get("/local-news-partner", partnerController.getLocalNewsPartner);
 
-router.get(
-  "/regional-partner/:region",
-  authenticationMiddleware,
-  partnerController.getRegionalPartner
-);
+router.get("/regional-partner/:region", partnerController.getRegionalPartner);
 
-router.get(
-  "/category-partner/:category",
-  authenticationMiddleware,
-  partnerController.getCategoryPartner
-);
+router.get("/category-partner/:category", partnerController.getCategoryPartner);
 
-router.get(
-  "/city-partner/:city",
-  authenticationMiddleware,
-  partnerController.getCityPartner
-);
+router.get("/city-partner/:city", partnerController.getCityPartner);
 router.delete(
   "/:id",
   authenticationMiddleware,
@@ -63,6 +43,6 @@ router.put(
   ]),
   partnerController.updatePartner
 );
-router.get("/:id", authenticationMiddleware, partnerController.getPartnerById);
+router.get("/:id", partnerController.getPartnerById);
 
 module.exports = router;

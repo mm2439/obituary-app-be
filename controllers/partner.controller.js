@@ -69,7 +69,7 @@ const partnerController = {
 
         const optimizedBuffer = await sharp(file.buffer)
           .resize(320, 340, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
+          .toFormat("avif", { quality: 75 })
           .toBuffer();
 
         const remotePath = buildRemotePath(
@@ -318,7 +318,7 @@ const partnerController = {
         // Convert to AVIF
         const optimizedBuffer = await sharp(file.buffer)
           .resize(320, 340, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
+          .toFormat("avif", { quality: 75 })
           .toBuffer();
 
         // Storage path in Bunny
@@ -356,10 +356,6 @@ const partnerController = {
         if (mainURL) {
           partner.mainImage = mainURL;
         }
-
-        if (mainImageDescription !== undefined) {
-          partner.mainImageDescription = mainImageDescription;
-        }
       }
 
       //
@@ -380,10 +376,6 @@ const partnerController = {
         if (secondaryURL) {
           partner.secondaryImage = secondaryURL;
         }
-
-        if (secondaryImageDescription !== undefined) {
-          partner.secondaryImageDescription = secondaryImageDescription;
-        }
       }
 
       //
@@ -391,6 +383,14 @@ const partnerController = {
       // Update Other Fields
       // -----------------------
       //
+      if (mainImageDescription !== undefined) {
+        partner.mainImageDescription =
+          mainImageDescription ?? partner.mainImageDescription;
+      }
+      if (secondaryImageDescription !== undefined) {
+        partner.secondaryImageDescription =
+          secondaryImageDescription ?? partner.secondaryImageDescription;
+      }
       partner.name = name ?? partner.name;
       partner.notes = notes ?? partner.notes;
       partner.category = category ?? partner.category;
