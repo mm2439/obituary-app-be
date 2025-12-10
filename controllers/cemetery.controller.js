@@ -79,8 +79,9 @@ const cemeteryController = {
 
     fetchCemeteries: async (req, res) => {
         try {
+            // Oldest (first entered) cemeteries at the top for easier access to major sites
             const data = await Cemeteries.findAll({
-                order: [['id', 'DESC']]
+                order: [['id', 'ASC']]
             });
             return res.status(httpStatus.OK).json({ message: `Cemeteries fetched Successfully`, data })
         } catch (error) {
