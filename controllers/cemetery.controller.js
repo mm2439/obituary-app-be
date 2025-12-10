@@ -7,10 +7,14 @@ const { uploadBuffer, publicUrl, buildRemotePath } = require("../config/bunny");
 const regionsAndCities = require("../utils/regionAndCities");
 
 // Helper function to get region from city
+// Uses case-insensitive comparison to handle any capitalization differences
 const getRegionFromCity = (city) => {
     if (!city) return null;
+    const normalizedCity = city.trim();
     for (const [region, cities] of Object.entries(regionsAndCities)) {
-        if (cities.includes(city)) {
+        // Case-insensitive comparison to handle capitalization differences
+        const found = cities.find(c => c.trim().toLowerCase() === normalizedCity.toLowerCase());
+        if (found) {
             return region;
         }
     }
