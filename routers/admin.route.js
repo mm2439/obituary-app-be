@@ -4,9 +4,18 @@ const adminAuth = require("../middlewares/adminAuth");
 const router = express.Router();
 const contactController = require("../controllers/contact.controller");
 const sponsorsController = require("../controllers/sponsor.controller");
-const { sponsorFields } = require("../config/upload");
-// Admin routes - all protected with authentication and admin role
+const cemeteryController = require("../controllers/cemetery.controller");
+const { sponsorFields, cemeteryFields } = require("../config/upload");
+// Routes that require authentication
 router.use(authenticationMiddleware);
+
+// Cemetery routes are available to Company authenticated user
+router.get("/cemetery-list", cemeteryController.fetchCemeteries);
+router.post("/create-cemetery", [cemeteryFields], cemeteryController.createCemetery);
+router.post("/edit-cemetery/:id", [cemeteryFields], cemeteryController.editCemetery);
+router.delete("/delete-cemetery/:id", cemeteryController.deleteCemetery);
+
+// Admin routes - protected with admin role
 router.use(adminAuth);
 
 // Get all users (admin only)

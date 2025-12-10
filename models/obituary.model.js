@@ -69,6 +69,16 @@ Obituary.init(
       onDelete: "CASCADE",
       onUpdate: "RESTRICT",
     },
+    funeralCemeteryId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "cemeteries",
+        key: "id",
+      },
+      onDelete: "CASCADE",
+      onUpdate: "RESTRICT",
+    },
     funeralTimestamp: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -76,6 +86,11 @@ Obituary.init(
     events: {
       type: DataTypes.JSON,
       allowNull: true,
+    },
+    refuseFlowersIcon: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
     },
     deathReportExists: {
       type: DataTypes.BOOLEAN,
@@ -174,8 +189,10 @@ const validateObituary = (obituary) => {
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),
     funeralCemetery: Joi.string().max(100).allow(null, "").optional(),
+    funeralCemeteryId: Joi.string().max(100).allow(null, "").optional(),
     funeralTimestamp: Joi.date().allow(null, "").optional(),
     events: Joi.any().optional(),
+    refuseFlowersIcon: Joi.boolean().optional(),
     deathReportExists: Joi.boolean().required(),
     deathReport: Joi.any().allow(null, "").optional(),
     obituary: Joi.string().required(),
