@@ -98,10 +98,26 @@ const photoController = {
           timestampName(fileName)
         );
 
-        const optimizedBuffer = await sharp(pictureFile.buffer)
+        const orientation = (req.body?.orientation || "default").toString();
+
+        let optimizedBuffer;
+        if (orientation === "portrait") {
+          optimizedBuffer = await sharp(pictureFile.buffer)
+            .resize({ width: 320, height: 420, fit: "cover", position: "centre" })
+            .toFormat("avif", { quality: 60 })
+            .toBuffer();
+        } else if (orientation === "landscape") {
+          optimizedBuffer = await sharp(pictureFile.buffer)
+            .resize({ width: 520, height: 420, fit: "cover", position: "centre" })
+            .toFormat("avif", { quality: 60 })
+            .toBuffer();
+        } else {
+          // legacy default (auto/default): 176x176 cover crop
+          optimizedBuffer = await sharp(pictureFile.buffer)
           .resize(176, 176, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toBuffer();
+        }
 
         await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
 
