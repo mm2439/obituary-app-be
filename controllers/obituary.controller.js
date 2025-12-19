@@ -248,6 +248,32 @@ const obituaryController = {
           [Op.gte]: threeWeeksAgo,
         };
       }
+      
+      // Exclude deleted obituaries from all queries
+      // Build the where clause properly to avoid conflicts
+      const baseWhere = { ...whereClause };
+      // Remove Op.or and Op.and if they exist to rebuild properly
+      const nameOr = baseWhere[Op.or];
+      delete baseWhere[Op.or];
+      delete baseWhere[Op.and];
+      
+      // Build final where clause with deleted check
+      const finalWhere = {
+        ...baseWhere,
+        [Op.and]: [
+          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          {
+            [Op.or]: [
+              { isDeleted: false },
+              { isDeleted: null }
+            ]
+          },
+          {
+            deletedAt: null
+          }
+        ]
+      };
+
       let totalObit = {
         count: 0,
         rows: []
@@ -257,15 +283,18 @@ const obituaryController = {
           { userId }, { city }
         ] : [{ city }]
         const myClause = {
-          ...whereClause, [Op.or]: arr
+          ...finalWhere,
+          [Op.and]: [
+            ...finalWhere[Op.and],
+            { [Op.or]: arr }
+          ]
         };
+        // Remove userId and city from base level since they're in Op.or now
         delete myClause.userId;
         delete myClause.city;
 
         const myobituaries = await Obituary.findAndCountAll({
-          where: {
-            ...myClause,
-          },
+          where: myClause,
           order: [["createdTimestamp", "DESC"]],
           include: [
             {
@@ -286,9 +315,7 @@ const obituaryController = {
       }
       else {
         const obituaries = await Obituary.findAndCountAll({
-          where: {
-            ...whereClause,
-          },
+          where: finalWhere,
           order: [["createdTimestamp", "DESC"]],
           include: [
             {
