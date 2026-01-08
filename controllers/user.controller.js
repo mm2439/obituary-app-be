@@ -67,14 +67,15 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
     }
 
     res.status(httpStatus.OK).json(user.toSafeObject());
   },
 
   updateMyUser: async (req, res) => {
-
     const {
       email,
       company,
@@ -93,7 +94,9 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
     }
 
     if (email && email !== user.email) {
@@ -132,14 +135,18 @@ const userController = {
     });
   },
   updateMyUser: async (req, res) => {
-
     const {
       email,
       company,
       region,
       city,
       secondaryCity,
-      thirdCity, fourthCity, fifthCity, sixthCity, seventhCity, eightCity,
+      thirdCity,
+      fourthCity,
+      fifthCity,
+      sixthCity,
+      seventhCity,
+      eightCity,
       sendGiftsPermission,
       sendMobilePermission,
       createObitaryPermission,
@@ -151,7 +158,9 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
     }
 
     if (email && email !== user.email) {
@@ -264,7 +273,9 @@ const userController = {
     if (!user) {
       console.warn("User not found");
 
-      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
     }
 
     await user.destroy();
@@ -279,7 +290,9 @@ const userController = {
 
     if (!user) {
       console.warn("User not found");
-      return res.status(httpStatus.NOT_FOUND).json({ error: "Podatki se je ujemajo" });
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
     }
 
     const { slugKey } = req.body;
@@ -426,27 +439,27 @@ const userController = {
 
     let allCards = [];
     if (userCards && userCards?.length) {
-      await Promise.all(userCards.map(async (item) => {
-        const obit = await Obituary.findByPk(item.obituaryId, {
-          attributes: ["userId", "name", "sirName"],
-          raw: true
-        });
-        const sender = await User.findByPk(item.sender, { raw: true });
-        if (obit) {
-          const user = await User.findByPk(obit.userId, { raw: true });
-          allCards.push({
-            ...item,
-            obit,
-            user,
-            senderUser: sender
-          })
-        }
-      }));
+      await Promise.all(
+        userCards.map(async (item) => {
+          const obit = await Obituary.findByPk(item.obituaryId, {
+            attributes: ["userId", "name", "sirName"],
+            raw: true,
+          });
+          const sender = await User.findByPk(item.sender, { raw: true });
+          if (obit) {
+            const user = await User.findByPk(obit.userId, { raw: true });
+            allCards.push({
+              ...item,
+              obit,
+              user,
+              senderUser: sender,
+            });
+          }
+        })
+      );
     }
 
-    res
-      .status(httpStatus.OK)
-      .json({ message: "Uspešno", userCards: allCards });
+    res.status(httpStatus.OK).json({ message: "Uspešno", userCards: allCards });
   },
 
   downloadCard: async (req, res) => {
@@ -513,23 +526,23 @@ const userController = {
     const userId = req.user.id;
     let notifications = await KeeperNotification.findAll({
       where: {
-        receiver: userId
+        receiver: userId,
       },
       include: [
         {
           model: User,
-          as: "Sender"
+          as: "Sender",
         },
         {
           model: User,
-          as: "Receiver"
+          as: "Receiver",
         },
         {
           model: Obituary,
           as: "Obituary",
           attributes: ["userId", "name", "sirName"],
         },
-      ]
+      ],
     });
 
     res.status(httpStatus.OK).json({ message: "Uspešno", notifications });
@@ -556,15 +569,22 @@ const userController = {
 
     let whereClause = {};
 
-    if (region && city == 'null') {
+    if (region && city == "null") {
       whereClause.regions = {
-        [Op.like]: `%${region}%`
+        [Op.like]: `%${region}%`,
       };
     }
 
-    if (city != 'null') {
+    if (city && city != "null") {
+      // Create a fuzzy pattern: replace any sequence of non-alphanumeric chars with %
+      // e.g. "Dobrova - Polhov Gradec" -> "Dobrova%Polhov%Gradec"
+      const cityPattern = city
+        .split(/[^a-zA-Z0-9čšžđćČŠŽĐĆ]+/)
+        .filter(Boolean)
+        .join("%");
+
       whereClause.cities = {
-        [Op.like]: `%${city}%`
+        [Op.like]: `%${cityPattern}%`,
       };
     }
 
@@ -574,7 +594,7 @@ const userController = {
     whereClause.page = page;
 
     let data = await Sponsors.findAll({
-      where: whereClause
+      where: whereClause,
     });
 
     res.status(httpStatus.OK).json({ message: "Uspešno", data });
