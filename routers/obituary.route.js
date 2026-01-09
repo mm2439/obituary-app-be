@@ -17,6 +17,7 @@ router.post(
 );
 
 router.get("/", obituaryController.getObituary);
+router.get("/paginated", obituaryController.getObituariesPaginated);
 router.get("/company-page", obituaryController.getCompanyPageObituary);
 router.get("/funerals", obituaryController.getFunerals);
 router.get("/company-page/funerals", obituaryController.getCompanyPageFunerals);
