@@ -1403,6 +1403,12 @@ const obituaryController = {
   getCompanyObituaries: async (req, res) => {
     try {
       const userId = req.user.id;
+      const { page = 1, limit = 500 } = req.query;
+
+      const pageNum = parseInt(page, 10) || 1;
+      const limitNum = parseInt(limit, 10) || 500;
+      const offset = (pageNum - 1) * limitNum;
+
       const startOfTheMonth = moment().startOf("month").toDate();
       const endOfTheMonth = moment().endOf("month").toDate();
       const startOfLastMonth = moment()
@@ -1413,11 +1419,32 @@ const obituaryController = {
         .subtract(1, "month")
         .endOf("month")
         .toDate();
-      const obituaries = await Obituary.findAll({
+
+      // Get counts for statistics
+      const currentMonthCount = await Obituary.count({
+        where: {
+          userId,
+          createdTimestamp: { [Op.between]: [startOfTheMonth, endOfTheMonth] },
+        },
+      });
+
+      const lastMonthCount = await Obituary.count({
+        where: {
+          userId,
+          createdTimestamp: {
+            [Op.between]: [startOfLastMonth, endOfLastMonth],
+          },
+        },
+      });
+
+      // Get paginated obituaries
+      const { count, rows: obituaries } = await Obituary.findAndCountAll({
         where: {
           userId: userId,
         },
         order: [["createdTimestamp", "DESC"]],
+        limit: limitNum,
+        offset: offset,
         include: [
           {
             model: Keeper,
@@ -1426,35 +1453,23 @@ const obituaryController = {
           },
         ],
       });
+
       const modifiedObituaries = obituaries.map((obituary) => {
         return {
           ...obituary.toJSON(),
           hasKeeper: obituary.Keepers && obituary.Keepers.length > 0,
         };
       });
-      function getTotal(entries) {
-        let currentMonthCount = 0;
-        let lastMonthCount = 0;
-        if (entries.length === 0) {
-          return { currentMonthCount, lastMonthCount };
-        }
-        entries.forEach((entry) => {
-          const createdDate = moment(entry.createdTimestamp);
-          if (
-            createdDate.isBetween(startOfTheMonth, endOfTheMonth, "day", "[]")
-          ) {
-            currentMonthCount++;
-          } else if (
-            createdDate.isBetween(startOfLastMonth, endOfLastMonth, "day", "[]")
-          ) {
-            lastMonthCount++;
-          }
-        });
-        return { currentMonthCount, lastMonthCount };
-      }
+
+      const totalPages = Math.ceil(count / limitNum);
+
       res.status(httpStatus.OK).json({
+        total: count,
+        totalPages,
+        currentPage: pageNum,
+        limit: limitNum,
         obituaries: modifiedObituaries,
-        data: getTotal(obituaries),
+        data: { currentMonthCount, lastMonthCount },
       });
     } catch (error) {
       console.error(error);
