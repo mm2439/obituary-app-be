@@ -4,6 +4,7 @@ const { User } = require("../models/user.model");
 const { Op } = require("sequelize");
 const path = require("path");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const emailService = require("../utils/emailService");
 
 const guardianController = {
   submitGuardianRequest: async (req, res) => {
@@ -50,6 +51,21 @@ const guardianController = {
       documentUrl = encodeURI(publicUrl(remotePath));
       guardian.document = documentUrl;
       await guardian.save();
+
+      // Send emails
+      try {
+        const user = await User.findByPk(userId);
+        if (user && user.email) {
+          await emailService.sendUserGuardianRequestConfirmation(
+            user.email,
+            guardian,
+          );
+        }
+        await emailService.sendAdminNewGuardianRequest(guardian);
+      } catch (emailError) {
+        console.error("Error sending guardian request emails:", emailError);
+        // We don't want to fail the whole request if email fails
+      }
 
       res.status(httpStatus.CREATED).json({
         message: "Guardian request submitted successfully",
@@ -129,6 +145,19 @@ const guardianController = {
       guardian.status = status;
       guardian.modifiedTimestamp = new Date();
       await guardian.save();
+
+      // Send status update email
+      try {
+        const user = await User.findByPk(guardian.userId);
+        if (user && user.email) {
+          await emailService.sendUserGuardianStatusUpdate(user.email, guardian);
+        }
+      } catch (emailError) {
+        console.error(
+          "Error sending guardian status update email:",
+          emailError,
+        );
+      }
 
       res.status(httpStatus.OK).json({
         message: "Guardian request status updated successfully",
