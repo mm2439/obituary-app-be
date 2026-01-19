@@ -9,7 +9,7 @@ const emailService = require("../utils/emailService");
 const guardianController = {
   submitGuardianRequest: async (req, res) => {
     try {
-      const { name, relationship } = req.body;
+      const { name, relationship, deceasedName, deceasedSirName } = req.body;
       const userId = req.user.id;
 
       if (!name || !relationship) {
@@ -28,6 +28,8 @@ const guardianController = {
         userId,
         name,
         relationship,
+        deceasedName,
+        deceasedSirName,
       });
 
       let documentUrl = null;

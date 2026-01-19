@@ -38,6 +38,14 @@ Guardian.init(
       defaultValue: "pending",
       allowNull: false,
     },
+    deceasedName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    deceasedSirName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
