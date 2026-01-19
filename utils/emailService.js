@@ -28,6 +28,25 @@ const sendEmail = async (to, subject, html) => {
   }
 };
 
+const escapeHtml = (unsafe) => {
+  if (typeof unsafe !== "string") return unsafe;
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+const isValidUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    return ["http:", "https:"].includes(parsed.protocol);
+  } catch (e) {
+    return false;
+  }
+};
+
 const emailService = {
   sendAdminNewGuardianRequest: async (guardianData) => {
     const subject = "Nova prošnje za skrbništvo";
@@ -38,23 +57,27 @@ const emailService = {
         guardianData.document.toLowerCase().endsWith(".png") ||
         guardianData.document.toLowerCase().endsWith(".webp"));
 
-    const deceasedFullName =
-      `${guardianData.deceasedName || ""} ${guardianData.deceasedSirName || ""}`.trim();
+    const deceasedFullName = escapeHtml(
+      `${guardianData.deceasedName || ""} ${guardianData.deceasedSirName || ""}`.trim(),
+    );
+
+    const safeDocumentUrl =
+      isValidUrl(guardianData.document) ? guardianData.document : "#";
 
     const html = `
       <h1>Nova prošnje za skrbništvo</h1>
       <p>Nova prošnja za Skrbnika: <strong>${deceasedFullName}</strong>.</p>
       <ul>
-        <li><strong>Ime:</strong> ${guardianData.name}</li>
-        <li><strong>Sorodstvo:</strong> ${guardianData.relationship}</li>
-        <li><strong>ID zahtevka: </strong> ${guardianData.id}</li>
+        <li><strong>Ime:</strong> ${escapeHtml(guardianData.name)}</li>
+        <li><strong>Sorodstvo:</strong> ${escapeHtml(guardianData.relationship)}</li>
+        <li><strong>ID zahtevka: </strong> ${escapeHtml(guardianData.id)}</li>
       </ul>
-      <p><strong>Dokument:</strong> <a href="${guardianData.document}" target="_blank">Poglej dokument</a></p>
+      <p><strong>Dokument:</strong> <a href="${escapeHtml(safeDocumentUrl)}" target="_blank">Poglej dokument</a></p>
       ${
-        isImage ?
+        isImage && safeDocumentUrl !== "#" ?
           `
         <p><strong>Predogled:</strong></p>
-        <img src="${guardianData.document}" alt="Dokument" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;" />
+        <img src="${escapeHtml(safeDocumentUrl)}" alt="Dokument" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; padding: 5px;" />
       `
         : ""
       }
@@ -65,8 +88,9 @@ const emailService = {
 
   sendUserGuardianRequestConfirmation: async (userEmail, guardianData) => {
     const subject = "Potrdilo o prejemu zahtevka za skrbništvo";
-    const deceasedFullName =
-      `${guardianData.deceasedName || ""} ${guardianData.deceasedSirName || ""}`.trim();
+    const deceasedFullName = escapeHtml(
+      `${guardianData.deceasedName || ""} ${guardianData.deceasedSirName || ""}`.trim(),
+    );
     const html = `
       <h1>Pozdravljeni,</h1>
       <p>Najprej iskreno sožalje ob vaši boleči izgubi. </p>
@@ -89,8 +113,9 @@ const emailService = {
       pending: "v čakanju",
     };
 
-    const deceasedFullName =
-      `${guardianData.deceasedName || ""} ${guardianData.deceasedSirName || ""}`.trim();
+    const deceasedFullName = escapeHtml(
+      `${guardianData.deceasedName || ""} ${guardianData.deceasedSirName || ""}`.trim(),
+    );
 
     if (guardianData.status === "approved") {
       const subject = `Dobrodošli kot Skrbnik spominske strani ${deceasedFullName}`;

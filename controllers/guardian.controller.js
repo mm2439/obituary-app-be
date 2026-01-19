@@ -6,33 +6,40 @@ const path = require("path");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
 const emailService = require("../utils/emailService");
 
+const { sequelize } = require("../startup/db");
+
 const guardianController = {
   submitGuardianRequest: async (req, res) => {
+    const t = await sequelize.transaction();
     try {
       const { name, relationship, deceasedName, deceasedSirName } = req.body;
       const userId = req.user.id;
 
       if (!name || !relationship) {
+        await t.rollback();
         return res
           .status(httpStatus.BAD_REQUEST)
           .json({ error: "Name and relationship are required" });
       }
 
       if (!req.files || !req.files.document) {
+        await t.rollback();
         return res
           .status(httpStatus.BAD_REQUEST)
           .json({ error: "Document is required" });
       }
 
-      const guardian = await Guardian.create({
-        userId,
-        name,
-        relationship,
-        deceasedName,
-        deceasedSirName,
-      });
+      const guardian = await Guardian.create(
+        {
+          userId,
+          name,
+          relationship,
+          deceasedName,
+          deceasedSirName,
+        },
+        { transaction: t },
+      );
 
-      let documentUrl = null;
       const file = req.files.document[0];
       const ext = path.extname(file.originalname) || ".jpg";
       const base = path.parse(file.originalname).name;
@@ -50,11 +57,13 @@ const guardianController = {
         file.mimetype || "image/jpeg",
       );
 
-      documentUrl = encodeURI(publicUrl(remotePath));
+      const documentUrl = encodeURI(publicUrl(remotePath));
       guardian.document = documentUrl;
-      await guardian.save();
+      await guardian.save({ transaction: t });
 
-      // Send emails
+      await t.commit();
+
+      // Send emails after transaction commit
       try {
         const user = await User.findByPk(userId);
         if (user && user.email) {
@@ -74,6 +83,7 @@ const guardianController = {
         guardian,
       });
     } catch (error) {
+      if (t) await t.rollback();
       console.error("Error submitting guardian request:", error);
       res
         .status(httpStatus.INTERNAL_SERVER_ERROR)
