@@ -1,11 +1,9 @@
 const { Model, DataTypes } = require("sequelize");
-const Joi = require("joi");
-
 const { sequelize } = require("../startup/db");
 
-class Candle extends Model {}
+class Guardian extends Model {}
 
-Candle.init(
+Guardian.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -13,20 +11,9 @@ Candle.init(
       autoIncrement: true,
       allowNull: false,
     },
-
-    expiry: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-
-    ipAddress: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-    },
-
     userId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: "users",
         key: "id",
@@ -34,17 +21,31 @@ Candle.init(
       onDelete: "CASCADE",
       onUpdate: "RESTRICT",
     },
-    obituaryId: {
-      type: DataTypes.INTEGER,
+    name: {
+      type: DataTypes.STRING(100),
       allowNull: false,
-      references: {
-        model: "obituaries",
-        key: "id",
-      },
-      onDelete: "CASCADE",
-      onUpdate: "CASCADE",
     },
-
+    relationship: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    document: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.ENUM("pending", "approved", "rejected"),
+      defaultValue: "pending",
+      allowNull: false,
+    },
+    deceasedName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    deceasedSirName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
     createdTimestamp: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -58,16 +59,10 @@ Candle.init(
   },
   {
     sequelize,
-    modelName: "Candle",
-    tableName: "candles",
+    modelName: "Guardian",
+    tableName: "guardians",
     timestamps: false,
   },
 );
 
-const validateCandle = (candle) => {
-  const candleSchema = Joi.object({});
-
-  return candleSchema.validate(candle);
-};
-
-module.exports = { Candle, validateCandle };
+module.exports = { Guardian };
