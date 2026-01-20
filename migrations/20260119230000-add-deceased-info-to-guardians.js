@@ -2,18 +2,18 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn("guardians", "deceasedName", {
+    await queryInterface.addColumn("keepers", "deceasedName", {
       type: Sequelize.STRING(100),
       allowNull: true,
     });
-    await queryInterface.addColumn("guardians", "deceasedSirName", {
+    await queryInterface.addColumn("keepers", "deceasedSirName", {
       type: Sequelize.STRING(100),
       allowNull: true,
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn("guardians", "deceasedName");
-    await queryInterface.removeColumn("guardians", "deceasedSirName");
+    await queryInterface.removeColumn("keepers", "deceasedName");
+    await queryInterface.removeColumn("keepers", "deceasedSirName");
   },
 };
