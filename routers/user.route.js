@@ -4,7 +4,7 @@ const adminAuth = require("../middlewares/adminAuth");
 
 const router = express.Router();
 const userController = require("../controllers/user.controller");
-const guardianController = require("../controllers/guardian.controller");
+const keeperController = require("../controllers/keeper.controller");
 const multer = require("multer");
 
 const storage = multer.memoryStorage();
@@ -29,7 +29,7 @@ const upload = multer({
 });
 
 const uploadFields = upload.fields([{ name: "picture", maxCount: 1 }]);
-const guardianUploadFields = upload.fields([{ name: "document", maxCount: 1 }]);
+const keeperUploadFields = upload.fields([{ name: "document", maxCount: 1 }]);
 router.post("/", userController.register);
 router.post("/create-superadmin", userController.createSuperadmin);
 router.get("/me", authenticationMiddleware, userController.getMyUser);
@@ -69,31 +69,27 @@ router.get(
 );
 router.get("/me/sponsors", userController.fetchSponsors);
 router.post(
-  "/become-guardian",
-  [authenticationMiddleware, guardianUploadFields],
-  guardianController.submitGuardianRequest,
+  "/become-keeper",
+  [authenticationMiddleware, keeperUploadFields],
+  keeperController.submitKeeperRequest,
 );
 
-/*
-
-
 router.get(
-  "/guardians",
+  "/keepers",
   [authenticationMiddleware, adminAuth],
-  guardianController.getGuardiansPaginated,
+  keeperController.getKeepersPaginated,
 );
 
 router.patch(
-  "/guardians/:id/status",
+  "/keepers/:id/status",
   [authenticationMiddleware, adminAuth],
-  guardianController.updateGuardianStatus,
+  keeperController.updateKeeperStatus,
 );
 
 router.delete(
-  "/guardians/:id",
+  "/keepers/:id",
   [authenticationMiddleware, adminAuth],
-  guardianController.deleteGuardianRequest,
+  keeperController.deleteKeeperRequest,
 );
-*/
 
 module.exports = router;
