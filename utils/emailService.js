@@ -70,7 +70,7 @@ const emailService = {
       <ul>
         <li><strong>Ime:</strong> ${escapeHtml(guardianData.name)}</li>
         <li><strong>Sorodstvo:</strong> ${escapeHtml(guardianData.relationship)}</li>
-        <li><strong>ID zahtevka: </strong> ${escapeHtml(guardianData.id)}</li>
+        <li><strong>ID zahtevka: </strong>  ${escapeHtml(guardianData.userId)}</li>
       </ul>
       <p><strong>Dokument:</strong> <a href="${escapeHtml(safeDocumentUrl)}" target="_blank">Poglej dokument</a></p>
       ${
@@ -81,7 +81,7 @@ const emailService = {
       `
         : ""
       }
-      <p>Prošnja je shranjena v adminu.</p>
+<p>Prošnja je shranjena v adminu.</p>
     `;
     return sendEmail(process.env.ADMIN_EMAIL, subject, html);
   },
