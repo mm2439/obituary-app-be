@@ -179,13 +179,13 @@ const keeperController = {
       // Send emails after transaction commit
       try {
         const user = await User.findByPk(userId);
-        // if (user && user.email) {
-        //   await emailService.sendUserGuardianRequestConfirmation(
-        //     user.email,
-        //     keeperApplication,
-        //   );
-        // }
-        // await emailService.sendAdminNewGuardianRequest(keeperApplication);
+        if (user && user.email) {
+          await emailService.sendUserGuardianRequestConfirmation(
+            user.email,
+            keeperApplication,
+          );
+        }
+        await emailService.sendAdminNewGuardianRequest(keeperApplication);
       } catch (emailError) {
         console.error("Error sending keeper request emails:", emailError);
         // We don't want to fail the whole request if email fails
