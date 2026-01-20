@@ -68,12 +68,14 @@ router.get(
   userController.getMyKeeperGifts,
 );
 router.get("/me/sponsors", userController.fetchSponsors);
-
 router.post(
   "/become-guardian",
   [authenticationMiddleware, guardianUploadFields],
   guardianController.submitGuardianRequest,
 );
+
+/*
+
 
 router.get(
   "/guardians",
@@ -92,5 +94,6 @@ router.delete(
   [authenticationMiddleware, adminAuth],
   guardianController.deleteGuardianRequest,
 );
+*/
 
 module.exports = router;

@@ -1,7 +1,9 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const { Op } = require("sequelize");
 const { User } = require("../models/user.model");
+const { Obituary } = require("../models/obituary.model");
 const { Keeper, validateKeeper } = require("../models/keeper.model");
+const emailService = require("../utils/emailService");
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
@@ -62,7 +64,7 @@ const keeperController = {
           receiver: userId,
           obituaryId,
           isNotified: false,
-          time
+          time,
         });
       }
 
@@ -77,12 +79,12 @@ const keeperController = {
         const remotePath = buildRemotePath(
           "keeperDocs",
           String(keeper.id),
-          fileName
+          fileName,
         );
         await uploadBuffer(
           file.buffer,
           remotePath,
-          file.mimetype || "application/pdf"
+          file.mimetype || "application/pdf",
         );
         deathReport = encodeURI(publicUrl(remotePath));
       }
@@ -96,8 +98,22 @@ const keeperController = {
         "approved",
         name,
         "Skrbnik",
-        time
+        time,
       );
+
+      // Send approval email
+      try {
+        const obituary = await Obituary.findByPk(obituaryId);
+        if (obituary) {
+          await emailService.sendUserGuardianStatusUpdate(email, {
+            status: "approved",
+            deceasedName: obituary.name,
+            deceasedSirName: obituary.sirName,
+          });
+        }
+      } catch (emailError) {
+        console.error("Error sending keeper approval email:", emailError);
+      }
 
       res
         .status(httpStatus.CREATED)
