@@ -144,15 +144,6 @@ const keeperController = {
           .status(httpStatus.BAD_REQUEST)
           .json({ error: "Document is required" });
       }
-      const keeperApplication = await KeeperApplication.create({
-        userId,
-        obituaryId,
-        userName: name,
-        relation: relationship,
-        deceasedName: `${deceasedName} ${deceasedSirName}`,
-        status: "pending",
-      });
-
       const file = req.files.document[0];
       const ext = path.extname(file.originalname) || ".jpg";
       const base = path.parse(file.originalname).name;
@@ -160,7 +151,7 @@ const keeperController = {
 
       const remotePath = buildRemotePath(
         "keeperDocs",
-        String(keeperApplication.userId),
+        String(userId),
         fileName,
       );
 
@@ -171,8 +162,16 @@ const keeperController = {
       );
 
       const documentUrl = encodeURI(publicUrl(remotePath));
-      keeperApplication.document = documentUrl;
-      await keeperApplication.save();
+
+      const keeperApplication = await KeeperApplication.create({
+        userId,
+        obituaryId,
+        userName: name,
+        relation: relationship,
+        deceasedName: `${deceasedName} ${deceasedSirName}`,
+        status: "pending",
+        document: documentUrl,
+      });
 
       // await t.commit();
 
@@ -303,17 +302,22 @@ const keeperController = {
           );
         }
 
-        if (user && user.email) {
-          await emailService.sendUserGuardianStatusUpdate(
-            user.email,
-            keeperApplication,
-          );
-        }
-      } else if (status === "rejected") {
-        if (user && user.email) {
-          await emailService.sendUserGuardianStatusUpdate(
-            user.email,
-            keeperApplication,
+        try {
+          if (status === "approved" && user && user.email) {
+            await emailService.sendUserGuardianStatusUpdate(
+              user.email,
+              keeperApplication,
+            );
+          } else if (status === "rejected" && user && user.email) {
+            await emailService.sendUserGuardianStatusUpdate(
+              user.email,
+              keeperApplication,
+            );
+          }
+        } catch (emailError) {
+          console.error(
+            `Error sending keeper status update email for user ${user?.id} and application ${keeperApplication.id}:`,
+            emailError,
           );
         }
       }
