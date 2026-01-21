@@ -375,7 +375,7 @@ const userController = {
         const remotePath = buildRemotePath(
           "companyUploads",
           String(companyPage.id),
-          fileName
+          fileName,
         );
         await uploadBuffer(avifBuffer, remotePath, "image/avif");
         logoPath = encodeURI(publicUrl(remotePath));
@@ -455,7 +455,7 @@ const userController = {
               senderUser: sender,
             });
           }
-        })
+        }),
       );
     }
 
@@ -564,20 +564,19 @@ const userController = {
     const city = req?.query?.city || null;
     const page = req?.query?.page || null;
 
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     let whereClause = {};
 
-    if (region && city == "null") {
+    if (region && (city === null || city === "null")) {
       whereClause.regions = {
-        [Op.like]: `%${region}%`,
+        [Op.like]: `%"${region}"%`,
       };
     }
 
-    if (city && city != "null") {
-      // Create a fuzzy pattern: replace any sequence of non-alphanumeric chars with %
-      // e.g. "Dobrova - Polhov Gradec" -> "Dobrova%Polhov%Gradec"
+    if (city && city !== null && city !== "null") {
       const cityPattern = city
         .split(/[^a-zA-Z0-9čšžđćČŠŽĐĆ]+/)
         .filter(Boolean)
@@ -592,6 +591,8 @@ const userController = {
     whereClause.endDate = { [Op.gte]: today };
 
     whereClause.page = page;
+
+    console.dir(whereClause, { depth: null });
 
     let data = await Sponsors.findAll({
       where: whereClause,
