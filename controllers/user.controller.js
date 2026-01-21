@@ -564,10 +564,6 @@ const userController = {
     const city = req?.query?.city || null;
     const page = req?.query?.page || null;
 
-    console.log("*** fetchSponsors called with:");
-    console.log("    region:", region);
-    console.log("    city:", city, "type:", typeof city);
-    console.log("    page:", page);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
