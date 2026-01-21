@@ -560,45 +560,52 @@ const userController = {
   },
 
   fetchSponsors: async (req, res) => {
-    const region = req?.query?.region || null;
-    const city = req?.query?.city || null;
-    const page = req?.query?.page || null;
+    try {
+      const region = req?.query?.region || null;
+      const city = req?.query?.city || null;
+      const page = req?.query?.page || null;
 
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const today = d.toISOString().slice(0, 10) + " 00:00:00";
 
-    let whereClause = {};
+      let whereClause = {};
 
-    if (region && (city === null || city === "null")) {
-      whereClause.regions = {
-        [Op.like]: `%"${region}"%`,
-      };
+      if (region && (!city || city === "null")) {
+        whereClause.regions = {
+          [Op.like]: `${region}`,
+        };
+      }
+
+      if (city && city !== "null") {
+        const cityPattern = city
+          .split(/[^a-zA-Z0-9čšžđćČŠŽĐĆ]+/)
+          .filter(Boolean)
+          .join("%");
+
+        whereClause.cities = {
+          [Op.like]: `%${cityPattern}%`,
+        };
+      }
+
+      whereClause.startDate = { [Op.lte]: today };
+      whereClause.endDate = { [Op.gte]: today };
+
+      if (page) {
+        whereClause.page = page;
+      }
+
+      const data = await Sponsors.findAll({
+        where: whereClause,
+      });
+
+      return res.status(httpStatus.OK).json({ message: "Uspešno", data });
+    } catch (err) {
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Prišlo je do napake" });
     }
-
-    if (city && city !== null && city !== "null") {
-      const cityPattern = city
-        .split(/[^a-zA-Z0-9čšžđćČŠŽĐĆ]+/)
-        .filter(Boolean)
-        .join("%");
-
-      whereClause.cities = {
-        [Op.like]: `%${cityPattern}%`,
-      };
-    }
-
-    whereClause.startDate = { [Op.lte]: today };
-    whereClause.endDate = { [Op.gte]: today };
-
-    whereClause.page = page;
-
-    console.dir(whereClause, { depth: null });
-
-    let data = await Sponsors.findAll({
-      where: whereClause,
-    });
-
-    res.status(httpStatus.OK).json({ message: "Uspešno", data });
   },
 };
 
