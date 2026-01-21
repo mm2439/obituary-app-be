@@ -243,6 +243,12 @@ const keeperController = {
     try {
       const { id } = req.params;
       const { status } = req.body;
+      const validStatuses = ["pending", "approved", "rejected"];
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          error: "Invalid status. Must be 'pending', 'approved', or 'rejected'",
+        });
+      }
 
       const keeperApplication = await KeeperApplication.findByPk(id);
       if (!keeperApplication) {
