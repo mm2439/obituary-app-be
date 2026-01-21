@@ -106,7 +106,7 @@ const obituaryController = {
         const cleanFirstName = slugKeyFilter(name);
         const cleanSirName = slugKeyFilter(sirName);
         slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(
-          deathDate
+          deathDate,
         )}`.replace(/\s+/g, "_");
       }
       let uniqueSlugKey = slugKey;
@@ -127,9 +127,9 @@ const obituaryController = {
       }
 
       const birthDateToSave =
-        birthDate != "null" && birthDate != ""
-          ? birthDate
-          : new Date("1025-01-01");
+        birthDate != "null" && birthDate != "" ?
+          birthDate
+        : new Date("1025-01-01");
 
       const newObituary = await Obituary.create({
         name,
@@ -160,12 +160,12 @@ const obituaryController = {
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
         const fileName = timestampName(
-          `${path.parse(pictureFile.originalname).name}.avif`
+          `${path.parse(pictureFile.originalname).name}.avif`,
         );
         const remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
-          fileName
+          fileName,
         );
 
         uploadPromises.push(
@@ -176,7 +176,7 @@ const obituaryController = {
               .toBuffer();
             await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
             return { type: "picture", url: publicUrl(remotePath) };
-          })()
+          })(),
         );
       }
 
@@ -186,20 +186,20 @@ const obituaryController = {
         const remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
-          timestampName(file.originalname)
+          timestampName(file.originalname),
         );
         uploadPromises.push(
           (async () => {
             await uploadBuffer(
               file.buffer,
               remotePath,
-              file.mimetype || "application/pdf"
+              file.mimetype || "application/pdf",
             );
             return {
               type: "deathReport",
               url: encodeURI(publicUrl(remotePath)),
             };
-          })()
+          })(),
         );
       }
 
@@ -209,7 +209,7 @@ const obituaryController = {
         (async () => {
           const qrRes = await generateQRCode(qrUrl, obituaryId);
           return { type: "qr", url: qrRes };
-        })()
+        })(),
       );
 
       // Wait for all asynchronous tasks to complete
@@ -386,7 +386,7 @@ const obituaryController = {
     try {
       const {
         page = 1,
-        limit = 500,
+        limit = 100,
         name,
         region,
         city,
@@ -395,7 +395,7 @@ const obituaryController = {
       } = req.query;
 
       const pageNum = parseInt(page, 10) || 1;
-      const limitNum = parseInt(limit, 10) || 10;
+      const limitNum = parseInt(limit, 10) || 100;
       const offset = (pageNum - 1) * limitNum;
 
       const whereClause = {};
@@ -420,9 +420,26 @@ const obituaryController = {
         whereClause.region = region;
       }
 
-      // Base where clause
+      // Exclude deleted obituaries from all queries
+      // Build the where clause properly to avoid conflicts
+      const baseWhere = { ...whereClause };
+      // Remove Op.or and Op.and if they exist to rebuild properly
+      const nameOr = baseWhere[Op.or];
+      delete baseWhere[Op.or];
+      delete baseWhere[Op.and];
+
+      // Build final where clause with deleted check
       const finalWhere = {
-        ...whereClause,
+        ...baseWhere,
+        [Op.and]: [
+          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          {
+            [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
+          },
+          {
+            deletedAt: null,
+          },
+        ],
       };
 
       const { count, rows } = await Obituary.findAndCountAll({
@@ -652,12 +669,10 @@ const obituaryController = {
       obituary.dataValues.candles = {
         totalCandles,
         lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
-        lastBurnedCandleTime: lastBurnedCandle
-          ? lastBurnedCandle.createdTimestamp
-          : null,
-        myLastBurntCandleTime: myLastBurntCandle
-          ? myLastBurntCandle.createdTimestamp
-          : null,
+        lastBurnedCandleTime:
+          lastBurnedCandle ? lastBurnedCandle.createdTimestamp : null,
+        myLastBurntCandleTime:
+          myLastBurntCandle ? myLastBurntCandle.createdTimestamp : null,
       };
       obituary.dataValues.totalVisits = totalVisits;
       obituary.dataValues.currentWeekVisits = currentWeekVisits;
@@ -737,7 +752,7 @@ const obituaryController = {
     });
     const finalObituaries = obituaries.map((obituary) => {
       const isKeeper = obituary.Keepers.some(
-        (keeper) => keeper.userId === userId
+        (keeper) => keeper.userId === userId,
       );
       const totalVisits = obituary.visits.length;
       const lastVisit =
@@ -881,7 +896,7 @@ const obituaryController = {
       const remotePath = buildRemotePath(
         "obituaries",
         String(obituaryId),
-        fileName
+        fileName,
       );
       await uploadBuffer(avifBuffer, remotePath, "image/avif");
       picturePath = encodeURI(publicUrl(remotePath));
@@ -894,13 +909,13 @@ const obituaryController = {
       const remotePath = buildRemotePath(
         "obituaries",
         String(obituaryId),
-        fileName
+        fileName,
       );
 
       await uploadBuffer(
         file.buffer,
         remotePath,
-        file.mimetype || "application/pdf"
+        file.mimetype || "application/pdf",
       );
 
       deathReportPath = encodeURI(publicUrl(remotePath));
@@ -924,7 +939,7 @@ const obituaryController = {
       fieldsToUpdate.funeralCemetery = req.body.funeralCemetery;
     if (req.body.funeralCemeteryId !== undefined)
       fieldsToUpdate.funeralCemeteryId = safeParseFuneralCemeteryId(
-        req.body.funeralCemeteryId
+        req.body.funeralCemeteryId,
       );
     if (req.body.refuseFlowersIcon !== undefined)
       fieldsToUpdate.refuseFlowersIcon =
@@ -1022,14 +1037,13 @@ const obituaryController = {
       obituary.dataValues.candles = {
         totalCandles,
         lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
-        lastBurnedCandleTime: lastBurnedCandle
-          ? lastBurnedCandle.createdTimestamp
-          : null,
+        lastBurnedCandleTime:
+          lastBurnedCandle ? lastBurnedCandle.createdTimestamp : null,
       };
       // Calculate the start of the current week (Monday)
       const startOfWeek = new Date();
       startOfWeek.setDate(
-        startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)
+        startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7),
       );
       startOfWeek.setHours(0, 0, 0, 0);
       const shouldResetWeek =
@@ -1050,7 +1064,7 @@ const obituaryController = {
       await visitController.visitMemory(
         req?.user?.id ?? null,
         ipAddress,
-        obituaryId
+        obituaryId,
       );
       // 1. Get the city and user
       const city = obituary.city;
@@ -1153,7 +1167,7 @@ const obituaryController = {
           if (interactionData) {
             el.dataValues.interaction = interactionData;
           }
-        })
+        }),
       );
 
       const result = {
@@ -1221,7 +1235,7 @@ const obituaryController = {
               ...plainObituary,
               totalVisits,
             };
-          })
+          }),
         );
       }
 
@@ -1367,8 +1381,8 @@ const obituaryController = {
       const totalContributions = obituary.MemoryLogs.length;
       const uniqueContribution = Array.from(
         new Map(
-          obituary.MemoryLogs.map((memory) => [memory.userId, memory])
-        ).values()
+          obituary.MemoryLogs.map((memory) => [memory.userId, memory]),
+        ).values(),
       ).length;
       const totalSorrowBooks = obituary.MemoryLogs.filter((memory) => {
         return memory.type === "sorrowbook";
@@ -1601,9 +1615,9 @@ const obituaryController = {
       const whereClause = {
         city,
         createdTimestamp:
-          type === "previous"
-            ? { [Op.lt]: new Date(date) }
-            : { [Op.gt]: new Date(date) },
+          type === "previous" ?
+            { [Op.lt]: new Date(date) }
+          : { [Op.gt]: new Date(date) },
       };
       const order = [
         ["createdTimestamp", type === "previous" ? "DESC" : "ASC"],
@@ -1676,15 +1690,15 @@ const obituaryController = {
           const remotePath = buildRemotePath(
             "template-cards",
             String(id),
-            fileName
+            fileName,
           );
           await uploadBuffer(
             image.buffer,
             remotePath,
-            image.mimetype || "image/*"
+            image.mimetype || "image/*",
           );
           return publicUrl(remotePath);
-        })
+        }),
       );
       const uploadedPdfUrls = await Promise.all(
         cardPdfs.map(async (pdf) => {
@@ -1692,15 +1706,15 @@ const obituaryController = {
           const remotePath = buildRemotePath(
             "template-cards",
             String(id),
-            fileName
+            fileName,
           );
           await uploadBuffer(
             pdf.buffer,
             remotePath,
-            pdf.mimetype || "application/pdf"
+            pdf.mimetype || "application/pdf",
           );
           return publicUrl(remotePath);
-        })
+        }),
       );
       await obituary.update({
         cardImages: uploadedImageUrls,
@@ -1732,7 +1746,7 @@ const obituaryController = {
           {
             qr_code: qrRes,
           },
-          { where: { id: payload.id } }
+          { where: { id: payload.id } },
         );
 
         return res.status(200).json({ success: true, qr_code: qrRes });
