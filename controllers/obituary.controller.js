@@ -45,18 +45,22 @@ const slugKeyFilter = (name) => {
 // Safely parse and validate funeralCemeteryId
 const safeParseFuneralCemeteryId = (funeralCemeteryId) => {
   // Return null for empty string or undefined
-  if (funeralCemeteryId === "" || funeralCemeteryId === undefined || funeralCemeteryId === null) {
+  if (
+    funeralCemeteryId === "" ||
+    funeralCemeteryId === undefined ||
+    funeralCemeteryId === null
+  ) {
     return null;
   }
-  
+
   // Attempt to parse as integer
   const parsed = parseInt(funeralCemeteryId, 10);
-  
+
   // Validate that it's a valid integer
   if (Number.isNaN(parsed) || !Number.isInteger(parsed)) {
     return null;
   }
-  
+
   return parsed;
 };
 
@@ -102,7 +106,7 @@ const obituaryController = {
         const cleanFirstName = slugKeyFilter(name);
         const cleanSirName = slugKeyFilter(sirName);
         slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(
-          deathDate
+          deathDate,
         )}`.replace(/\s+/g, "_");
       }
       let uniqueSlugKey = slugKey;
@@ -118,13 +122,14 @@ const obituaryController = {
       if (existingObituary) {
         console.warn("Duplicate obituary detected");
         return res.status(httpStatus.CONFLICT).json({
-          error:
-            "Osmrtnica s tem imenom in datumom smrti že obstaja",
+          error: "Osmrtnica s tem imenom in datumom smrti že obstaja",
         });
       }
 
-
-      const birthDateToSave = birthDate != 'null' && birthDate != '' ? birthDate : new Date("1025-01-01");
+      const birthDateToSave =
+        birthDate != "null" && birthDate != "" ?
+          birthDate
+        : new Date("1025-01-01");
 
       const newObituary = await Obituary.create({
         name,
@@ -140,7 +145,8 @@ const obituaryController = {
         funeralCemeteryId: safeParseFuneralCemeteryId(funeralCemeteryId),
         funeralTimestamp: funeralTimestamp || null,
         events: JSON.parse(events || "[]"),
-        refuseFlowersIcon: refuseFlowersIcon === true || refuseFlowersIcon === "true",
+        refuseFlowersIcon:
+          refuseFlowersIcon === true || refuseFlowersIcon === "true",
         deathReportExists,
         obituary,
         symbol,
@@ -148,47 +154,74 @@ const obituaryController = {
         slugKey,
       });
       const obituaryId = newObituary.id;
-      let pictureUrl = null;
-      let deathReportUrl = null;
+      const uploadPromises = [];
+
+      // Parallelize picture processing and upload
       if (req.files?.picture) {
         const pictureFile = req.files.picture[0];
         const fileName = timestampName(
-          `${path.parse(pictureFile.originalname).name}.avif`
+          `${path.parse(pictureFile.originalname).name}.avif`,
         );
         const remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
-          fileName
+          fileName,
         );
-        const optimizedBuffer = await sharp(pictureFile.buffer)
-          .resize(203, 275, { fit: "cover" })
-          .toFormat("avif", { quality: 50 })
-          .toBuffer();
-        await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
-        pictureUrl = publicUrl(remotePath);
+
+        uploadPromises.push(
+          (async () => {
+            const optimizedBuffer = await sharp(pictureFile.buffer)
+              .resize(203, 275, { fit: "cover" })
+              .toFormat("avif", { quality: 50 })
+              .toBuffer();
+            await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
+            return { type: "picture", url: publicUrl(remotePath) };
+          })(),
+        );
       }
+
+      // Parallelize death report upload
       if (req.files?.deathReport) {
         const file = req.files.deathReport[0];
         const remotePath = buildRemotePath(
           "obituaries",
           String(obituaryId),
-          timestampName(file.originalname)
+          timestampName(file.originalname),
         );
-        await uploadBuffer(
-          file.buffer,
-          remotePath,
-          file.mimetype || "application/pdf"
+        uploadPromises.push(
+          (async () => {
+            await uploadBuffer(
+              file.buffer,
+              remotePath,
+              file.mimetype || "application/pdf",
+            );
+            return {
+              type: "deathReport",
+              url: encodeURI(publicUrl(remotePath)),
+            };
+          })(),
         );
-        deathReportUrl = encodeURI(publicUrl(remotePath));
       }
-      newObituary.image = pictureUrl;
-      newObituary.deathReport = deathReportUrl;
-      const url = `${process.env.CORS_ORIGIN}/m/${slugKey}`
-      const qrRes = await generateQRCode(url, obituaryId);
 
-      if (qrRes) {
-        newObituary.qr_code = qrRes
-      }
+      // Parallelize QR code generation
+      const qrUrl = `${process.env.CORS_ORIGIN}/m/${slugKey}`;
+      uploadPromises.push(
+        (async () => {
+          const qrRes = await generateQRCode(qrUrl, obituaryId);
+          return { type: "qr", url: qrRes };
+        })(),
+      );
+
+      // Wait for all asynchronous tasks to complete
+      const results = await Promise.all(uploadPromises);
+
+      // Update obituary record with results
+      results.forEach((res) => {
+        if (res.type === "picture") newObituary.image = res.url;
+        if (res.type === "deathReport") newObituary.deathReport = res.url;
+        if (res.type === "qr" && res.url) newObituary.qr_code = res.url;
+      });
+
       await newObituary.save();
 
       return res.status(httpStatus.CREATED).json(newObituary);
@@ -248,24 +281,45 @@ const obituaryController = {
           [Op.gte]: threeWeeksAgo,
         };
       }
+
+      // Exclude deleted obituaries from all queries
+      // Build the where clause properly to avoid conflicts
+      const baseWhere = { ...whereClause };
+      // Remove Op.or and Op.and if they exist to rebuild properly
+      const nameOr = baseWhere[Op.or];
+      delete baseWhere[Op.or];
+      delete baseWhere[Op.and];
+
+      // Build final where clause with deleted check
+      const finalWhere = {
+        ...baseWhere,
+        [Op.and]: [
+          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          {
+            [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
+          },
+          {
+            deletedAt: null,
+          },
+        ],
+      };
+
       let totalObit = {
         count: 0,
-        rows: []
+        rows: [],
       };
       if (allow === "allow") {
-        const arr = userId ? [
-          { userId }, { city }
-        ] : [{ city }]
+        const arr = userId ? [{ userId }, { city }] : [{ city }];
         const myClause = {
-          ...whereClause, [Op.or]: arr
+          ...finalWhere,
+          [Op.and]: [...finalWhere[Op.and], { [Op.or]: arr }],
         };
+        // Remove userId and city from base level since they're in Op.or now
         delete myClause.userId;
         delete myClause.city;
 
         const myobituaries = await Obituary.findAndCountAll({
-          where: {
-            ...myClause,
-          },
+          where: myClause,
           order: [["createdTimestamp", "DESC"]],
           include: [
             {
@@ -283,12 +337,9 @@ const obituaryController = {
           ],
         });
         totalObit = myobituaries;
-      }
-      else {
+      } else {
         const obituaries = await Obituary.findAndCountAll({
-          where: {
-            ...whereClause,
-          },
+          where: finalWhere,
           order: [["createdTimestamp", "DESC"]],
           include: [
             {
@@ -306,7 +357,6 @@ const obituaryController = {
           ],
         });
         totalObit = obituaries;
-
       }
 
       const today = new Date();
@@ -332,11 +382,102 @@ const obituaryController = {
       return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
-  getCompanyPageObituary: async (req, res) => {
+  getObituariesPaginated: async (req, res) => {
     try {
       const {
-        userId, city, search
+        page = 1,
+        limit = 100,
+        name,
+        region,
+        city,
+        startDate,
+        endDate,
       } = req.query;
+
+      const pageNum = parseInt(page, 10) || 1;
+      const limitNum = parseInt(limit, 10) || 100;
+      const offset = (pageNum - 1) * limitNum;
+
+      const whereClause = {};
+      if (startDate && endDate) {
+        const startOfDay = new Date(startDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        whereClause.createdTimestamp = {
+          [Op.between]: [startOfDay, endOfDay],
+        };
+      }
+      if (name) {
+        whereClause[Op.or] = [
+          { name: { [Op.like]: `%${name}%` } },
+          { sirName: { [Op.like]: `%${name}%` } },
+        ];
+      }
+      if (city) {
+        whereClause.city = city;
+      } else if (region) {
+        whereClause.region = region;
+      }
+
+      // Exclude deleted obituaries from all queries
+      // Build the where clause properly to avoid conflicts
+      const baseWhere = { ...whereClause };
+      // Remove Op.or and Op.and if they exist to rebuild properly
+      const nameOr = baseWhere[Op.or];
+      delete baseWhere[Op.or];
+      delete baseWhere[Op.and];
+
+      // Build final where clause with deleted check
+      const finalWhere = {
+        ...baseWhere,
+        [Op.and]: [
+          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          {
+            [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
+          },
+          {
+            deletedAt: null,
+          },
+        ],
+      };
+
+      const { count, rows } = await Obituary.findAndCountAll({
+        attributes: { exclude: ["funeralCemeteryId", "refuseFlowersIcon"] },
+        where: finalWhere,
+        order: [["createdTimestamp", "DESC"]],
+        limit: limitNum,
+        offset: offset,
+        include: [
+          {
+            model: User,
+          },
+          {
+            model: Cemetry,
+            required: false,
+          },
+        ],
+      });
+
+      const totalPages = Math.ceil(count / limitNum);
+
+      res.status(httpStatus.OK).json({
+        total: count,
+        totalPages,
+        currentPage: pageNum,
+        limit: limitNum,
+        obituaries: rows,
+      });
+    } catch (error) {
+      console.error("Error in getObituariesPaginated:", error);
+      return res
+        .status(500)
+        .json({ message: "Prišlo je do napake", error: error.message });
+    }
+  },
+  getCompanyPageObituary: async (req, res) => {
+    try {
+      const { userId, city, search } = req.query;
       const whereClause = { [Op.or]: [{ userId }, { city }] };
 
       if (city && userId) {
@@ -428,7 +569,8 @@ const obituaryController = {
         .json({ error: "Spominska ne obstaja" });
     }
     const obituary = await Obituary.findOne({
-      where: { id: baseObituary.id }, attributes: { exclude: ['totalVisits', 'currentWeekVisits'] },
+      where: { id: baseObituary.id },
+      attributes: { exclude: ["totalVisits", "currentWeekVisits"] },
       include: [
         {
           model: User,
@@ -479,7 +621,10 @@ const obituaryController = {
         },
       ],
     });
-    const Company = await CompanyPage.findOne({ where: { userId: obituary.dataValues.userId }, attributes: ["type",] })
+    const Company = await CompanyPage.findOne({
+      where: { userId: obituary.dataValues.userId },
+      attributes: ["type"],
+    });
     const floristShops = await FloristShop.findAll({
       where: { city: obituary.dataValues.city },
       order: Sequelize.literal("RAND()"),
@@ -493,11 +638,13 @@ const obituaryController = {
 
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const formattedDate = oneWeekAgo.toISOString().split('T')[0];
+    const formattedDate = oneWeekAgo.toISOString().split("T")[0];
     const currentWeekVisits = await Visit.count({
       where: {
         obituaryId: baseObituary.id,
-        [Op.and]: [where(fn('DATE', col('createdTimestamp')), '>=', formattedDate),],
+        [Op.and]: [
+          where(fn("DATE", col("createdTimestamp")), ">=", formattedDate),
+        ],
       },
     });
 
@@ -522,12 +669,10 @@ const obituaryController = {
       obituary.dataValues.candles = {
         totalCandles,
         lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
-        lastBurnedCandleTime: lastBurnedCandle
-          ? lastBurnedCandle.createdTimestamp
-          : null,
-        myLastBurntCandleTime: myLastBurntCandle
-          ? myLastBurntCandle.createdTimestamp
-          : null,
+        lastBurnedCandleTime:
+          lastBurnedCandle ? lastBurnedCandle.createdTimestamp : null,
+        myLastBurntCandleTime:
+          myLastBurntCandle ? myLastBurntCandle.createdTimestamp : null,
       };
       obituary.dataValues.totalVisits = totalVisits;
       obituary.dataValues.currentWeekVisits = currentWeekVisits;
@@ -561,7 +706,7 @@ const obituaryController = {
         "birthDate",
         "funeralTimestamp",
         "totalVisits",
-        "slugKey"
+        "slugKey",
       ],
       include: [
         {
@@ -607,7 +752,7 @@ const obituaryController = {
     });
     const finalObituaries = obituaries.map((obituary) => {
       const isKeeper = obituary.Keepers.some(
-        (keeper) => keeper.userId === userId
+        (keeper) => keeper.userId === userId,
       );
       const totalVisits = obituary.visits.length;
       const lastVisit =
@@ -664,11 +809,11 @@ const obituaryController = {
   },
 
   getCompanyPageFunerals: async (req, res) => {
-    const { userId, city, search, startDate, endDate, } = req.query;
+    const { userId, city, search, startDate, endDate } = req.query;
 
     const whereClause = {
-      [Op.or]: [{ userId }, { city }]
-    }
+      [Op.or]: [{ userId }, { city }],
+    };
     if (startDate && endDate) {
       const startOfDay = new Date(startDate);
       startOfDay.setHours(0, 0, 0, 0);
@@ -682,17 +827,20 @@ const obituaryController = {
     //   whereClause[Op.or].push({ [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { sirName: { [Op.iLike]: `%${search}%` } }] });
     // }
 
-
     if (search) {
       const searchTerm = `%${search.toLowerCase()}%`;
 
       whereClause[Op.and] = [
         {
           [Op.or]: [
-            where(fn('LOWER', col('obituaries.name')), { [Op.like]: searchTerm }),
-            where(fn('LOWER', col('obituaries.sirName')), { [Op.like]: searchTerm }),
-          ]
-        }
+            where(fn("LOWER", col("obituaries.name")), {
+              [Op.like]: searchTerm,
+            }),
+            where(fn("LOWER", col("obituaries.sirName")), {
+              [Op.like]: searchTerm,
+            }),
+          ],
+        },
       ];
     }
 
@@ -748,7 +896,7 @@ const obituaryController = {
       const remotePath = buildRemotePath(
         "obituaries",
         String(obituaryId),
-        fileName
+        fileName,
       );
       await uploadBuffer(avifBuffer, remotePath, "image/avif");
       picturePath = encodeURI(publicUrl(remotePath));
@@ -761,13 +909,13 @@ const obituaryController = {
       const remotePath = buildRemotePath(
         "obituaries",
         String(obituaryId),
-        fileName
+        fileName,
       );
 
       await uploadBuffer(
         file.buffer,
         remotePath,
-        file.mimetype || "application/pdf"
+        file.mimetype || "application/pdf",
       );
 
       deathReportPath = encodeURI(publicUrl(remotePath));
@@ -790,9 +938,13 @@ const obituaryController = {
     if (req.body.funeralCemetery !== undefined)
       fieldsToUpdate.funeralCemetery = req.body.funeralCemetery;
     if (req.body.funeralCemeteryId !== undefined)
-      fieldsToUpdate.funeralCemeteryId = safeParseFuneralCemeteryId(req.body.funeralCemeteryId);
+      fieldsToUpdate.funeralCemeteryId = safeParseFuneralCemeteryId(
+        req.body.funeralCemeteryId,
+      );
     if (req.body.refuseFlowersIcon !== undefined)
-      fieldsToUpdate.refuseFlowersIcon = req.body.refuseFlowersIcon === true || req.body.refuseFlowersIcon === "true";
+      fieldsToUpdate.refuseFlowersIcon =
+        req.body.refuseFlowersIcon === true ||
+        req.body.refuseFlowersIcon === "true";
     if (req.body.funeralTimestamp !== undefined)
       fieldsToUpdate.funeralTimestamp = req.body.funeralTimestamp;
     if (req.body.verse !== undefined) fieldsToUpdate.verse = req.body.verse;
@@ -885,14 +1037,13 @@ const obituaryController = {
       obituary.dataValues.candles = {
         totalCandles,
         lastBurnedCandleId: lastBurnedCandle ? lastBurnedCandle.id : null,
-        lastBurnedCandleTime: lastBurnedCandle
-          ? lastBurnedCandle.createdTimestamp
-          : null,
+        lastBurnedCandleTime:
+          lastBurnedCandle ? lastBurnedCandle.createdTimestamp : null,
       };
       // Calculate the start of the current week (Monday)
       const startOfWeek = new Date();
       startOfWeek.setDate(
-        startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)
+        startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7),
       );
       startOfWeek.setHours(0, 0, 0, 0);
       const shouldResetWeek =
@@ -910,7 +1061,11 @@ const obituaryController = {
       }
       // One single DB update call here
       await obituary.update(updates);
-      await visitController.visitMemory(req?.user?.id ?? null, ipAddress, obituaryId);
+      await visitController.visitMemory(
+        req?.user?.id ?? null,
+        ipAddress,
+        obituaryId,
+      );
       // 1. Get the city and user
       const city = obituary.city;
       const user = obituary.User;
@@ -989,33 +1144,31 @@ const obituaryController = {
         order: [["createdTimestamp", "DESC"]],
       });
 
-
       // let fetchedData = {};
       await Promise.all(
         interactions?.map(async (el) => {
           let interactionData = null;
-          console.log('el.type', el.type);
+          console.log("el.type", el.type);
 
-          if (el.type === 'condolence') {
+          if (el.type === "condolence") {
             interactionData = await Condolence.findOne({
-              where: { id: el.interactionId }
+              where: { id: el.interactionId },
             });
-          } else if (el.type === 'photo') {
+          } else if (el.type === "photo") {
             interactionData = await Photo.findOne({
-              where: { id: el.interactionId }
+              where: { id: el.interactionId },
             });
-          } else if (el.type === 'dedication') {
+          } else if (el.type === "dedication") {
             interactionData = await Dedication.findOne({
-              where: { id: el.interactionId }
+              where: { id: el.interactionId },
             });
           }
 
           if (interactionData) {
             el.dataValues.interaction = interactionData;
           }
-        })
+        }),
       );
-
 
       const result = {
         pending: [],
@@ -1070,18 +1223,20 @@ const obituaryController = {
 
       let obits = [];
       if (obituaries && obituaries?.length) {
-        obits = await Promise.all(obituaries.map(async (obituary) => {
-          const totalVisits = await Visit.count({
-            where: { obituaryId: obituary.id },
-          });
+        obits = await Promise.all(
+          obituaries.map(async (obituary) => {
+            const totalVisits = await Visit.count({
+              where: { obituaryId: obituary.id },
+            });
 
-          const plainObituary = obituary.toJSON();
+            const plainObituary = obituary.toJSON();
 
-          return {
-            ...plainObituary,
-            totalVisits,
-          };
-        }));
+            return {
+              ...plainObituary,
+              totalVisits,
+            };
+          }),
+        );
       }
 
       res.status(httpStatus.OK).json({
@@ -1226,8 +1381,8 @@ const obituaryController = {
       const totalContributions = obituary.MemoryLogs.length;
       const uniqueContribution = Array.from(
         new Map(
-          obituary.MemoryLogs.map((memory) => [memory.userId, memory])
-        ).values()
+          obituary.MemoryLogs.map((memory) => [memory.userId, memory]),
+        ).values(),
       ).length;
       const totalSorrowBooks = obituary.MemoryLogs.filter((memory) => {
         return memory.type === "sorrowbook";
@@ -1262,6 +1417,12 @@ const obituaryController = {
   getCompanyObituaries: async (req, res) => {
     try {
       const userId = req.user.id;
+      const { page = 1, limit = 500 } = req.query;
+
+      const pageNum = parseInt(page, 10) || 1;
+      const limitNum = parseInt(limit, 10) || 500;
+      const offset = (pageNum - 1) * limitNum;
+
       const startOfTheMonth = moment().startOf("month").toDate();
       const endOfTheMonth = moment().endOf("month").toDate();
       const startOfLastMonth = moment()
@@ -1272,11 +1433,32 @@ const obituaryController = {
         .subtract(1, "month")
         .endOf("month")
         .toDate();
-      const obituaries = await Obituary.findAll({
+
+      // Get counts for statistics
+      const currentMonthCount = await Obituary.count({
+        where: {
+          userId,
+          createdTimestamp: { [Op.between]: [startOfTheMonth, endOfTheMonth] },
+        },
+      });
+
+      const lastMonthCount = await Obituary.count({
+        where: {
+          userId,
+          createdTimestamp: {
+            [Op.between]: [startOfLastMonth, endOfLastMonth],
+          },
+        },
+      });
+
+      // Get paginated obituaries
+      const { count, rows: obituaries } = await Obituary.findAndCountAll({
         where: {
           userId: userId,
         },
         order: [["createdTimestamp", "DESC"]],
+        limit: limitNum,
+        offset: offset,
         include: [
           {
             model: Keeper,
@@ -1285,35 +1467,23 @@ const obituaryController = {
           },
         ],
       });
+
       const modifiedObituaries = obituaries.map((obituary) => {
         return {
           ...obituary.toJSON(),
           hasKeeper: obituary.Keepers && obituary.Keepers.length > 0,
         };
       });
-      function getTotal(entries) {
-        let currentMonthCount = 0;
-        let lastMonthCount = 0;
-        if (entries.length === 0) {
-          return { currentMonthCount, lastMonthCount };
-        }
-        entries.forEach((entry) => {
-          const createdDate = moment(entry.createdTimestamp);
-          if (
-            createdDate.isBetween(startOfTheMonth, endOfTheMonth, "day", "[]")
-          ) {
-            currentMonthCount++;
-          } else if (
-            createdDate.isBetween(startOfLastMonth, endOfLastMonth, "day", "[]")
-          ) {
-            lastMonthCount++;
-          }
-        });
-        return { currentMonthCount, lastMonthCount };
-      }
+
+      const totalPages = Math.ceil(count / limitNum);
+
       res.status(httpStatus.OK).json({
+        total: count,
+        totalPages,
+        currentPage: pageNum,
+        limit: limitNum,
         obituaries: modifiedObituaries,
-        data: getTotal(obituaries),
+        data: { currentMonthCount, lastMonthCount },
       });
     } catch (error) {
       console.error(error);
@@ -1445,9 +1615,9 @@ const obituaryController = {
       const whereClause = {
         city,
         createdTimestamp:
-          type === "previous"
-            ? { [Op.lt]: new Date(date) }
-            : { [Op.gt]: new Date(date) },
+          type === "previous" ?
+            { [Op.lt]: new Date(date) }
+          : { [Op.gt]: new Date(date) },
       };
       const order = [
         ["createdTimestamp", type === "previous" ? "DESC" : "ASC"],
@@ -1520,15 +1690,15 @@ const obituaryController = {
           const remotePath = buildRemotePath(
             "template-cards",
             String(id),
-            fileName
+            fileName,
           );
           await uploadBuffer(
             image.buffer,
             remotePath,
-            image.mimetype || "image/*"
+            image.mimetype || "image/*",
           );
           return publicUrl(remotePath);
-        })
+        }),
       );
       const uploadedPdfUrls = await Promise.all(
         cardPdfs.map(async (pdf) => {
@@ -1536,15 +1706,15 @@ const obituaryController = {
           const remotePath = buildRemotePath(
             "template-cards",
             String(id),
-            fileName
+            fileName,
           );
           await uploadBuffer(
             pdf.buffer,
             remotePath,
-            pdf.mimetype || "application/pdf"
+            pdf.mimetype || "application/pdf",
           );
           return publicUrl(remotePath);
-        })
+        }),
       );
       await obituary.update({
         cardImages: uploadedImageUrls,
@@ -1567,24 +1737,25 @@ const obituaryController = {
       if (!payload.slugKey || !payload.id) {
         return res.status(400).json({ message: "Neveljavna vrednost" });
       }
-      const url = `${process.env.CORS_ORIGIN}/m/${payload.slugKey}`
+      const url = `${process.env.CORS_ORIGIN}/m/${payload.slugKey}`;
 
       const qrRes = await generateQRCode(url, payload.id);
 
       if (qrRes) {
-        const resp = await Obituary.update({
-          qr_code: qrRes,
-        }, { where: { id: payload.id } });
+        const resp = await Obituary.update(
+          {
+            qr_code: qrRes,
+          },
+          { where: { id: payload.id } },
+        );
 
         return res.status(200).json({ success: true, qr_code: qrRes });
       }
-
     } catch (error) {
       console.error("generateQr error:", error);
       return res.status(500).json({ message: "Prišlo je do napake" });
     }
-  }
-
+  },
 };
 
 module.exports = obituaryController;

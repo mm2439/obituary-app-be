@@ -98,10 +98,28 @@ const photoController = {
           timestampName(fileName)
         );
 
-        const optimizedBuffer = await sharp(pictureFile.buffer)
+        const orientation = (req.body?.orientation || "default").toString();
+
+        let optimizedBuffer;
+        if (orientation === "portrait") {
+          // 3:4 ratio - 225x300 (resized to 450x600 for retina support)
+          optimizedBuffer = await sharp(pictureFile.buffer)
+            .resize({ width: 450, height: 600, fit: "cover", position: "centre" })
+            .toFormat("avif", { quality: 60 })
+            .toBuffer();
+        } else if (orientation === "landscape") {
+          // 4:3 ratio - 400x300 (resized to 800x600 for retina support)
+          optimizedBuffer = await sharp(pictureFile.buffer)
+            .resize({ width: 800, height: 600, fit: "cover", position: "centre" })
+            .toFormat("avif", { quality: 60 })
+            .toBuffer();
+        } else {
+          // legacy default (auto/default): 176x176 cover crop
+          optimizedBuffer = await sharp(pictureFile.buffer)
           .resize(176, 176, { fit: "cover" })
           .toFormat("avif", { quality: 50 })
           .toBuffer();
+        }
 
         await uploadBuffer(optimizedBuffer, remotePath, "image/avif");
 

@@ -61,7 +61,7 @@ Candle.init(
     modelName: "Candle",
     tableName: "candles",
     timestamps: false,
-  }
+  },
 );
 
 const validateCandle = (candle) => {

@@ -1,5 +1,5 @@
 const { User } = require("./user.model");
-const { RefreshToken } = require("./refreshToken.model"); 
+const { RefreshToken } = require("./refreshToken.model");
 const { Obituary } = require("./obituary.model");
 const { Event } = require("./event.model");
 const { Photo } = require("./photo.model");
@@ -18,6 +18,7 @@ const { FloristSlide } = require("./florist_slide.model");
 const { FloristShop } = require("./florist_shop.model");
 const { KeeperNotification } = require("./keeper_notification");
 const { Order } = require("./order.model");
+// const { Guardian } = require("./guardian.model");
 
 User.hasMany(RefreshToken, { foreignKey: "userId" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
@@ -44,7 +45,10 @@ Cemetry.hasMany(Obituary, { foreignKey: "funeralCemetery" });
 Obituary.belongsTo(Cemetry, { foreignKey: "funeralCemetery" });
 
 Cemeteries.hasMany(Obituary, { foreignKey: "funeralCemeteryId" });
-Obituary.belongsTo(Cemeteries, { foreignKey: "funeralCemeteryId", as: "Cemeteries" });
+Obituary.belongsTo(Cemeteries, {
+  foreignKey: "funeralCemeteryId",
+  as: "Cemeteries",
+});
 
 CompanyPage.hasMany(FloristSlide, { foreignKey: "companyId" });
 FloristSlide.belongsTo(CompanyPage, { foreignKey: "companyId" });
@@ -85,18 +89,33 @@ MemoryLog.belongsTo(User, { foreignKey: "userId" });
 User.hasMany(Obituary, { foreignKey: "userId" });
 Obituary.belongsTo(User, { foreignKey: "userId" });
 
-User.hasMany(KeeperNotification, { foreignKey: "sender", as: "SentNotifications" });
+User.hasMany(KeeperNotification, {
+  foreignKey: "sender",
+  as: "SentNotifications",
+});
 KeeperNotification.belongsTo(User, { foreignKey: "sender", as: "Sender" });
 
-User.hasMany(KeeperNotification, { foreignKey: "receiver", as: "ReceivedNotifications" });
+User.hasMany(KeeperNotification, {
+  foreignKey: "receiver",
+  as: "ReceivedNotifications",
+});
 KeeperNotification.belongsTo(User, { foreignKey: "receiver", as: "Receiver" });
 
-KeeperNotification.belongsTo(Obituary, { foreignKey: "obituaryId", as: "Obituary" });
-Obituary.hasMany(KeeperNotification, { foreignKey: "obituaryId", as: "Notifications" });
+KeeperNotification.belongsTo(Obituary, {
+  foreignKey: "obituaryId",
+  as: "Obituary",
+});
+Obituary.hasMany(KeeperNotification, {
+  foreignKey: "obituaryId",
+  as: "Notifications",
+});
 
 // Order associations
 User.hasMany(Order, { foreignKey: "userId" });
 Order.belongsTo(User, { foreignKey: "userId" });
+
+// User.hasMany(Guardian, { foreignKey: "userId" });
+// Guardian.belongsTo(User, { foreignKey: "userId" });
 
 module.exports = {
   User,
@@ -110,4 +129,5 @@ module.exports = {
   Dedication,
   Condolence,
   Order,
+  // Guardian,
 };
