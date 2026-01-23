@@ -375,7 +375,7 @@ const userController = {
         const remotePath = buildRemotePath(
           "companyUploads",
           String(companyPage.id),
-          fileName
+          fileName,
         );
         await uploadBuffer(avifBuffer, remotePath, "image/avif");
         logoPath = encodeURI(publicUrl(remotePath));
@@ -455,7 +455,7 @@ const userController = {
               senderUser: sender,
             });
           }
-        })
+        }),
       );
     }
 
@@ -560,44 +560,52 @@ const userController = {
   },
 
   fetchSponsors: async (req, res) => {
-    const region = req?.query?.region || null;
-    const city = req?.query?.city || null;
-    const page = req?.query?.page || null;
+    try {
+      const region = req?.query?.region || null;
+      const city = req?.query?.city || null;
+      const page = req?.query?.page || null;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
 
-    let whereClause = {};
+      const today = d.toISOString().slice(0, 10) + " 00:00:00";
 
-    if (region && city == "null") {
-      whereClause.regions = {
-        [Op.like]: `%${region}%`,
-      };
+      let whereClause = {};
+
+      if (region && (!city || city === "null")) {
+        whereClause.regions = {
+          [Op.like]: `${region}`,
+        };
+      }
+
+      if (city && city !== "null") {
+        const cityPattern = city
+          .split(/[^a-zA-Z0-9čšžđćČŠŽĐĆ]+/)
+          .filter(Boolean)
+          .join("%");
+
+        whereClause.cities = {
+          [Op.like]: `%${cityPattern}%`,
+        };
+      }
+
+      whereClause.startDate = { [Op.lte]: today };
+      whereClause.endDate = { [Op.gte]: today };
+
+      if (page) {
+        whereClause.page = page;
+      }
+
+      const data = await Sponsors.findAll({
+        where: whereClause,
+      });
+
+      return res.status(httpStatus.OK).json({ message: "Uspešno", data });
+    } catch (err) {
+      return res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Prišlo je do napake" });
     }
-
-    if (city && city != "null") {
-      // Create a fuzzy pattern: replace any sequence of non-alphanumeric chars with %
-      // e.g. "Dobrova - Polhov Gradec" -> "Dobrova%Polhov%Gradec"
-      const cityPattern = city
-        .split(/[^a-zA-Z0-9čšžđćČŠŽĐĆ]+/)
-        .filter(Boolean)
-        .join("%");
-
-      whereClause.cities = {
-        [Op.like]: `%${cityPattern}%`,
-      };
-    }
-
-    whereClause.startDate = { [Op.lte]: today };
-    whereClause.endDate = { [Op.gte]: today };
-
-    whereClause.page = page;
-
-    let data = await Sponsors.findAll({
-      where: whereClause,
-    });
-
-    res.status(httpStatus.OK).json({ message: "Uspešno", data });
   },
 };
 
