@@ -340,7 +340,7 @@ const keeperController = {
             keeperApplication.userId,
             keeperApplication.id,
             "approved",
-            keeperApplication.userName,
+            keeperApplication.name,
             "Skrbnik",
             null,
           );
