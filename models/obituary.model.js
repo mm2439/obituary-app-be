@@ -173,7 +173,7 @@ Obituary.init(
     modelName: "Obituary",
     tableName: "obituaries",
     timestamps: false,
-  },
+  }
 );
 
 const validateObituary = (obituary) => {
