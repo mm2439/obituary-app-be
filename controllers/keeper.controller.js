@@ -1,8 +1,11 @@
 const httpStatus = require("http-status-codes").StatusCodes;
 const { Op } = require("sequelize");
-const { User } = require("../models/user.model");
-const { Obituary } = require("../models/obituary.model");
-const { Keeper, validateKeeper } = require("../models/keeper.model");
+const {
+  Keeper,
+  validateKeeper,
+  User,
+  Obituary,
+} = require("../models/associations.model");
 const { KeeperApplication } = require("../models/keeper_application.model");
 const emailService = require("../utils/emailService");
 const fs = require("fs");
@@ -12,6 +15,9 @@ const memoryLogsController = require("./memoryLogs.controller");
 const { KeeperNotification } = require("../models/keeper_notification");
 const KEEPER_DEATH_DOCS = path.join(__dirname, "../keeperDocs");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const { formatDDMMYYYY } = require("../helpers/time");
+
+const environment = process.env.NODE_ENV || "staging";
 
 const keeperController = {
   assignKeeper: async (req, res) => {
@@ -106,11 +112,13 @@ const keeperController = {
       try {
         const obituary = await Obituary.findByPk(obituaryId);
         if (obituary) {
-          await emailService.sendUserGuardianStatusUpdate(email, {
-            status: "approved",
-            deceasedName: obituary.name,
-            deceasedSirName: obituary.sirName,
-          });
+          if (environment !== "development") {
+            await emailService.sendUserGuardianStatusUpdate(email, {
+              status: "approved",
+              deceasedName: obituary.name,
+              deceasedSirName: obituary.sirName,
+            });
+          }
         }
       } catch (emailError) {
         console.error("Error sending keeper approval email:", emailError);
@@ -144,6 +152,14 @@ const keeperController = {
           .status(httpStatus.BAD_REQUEST)
           .json({ error: "Document is required" });
       }
+      const existingKeeper = await Keeper.findOne({
+        where: { userId, obituaryId },
+      });
+      if (existingKeeper) {
+        return res.status(httpStatus.CONFLICT).json({
+          error: "Uporabnik je že Skrbnik te spominske strani",
+        });
+      }
       const file = req.files.document[0];
       const ext = path.extname(file.originalname) || ".jpg";
       const base = path.parse(file.originalname).name;
@@ -161,30 +177,36 @@ const keeperController = {
         file.mimetype || "image/jpeg",
       );
 
-      const documentUrl = encodeURI(publicUrl(remotePath));
+      const nineTeenNinety = new Date(1990, 8, 1);
 
-      const keeperApplication = await KeeperApplication.create({
+      const documentUrl = encodeURI(publicUrl(remotePath));
+      const keeperApplication = await Keeper.create({
         userId,
         obituaryId,
-        userName: name,
+        expiry: nineTeenNinety,
         relation: relationship,
-        deceasedName: `${deceasedName} ${deceasedSirName}`,
+        deathReport: documentUrl,
+        name: req.user.name,
         status: "pending",
-        document: documentUrl,
+        isNotified: false,
+        time: null,
       });
 
       // await t.commit();
 
       // Send emails after transaction commit
       try {
-        const user = await User.findByPk(userId);
-        if (user && user.email) {
-          await emailService.sendUserGuardianRequestConfirmation(
-            user.email,
-            keeperApplication,
-          );
+        if (req.user && req.user.email) {
+          if (environment !== "development") {
+            await emailService.sendUserGuardianRequestConfirmation(
+              req.user.email,
+              keeperApplication,
+            );
+          }
         }
-        await emailService.sendAdminNewGuardianRequest(keeperApplication);
+        if (environment !== "development") {
+          await emailService.sendAdminNewGuardianRequest(keeperApplication);
+        }
       } catch (emailError) {
         console.error("Error sending keeper request emails:", emailError);
         // We don't want to fail the whole request if email fails
@@ -208,21 +230,36 @@ const keeperController = {
       const offset = (page - 1) * limit;
 
       const where = {};
+
       if (status) {
         where.status = status;
       }
+
       if (name) {
         where[Op.or] = [
-          { userName: { [Op.like]: `%${name}%` } },
-          { deceasedName: { [Op.like]: `%${name}%` } },
+          { "$user.name$": { [Op.like]: `%${name}%` } },
+          { "$obituary.name$": { [Op.like]: `%${name}%` } },
         ];
       }
 
-      const { count, rows } = await KeeperApplication.findAndCountAll({
+      const { count, rows } = await Keeper.findAndCountAll({
         where,
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["id", "name", "email"], // pick what you need
+          },
+          {
+            model: Obituary,
+            as: "obituary",
+            attributes: ["id", "name", "deathDate", "city"],
+          },
+        ],
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [["createdTimestamp", "DESC"]],
+        distinct: true, // IMPORTANT when using include + pagination
       });
 
       res.status(httpStatus.OK).json({
@@ -250,47 +287,49 @@ const keeperController = {
         });
       }
 
-      const keeperApplication = await KeeperApplication.findByPk(id);
-      if (!keeperApplication) {
+      const KeeperApplication = await Keeper.findByPk(id);
+      if (!KeeperApplication) {
         return res
           .status(httpStatus.NOT_FOUND)
           .json({ error: "Keeper application not found" });
       }
+      const today = new Date();
+      KeeperApplication.status = status;
+      KeeperApplication.isNotified = true;
+      KeeperApplication.modifiedTimestamp = today;
+      KeeperApplication.time = formatDDMMYYYY(today);
+      await KeeperApplication.save();
 
-      keeperApplication.status = status;
-      await keeperApplication.save();
-
-      const user = await User.findByPk(keeperApplication.userId);
+      const user = await User.findByPk(KeeperApplication.userId);
 
       if (status === "approved") {
         // Create Keeper record if not exists
-        const existingKeeper = await Keeper.findOne({
-          where: {
-            userId: keeperApplication.userId,
-            obituaryId: keeperApplication.obituaryId,
-          },
-        });
+        // const existingKeeper = await Keeper.findOne({
+        //   where: {
+        //     userId: keeperApplication.userId,
+        //     obituaryId: keeperApplication.obituaryId,
+        //   },
+        // });
 
-        if (!existingKeeper) {
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + 60); // Default 60 days
+          // const expiry = new Date();
+          // expiry.setDate(expiry.getDate() + 60); // Default 60 days
 
-          const keeper = await Keeper.create({
-            userId: keeperApplication.userId,
-            obituaryId: keeperApplication.obituaryId,
-            expiry,
-            relation: keeperApplication.relation,
-            name: keeperApplication.userName,
-            deathReport: keeperApplication.document,
-            isNotified: false,
-            time: null, // time is not collected in application
-          });
+          // const keeper = await Keeper.create({
+          //   userId: keeperApplication.userId,
+          //   obituaryId: keeperApplication.obituaryId,
+          //   expiry,
+          //   relation: keeperApplication.relation,
+          //   name: keeperApplication.userName,
+          //   deathReport: keeperApplication.document,
+          //   isNotified: false,
+          //   time: null, // time is not collected in application
+          // });
 
           // Create Notification
           await KeeperNotification.create({
             sender: req.user.id,
-            receiver: keeperApplication.userId,
-            obituaryId: keeperApplication.obituaryId,
+            receiver: KeeperApplication.userId,
+            obituaryId: KeeperApplication.obituaryId,
             isNotified: false,
             time: null,
           });
@@ -298,37 +337,40 @@ const keeperController = {
           // Create Memory Log
           await memoryLogsController.createLog(
             "keeper_activation",
-            parseInt(keeperApplication.obituaryId),
-            keeperApplication.userId,
-            keeper.id,
+            parseInt(KeeperApplication.obituaryId),
+            KeeperApplication.userId,
+            KeeperApplication.id,
             "approved",
-            keeperApplication.userName,
+            KeeperApplication.userName,
             "Skrbnik",
             null,
           );
-        }
 
         try {
           if (status === "approved" && user && user.email) {
-            await emailService.sendUserGuardianStatusUpdate(
-              user.email,
-              keeperApplication,
-            );
+            if (environment !== "development") {
+              await emailService.sendUserGuardianStatusUpdate(
+                user.email,
+                KeeperApplication,
+              );
+            }
           } else if (status === "rejected" && user && user.email) {
-            await emailService.sendUserGuardianStatusUpdate(
-              user.email,
-              keeperApplication,
-            );
+            if (environment !== "development") {
+              await emailService.sendUserGuardianStatusUpdate(
+                user.email,
+                KeeperApplication,
+              );
+            }
           }
         } catch (emailError) {
           console.error(
-            `Error sending keeper status update email for user ${user?.id} and application ${keeperApplication.id}:`,
+            `Error sending keeper status update email for user ${user?.id} and application ${KeeperApplication.id}:`,
             emailError,
           );
         }
       }
 
-      res.status(httpStatus.OK).json(keeperApplication);
+      res.status(httpStatus.OK).json(KeeperApplication);
     } catch (error) {
       console.error("Error updating keeper status:", error);
       res
@@ -337,10 +379,42 @@ const keeperController = {
     }
   },
 
+  updateKeeperExpiry: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { expiry } = req.body;
+
+       const parsedExpiry = new Date(`${expiry}T00:00:00`);
+
+  if (isNaN(parsedExpiry.getTime())) {
+    return res.status(400).json({ message: "Invalid date" });
+  }
+
+      const keeperApplication = await Keeper.findByPk(id);
+
+      if (!keeperApplication) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json({ error: "Keeper application not found" });
+      }
+
+      keeperApplication.expiry = parsedExpiry || "";
+      keeperApplication.modifiedTimestamp = new Date();
+      await keeperApplication.save();
+
+      res.status(httpStatus.OK).json(keeperApplication);
+    } catch (error) {
+      console.error("Error updating keeper expiry:", error);
+      res
+        .status(httpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "An error occurred while updating expiry" });
+    }
+  },
+
   deleteKeeperRequest: async (req, res) => {
     try {
       const { id } = req.params;
-      const keeperApplication = await KeeperApplication.findByPk(id);
+      const keeperApplication = await Keeper.findByPk(id);
 
       if (!keeperApplication) {
         return res

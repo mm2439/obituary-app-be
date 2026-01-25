@@ -86,6 +86,12 @@ router.patch(
   keeperController.updateKeeperStatus,
 );
 
+router.patch(
+  "/keepers/:id/expiry",
+  [authenticationMiddleware, adminAuth],
+  keeperController.updateKeeperExpiry,
+);
+
 router.delete(
   "/keepers/:id",
   [authenticationMiddleware, adminAuth],
