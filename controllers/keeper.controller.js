@@ -6,7 +6,6 @@ const {
   User,
   Obituary,
 } = require("../models/associations.model");
-const { KeeperApplication } = require("../models/keeper_application.model");
 const emailService = require("../utils/emailService");
 const fs = require("fs");
 const path = require("path");
@@ -287,20 +286,20 @@ const keeperController = {
         });
       }
 
-      const KeeperApplication = await Keeper.findByPk(id);
-      if (!KeeperApplication) {
+      const keeperApplication = await Keeper.findByPk(id);
+      if (!keeperApplication) {
         return res
           .status(httpStatus.NOT_FOUND)
           .json({ error: "Keeper application not found" });
       }
       const today = new Date();
-      KeeperApplication.status = status;
-      KeeperApplication.isNotified = true;
-      KeeperApplication.modifiedTimestamp = today;
-      KeeperApplication.time = formatDDMMYYYY(today);
-      await KeeperApplication.save();
+      keeperApplication.status = status;
+      keeperApplication.isNotified = true;
+      keeperApplication.modifiedTimestamp = today;
+      keeperApplication.time = formatDDMMYYYY(today);
+      await keeperApplication.save();
 
-      const user = await User.findByPk(KeeperApplication.userId);
+      const user = await User.findByPk(keeperApplication.userId);
 
       if (status === "approved") {
         // Create Keeper record if not exists
@@ -328,8 +327,8 @@ const keeperController = {
           // Create Notification
           await KeeperNotification.create({
             sender: req.user.id,
-            receiver: KeeperApplication.userId,
-            obituaryId: KeeperApplication.obituaryId,
+            receiver: keeperApplication.userId,
+            obituaryId: keeperApplication.obituaryId,
             isNotified: false,
             time: null,
           });
@@ -337,40 +336,33 @@ const keeperController = {
           // Create Memory Log
           await memoryLogsController.createLog(
             "keeper_activation",
-            parseInt(KeeperApplication.obituaryId),
-            KeeperApplication.userId,
-            KeeperApplication.id,
+            parseInt(keeperApplication.obituaryId),
+            keeperApplication.userId,
+            keeperApplication.id,
             "approved",
-            KeeperApplication.userName,
+            keeperApplication.userName,
             "Skrbnik",
             null,
           );
 
         try {
-          if (status === "approved" && user && user.email) {
+          if ((status === "approved" || status === "rejected") && user && user.email) {
             if (environment !== "development") {
               await emailService.sendUserGuardianStatusUpdate(
                 user.email,
-                KeeperApplication,
-              );
-            }
-          } else if (status === "rejected" && user && user.email) {
-            if (environment !== "development") {
-              await emailService.sendUserGuardianStatusUpdate(
-                user.email,
-                KeeperApplication,
+                keeperApplication,
               );
             }
           }
         } catch (emailError) {
           console.error(
-            `Error sending keeper status update email for user ${user?.id} and application ${KeeperApplication.id}:`,
+            `Error sending keeper status update email for user ${user?.id} and application ${keeperApplication.id}:`,
             emailError,
           );
         }
       }
 
-      res.status(httpStatus.OK).json(KeeperApplication);
+      res.status(httpStatus.OK).json(keeperApplication);
     } catch (error) {
       console.error("Error updating keeper status:", error);
       res
@@ -398,7 +390,7 @@ const keeperController = {
           .json({ error: "Keeper application not found" });
       }
 
-      keeperApplication.expiry = parsedExpiry || "";
+      keeperApplication.expiry = parsedExpiry;
       keeperApplication.modifiedTimestamp = new Date();
       await keeperApplication.save();
 
