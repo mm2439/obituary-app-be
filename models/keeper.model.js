@@ -71,19 +71,14 @@ Keeper.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
-    },
-    status: {
-      type: DataTypes.ENUM("rejected", "approved", "pending"),
-      allowNull: true,
-      defaultValue: null,
-    },
+    }
   },
   {
     sequelize,
     modelName: "Keeper",
     tableName: "keepers",
     timestamps: false,
-  },
+  }
 );
 
 const validateKeeper = (keeper) => {
