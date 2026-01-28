@@ -87,7 +87,9 @@ const obituaryController = {
         city,
         gender,
         birthDate,
+        birthDatePrecision,
         deathDate,
+        deathDatePrecision,
         funeralLocation,
         funeralCemetery,
         funeralCemeteryId,
@@ -127,31 +129,14 @@ const obituaryController = {
         uniqueSlugKey = `${slugKey}_${counter}`;
         counter++;
       }
-      slugKey = uniqueSlugKey;
-      const existingObituary = await Obituary.findOne({
-        where: { name, sirName, deathDate },
-      });
-      if (existingObituary) {
-        console.warn("Duplicate obituary detected");
-        return res.status(httpStatus.CONFLICT).json({
-          error: "Osmrtnica s tem imenom in datumom smrti že obstaja",
-        });
-      }
+      const slugKey = uniqueSlugKey;
 
+      // Unknown birth: store null instead of fake placeholder (no dates in public/SEO).
       const birthDateToSave =
-        isBirthYearOnly ?
-          null
-        : birthDate != null && birthDate !== "null" && birthDate !== "" ?
-            birthDate
-          : null;
-      const birthYearToSave =
-        isBirthYearOnly && birthYear != null && birthYear !== "" ?
-          parseInt(String(birthYear), 10)
-        : null;
-      const deathDateToSave = isDeathYearOnly ? null : deathDate;
-      const deathYearToSave =
-        isDeathYearOnly && deathYear != null && deathYear !== "" ?
-          parseInt(String(deathYear), 10)
+        birthDate != null &&
+        birthDate !== "null" &&
+        birthDate !== "" ?
+          birthDate
         : null;
 
       const newObituary = await Obituary.create({
@@ -162,7 +147,9 @@ const obituaryController = {
         city,
         gender,
         birthDate: birthDateToSave,
+        birthDatePrecision: birthDatePrecision === "year" ? "year" : "full",
         deathDate,
+        deathDatePrecision: deathDatePrecision === "year" ? "year" : "full",
         funeralLocation,
         funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
         funeralCemeteryId: safeParseFuneralCemeteryId(funeralCemeteryId),
@@ -952,40 +939,16 @@ const obituaryController = {
     if (req.body.region !== undefined) fieldsToUpdate.region = req.body.region;
     if (req.body.city !== undefined) fieldsToUpdate.city = req.body.city;
     if (req.body.gender !== undefined) fieldsToUpdate.gender = req.body.gender;
-    if (req.body.birthDatePrecision !== undefined) {
-      const birthPrec = req.body.birthDatePrecision === "year" ? "year" : "full";
-      fieldsToUpdate.birthDatePrecision = birthPrec;
-      if (birthPrec === "year" && req.body.birthYear != null && req.body.birthYear !== "") {
-        fieldsToUpdate.birthYear = parseInt(String(req.body.birthYear), 10);
-        fieldsToUpdate.birthDate = null;
-      } else {
-        fieldsToUpdate.birthYear = null;
-        if (req.body.birthDate !== undefined)
-          fieldsToUpdate.birthDate = req.body.birthDate || null;
-      }
-    } else {
-      if (req.body.birthDate !== undefined)
-        fieldsToUpdate.birthDate = req.body.birthDate || null;
-      if (req.body.birthYear !== undefined)
-        fieldsToUpdate.birthYear = req.body.birthYear != null && req.body.birthYear !== "" ? parseInt(String(req.body.birthYear), 10) : null;
-    }
-    if (req.body.deathDatePrecision !== undefined) {
-      const deathPrec = req.body.deathDatePrecision === "year" ? "year" : "full";
-      fieldsToUpdate.deathDatePrecision = deathPrec;
-      if (deathPrec === "year" && req.body.deathYear != null && req.body.deathYear !== "") {
-        fieldsToUpdate.deathYear = parseInt(String(req.body.deathYear), 10);
-        fieldsToUpdate.deathDate = null;
-      } else {
-        fieldsToUpdate.deathYear = null;
-        if (req.body.deathDate !== undefined)
-          fieldsToUpdate.deathDate = req.body.deathDate || null;
-      }
-    } else {
-      if (req.body.deathDate !== undefined)
-        fieldsToUpdate.deathDate = req.body.deathDate || null;
-      if (req.body.deathYear !== undefined)
-        fieldsToUpdate.deathYear = req.body.deathYear != null && req.body.deathYear !== "" ? parseInt(String(req.body.deathYear), 10) : null;
-    }
+    if (req.body.birthDate !== undefined)
+      fieldsToUpdate.birthDate = req.body.birthDate;
+    if (req.body.birthDatePrecision !== undefined)
+      fieldsToUpdate.birthDatePrecision =
+        req.body.birthDatePrecision === "year" ? "year" : "full";
+    if (req.body.deathDate !== undefined)
+      fieldsToUpdate.deathDate = req.body.deathDate;
+    if (req.body.deathDatePrecision !== undefined)
+      fieldsToUpdate.deathDatePrecision =
+        req.body.deathDatePrecision === "year" ? "year" : "full";
     if (req.body.funeralLocation !== undefined)
       fieldsToUpdate.funeralLocation = req.body.funeralLocation;
     if (req.body.funeralCemetery !== undefined)
