@@ -150,15 +150,17 @@ const obituaryController = {
         : birthDate != null && birthDate !== "null" && birthDate !== "" ?
             birthDate
           : null;
-      const birthYearToSave =
-        isBirthYearOnly && birthYear != null && birthYear !== "" ?
-          parseInt(String(birthYear), 10)
-        : null;
+      let birthYearToSave = null;
+      if (isBirthYearOnly && birthYear != null && birthYear !== "") {
+        const parsed = parseInt(String(birthYear), 10);
+        birthYearToSave = Number.isInteger(parsed) && parsed >= 1000 && parsed <= 2100 ? parsed : null;
+      }
       const deathDateToSave = isDeathYearOnly ? null : deathDate;
-      const deathYearToSave =
-        isDeathYearOnly && deathYear != null && deathYear !== "" ?
-          parseInt(String(deathYear), 10)
-        : null;
+      let deathYearToSave = null;
+      if (isDeathYearOnly && deathYear != null && deathYear !== "") {
+        const parsed = parseInt(String(deathYear), 10);
+        deathYearToSave = Number.isInteger(parsed) && parsed >= 1000 && parsed <= 2100 ? parsed : null;
+      }
 
       const newObituary = await Obituary.create({
         name,
@@ -966,7 +968,8 @@ const obituaryController = {
       const birthPrec = req.body.birthDatePrecision === "year" ? "year" : "full";
       fieldsToUpdate.birthDatePrecision = birthPrec;
       if (birthPrec === "year" && req.body.birthYear != null && req.body.birthYear !== "") {
-        fieldsToUpdate.birthYear = parseInt(String(req.body.birthYear), 10);
+        const parsed = parseInt(String(req.body.birthYear), 10);
+        fieldsToUpdate.birthYear = Number.isNaN(parsed) ? null : parsed;
         fieldsToUpdate.birthDate = null;
       } else {
         fieldsToUpdate.birthYear = null;
@@ -976,14 +979,21 @@ const obituaryController = {
     } else {
       if (req.body.birthDate !== undefined)
         fieldsToUpdate.birthDate = req.body.birthDate || null;
-      if (req.body.birthYear !== undefined)
-        fieldsToUpdate.birthYear = req.body.birthYear != null && req.body.birthYear !== "" ? parseInt(String(req.body.birthYear), 10) : null;
+      if (req.body.birthYear !== undefined) {
+        if (req.body.birthYear != null && req.body.birthYear !== "") {
+          const parsed = parseInt(String(req.body.birthYear), 10);
+          fieldsToUpdate.birthYear = Number.isNaN(parsed) ? null : parsed;
+        } else {
+          fieldsToUpdate.birthYear = null;
+        }
+      }
     }
     if (req.body.deathDatePrecision !== undefined) {
       const deathPrec = req.body.deathDatePrecision === "year" ? "year" : "full";
       fieldsToUpdate.deathDatePrecision = deathPrec;
       if (deathPrec === "year" && req.body.deathYear != null && req.body.deathYear !== "") {
-        fieldsToUpdate.deathYear = parseInt(String(req.body.deathYear), 10);
+        const parsed = parseInt(String(req.body.deathYear), 10);
+        fieldsToUpdate.deathYear = Number.isNaN(parsed) ? null : parsed;
         fieldsToUpdate.deathDate = null;
       } else {
         fieldsToUpdate.deathYear = null;
@@ -993,8 +1003,14 @@ const obituaryController = {
     } else {
       if (req.body.deathDate !== undefined)
         fieldsToUpdate.deathDate = req.body.deathDate || null;
-      if (req.body.deathYear !== undefined)
-        fieldsToUpdate.deathYear = req.body.deathYear != null && req.body.deathYear !== "" ? parseInt(String(req.body.deathYear), 10) : null;
+      if (req.body.deathYear !== undefined) {
+        if (req.body.deathYear != null && req.body.deathYear !== "") {
+          const parsed = parseInt(String(req.body.deathYear), 10);
+          fieldsToUpdate.deathYear = Number.isNaN(parsed) ? null : parsed;
+        } else {
+          fieldsToUpdate.deathYear = null;
+        }
+      }
     }
     if (req.body.funeralLocation !== undefined)
       fieldsToUpdate.funeralLocation = req.body.funeralLocation;
