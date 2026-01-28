@@ -42,18 +42,6 @@ const slugKeyFilter = (name) => {
     .join("");
 };
 
-/**
- * Format publish date as DDMMYY for slug (e.g. 280126 for 28 Jan 2026).
- * Slug uses actual date obituary was created, never death date or placeholders.
- */
-const formatPublishDateForSlug = (date) => {
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day}${month}${year}`;
-};
-
 // Safely parse and validate funeralCemeteryId
 const safeParseFuneralCemeteryId = (funeralCemeteryId) => {
   // Return null for empty string or undefined
@@ -127,15 +115,21 @@ const obituaryController = {
         uniqueSlugKey = `${slugKey}_${counter}`;
         counter++;
       }
-      const slugKey = uniqueSlugKey;
+      slugKey = uniqueSlugKey;
+      const existingObituary = await Obituary.findOne({
+        where: { name, sirName, deathDate },
+      });
+      if (existingObituary) {
+        console.warn("Duplicate obituary detected");
+        return res.status(httpStatus.CONFLICT).json({
+          error: "Osmrtnica s tem imenom in datumom smrti že obstaja",
+        });
+      }
 
-      // Unknown birth: store null instead of fake placeholder (no dates in public/SEO).
       const birthDateToSave =
-        birthDate != null &&
-        birthDate !== "null" &&
-        birthDate !== "" ?
+        birthDate != "null" && birthDate != "" ?
           birthDate
-        : null;
+        : new Date("1025-01-01");
 
       const newObituary = await Obituary.create({
         name,
