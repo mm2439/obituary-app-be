@@ -26,9 +26,9 @@ function slugKeyFilter(name) {
 
 function formatPublishDateForSlug(date) {
   const d = new Date(date);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const year = String(d.getUTCFullYear()).slice(-2);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
   return `${day}${month}${year}`;
 }
 
@@ -209,21 +209,15 @@ module.exports = {
         }
 
         if (oldSlug !== newSlug) {
-          // First, update the obituary slugKey to the new slug
+          await upsertRedirect(queryInterface, oldSlug, newSlug, transaction);
+          // Track both old_slug and new_slug to prevent future conflicts
+          if (oldSlug) usedRedirectSlugs.add(oldSlug);
+          usedRedirectSlugs.add(newSlug);
+          
           await queryInterface.sequelize.query(
             `UPDATE obituaries SET slugKey = :new_slug WHERE id = :id`,
             { replacements: { new_slug: newSlug, id: row.id }, transaction }
           );
-          
-          // Track newSlug to prevent future conflicts
-          usedRedirectSlugs.add(newSlug);
-          
-          // Only create redirect if oldSlug is truthy (not null/undefined/empty)
-          if (oldSlug) {
-            await upsertRedirect(queryInterface, oldSlug, newSlug, transaction);
-            // Track old_slug to prevent future conflicts
-            usedRedirectSlugs.add(oldSlug);
-          }
         }
       }
 
