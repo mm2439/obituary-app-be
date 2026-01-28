@@ -3,7 +3,7 @@
 /**
  * Add birthDatePrecision and deathDatePrecision so we never "make up" full dates
  * when user only enters a year. Values: 'full' | 'year'. Default 'full'.
- * When 'year', use birthYear/deathYear (see migration 20260128200000); no fake day/month stored.
+ * When 'year', stored date is YYYY-01-01 (no fake 31.12).
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
