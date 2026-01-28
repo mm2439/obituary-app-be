@@ -42,6 +42,18 @@ const slugKeyFilter = (name) => {
     .join("");
 };
 
+/**
+ * Format publish date as DDMMYY for slug (e.g. 280126 for 28 Jan 2026).
+ * Slug uses actual date obituary was created, never death date or placeholders.
+ */
+const formatPublishDateForSlug = (date) => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}${month}${year}`;
+};
+
 // Safely parse and validate funeralCemeteryId
 const safeParseFuneralCemeteryId = (funeralCemeteryId) => {
   // Return null for empty string or undefined
