@@ -43,6 +43,7 @@ Obituary.init(
       allowNull: false,
       defaultValue: "Male",
     },
+    // Stored for internal/admin use only; never exposed in public HTML, meta, or structured data.
     birthDate: {
       type: DataTypes.DATEONLY,
       allowNull: true,
@@ -184,7 +185,7 @@ const validateObituary = (obituary) => {
     region: Joi.string().max(100).required(),
     city: Joi.string().max(100).required(),
     gender: Joi.string().valid("Male", "Female").default("Male").required(),
-    birthDate: Joi.string().optional().allow(null, ""),
+    birthDate: Joi.string().optional().allow(null, ""), // null when unknown; no fake placeholders
     deathDate: Joi.date().required(),
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),

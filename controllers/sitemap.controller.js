@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const { Obituary } = require("../models/obituary.model");
 const { User } = require("../models/user.model");
 const { CompanyPage } = require("../models/company_page.model");
@@ -6,10 +7,14 @@ const httpStatus = require("http-status-codes").StatusCodes;
 const sitemapController = {
   getSlugs: async (req, res) => {
     try {
-      // Get all published obituary slugKeys for /m/[slugKey] routes
+      // Get all published obituary slugKeys for /m/[slugKey] routes (exclude deleted)
       const obituariesSlugs = await Obituary.findAll({
-        attributes: ['slugKey'],
-        raw: true
+        attributes: ["slugKey"],
+        where: {
+          [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
+          deletedAt: null,
+        },
+        raw: true,
       });
       const mSlugs = obituariesSlugs.map(obit => obit.slugKey);
 
@@ -19,7 +24,7 @@ const sitemapController = {
         where: {
           role: process.env.FLORIST_ROLE,
           slugKey: {
-            [require('sequelize').Op.ne]: null
+            [Op.ne]: null
           }
         },
         include: [{
@@ -41,7 +46,7 @@ const sitemapController = {
         where: {
           role: process.env.FUNERAL_COMPANY_ROLE,
           slugKey: {
-            [require('sequelize').Op.ne]: null
+            [Op.ne]: null
           }
         },
         include: [{

@@ -28,6 +28,10 @@ const { generateQRCode } = require("../utils/generateQRCode.js");
 const timestampName = require("../helpers/sanitize").timestampName;
 const sanitize = require("../helpers/sanitize").sanitize;
 
+/**
+ * Normalizes diacritics in name for URL slug (e.g. š → s).
+ * Used so slug is ASCII-only and URL-safe.
+ */
 const slugKeyFilter = (name) => {
   return name
     .split("")
@@ -40,6 +44,18 @@ const slugKeyFilter = (name) => {
       return char;
     })
     .join("");
+};
+
+/**
+ * Format publish date as DDMMYY for slug (e.g. 280126 for 28 Jan 2026).
+ * Slug uses actual date obituary was created, never death date or placeholders.
+ */
+const formatPublishDateForSlug = (date) => {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}${month}${year}`;
 };
 
 // Safely parse and validate funeralCemeteryId
@@ -94,42 +110,29 @@ const obituaryController = {
           .status(httpStatus.BAD_REQUEST)
           .json({ error: `Napačni format: ${error}` });
       }
-      let slugKey = providedSlugKey;
-      if (!slugKey) {
-        const formatDate = (date) => {
-          const d = new Date(date);
-          const day = String(d.getDate()).padStart(2, "0");
-          const month = String(d.getMonth() + 1).padStart(2, "0");
-          const year = String(d.getFullYear()).slice(-2);
-          return `${day}${month}${year}`;
-        };
-        const cleanFirstName = slugKeyFilter(name);
-        const cleanSirName = slugKeyFilter(sirName);
-        slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(
-          deathDate,
-        )}`.replace(/\s+/g, "_");
-      }
-      let uniqueSlugKey = slugKey;
+      // Slug = name_lastname_PUBLISHDATE (DDMMYY). Always server-generated; never use client-provided slug.
+      const publishDate = new Date();
+      const cleanFirstName = slugKeyFilter(name);
+      const cleanSirName = slugKeyFilter(sirName);
+      const baseSlugKey = `${cleanFirstName}_${cleanSirName}_${formatPublishDateForSlug(publishDate)}`.replace(
+        /\s+/g,
+        "_",
+      );
+      let uniqueSlugKey = baseSlugKey;
       let counter = 1;
       while (await Obituary.findOne({ where: { slugKey: uniqueSlugKey } })) {
-        uniqueSlugKey = `${slugKey}_${counter}`;
+        uniqueSlugKey = `${baseSlugKey}_${counter}`;
         counter++;
       }
-      slugKey = uniqueSlugKey;
-      const existingObituary = await Obituary.findOne({
-        where: { name, sirName, deathDate },
-      });
-      if (existingObituary) {
-        console.warn("Duplicate obituary detected");
-        return res.status(httpStatus.CONFLICT).json({
-          error: "Osmrtnica s tem imenom in datumom smrti že obstaja",
-        });
-      }
+      const slugKey = uniqueSlugKey;
 
+      // Unknown birth: store null instead of fake placeholder (no dates in public/SEO).
       const birthDateToSave =
-        birthDate != "null" && birthDate != "" ?
+        birthDate != null &&
+        birthDate !== "null" &&
+        birthDate !== "" ?
           birthDate
-        : new Date("1025-01-01");
+        : null;
 
       const newObituary = await Obituary.create({
         name,
@@ -1753,6 +1756,32 @@ const obituaryController = {
       }
     } catch (error) {
       console.error("generateQr error:", error);
+      return res.status(500).json({ message: "Prišlo je do napake" });
+    }
+  },
+
+  /**
+   * Resolve old obituary slug to new slug for 301 redirects.
+   * GET /obituary/redirect?from=old_slug -> { redirectTo: new_slug } or 404.
+   * Used by frontend middleware so old URLs (e.g. name_lastname_31.12.2026) redirect to new (name_lastname_280126).
+   */
+  getRedirect: async (req, res) => {
+    try {
+      const fromSlug = req.query.from;
+      if (!fromSlug || typeof fromSlug !== "string") {
+        return res.status(400).json({ error: "Missing from" });
+      }
+      const sequelize = Obituary.sequelize;
+      const [rows] = await sequelize.query(
+        "SELECT new_slug FROM slug_redirects WHERE old_slug = :old_slug LIMIT 1",
+        { replacements: { old_slug: fromSlug.trim() } }
+      );
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: "No redirect" });
+      }
+      return res.status(200).json({ redirectTo: rows[0].new_slug });
+    } catch (error) {
+      console.error("getRedirect error:", error);
       return res.status(500).json({ message: "Prišlo je do napake" });
     }
   },
