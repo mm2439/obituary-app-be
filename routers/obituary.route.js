@@ -17,8 +17,6 @@ router.post(
 );
 
 router.get("/", obituaryController.getObituary);
-/** 301 redirect resolution: GET /obituary/redirect?from=old_slug -> { redirectTo: new_slug }. No auth. */
-router.get("/redirect", obituaryController.getRedirect);
 router.get("/paginated", obituaryController.getObituariesPaginated);
 router.get("/company-page", obituaryController.getCompanyPageObituary);
 router.get("/funerals", obituaryController.getFunerals);

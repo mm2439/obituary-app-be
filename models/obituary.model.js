@@ -43,33 +43,13 @@ Obituary.init(
       allowNull: false,
       defaultValue: "Male",
     },
-    // Full date when precision is "full"; null when precision is "year" (use birthYear then).
     birthDate: {
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-    birthYear: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    birthDatePrecision: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-      defaultValue: "full",
-    },
-    // Full date when precision is "full"; null when precision is "year" (use deathYear then).
     deathDate: {
       type: DataTypes.DATEONLY,
-      allowNull: true,
-    },
-    deathYear: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-    },
-    deathDatePrecision: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-      defaultValue: "full",
+      allowNull: false,
     },
     image: {
       type: DataTypes.TEXT,
@@ -205,11 +185,7 @@ const validateObituary = (obituary) => {
     city: Joi.string().max(100).required(),
     gender: Joi.string().valid("Male", "Female").default("Male").required(),
     birthDate: Joi.string().optional().allow(null, ""),
-    birthYear: Joi.number().integer().min(1000).max(2100).optional().allow(null),
-    birthDatePrecision: Joi.string().valid("full", "year").optional(),
-    deathDate: Joi.date().optional().allow(null, ""),
-    deathYear: Joi.number().integer().min(1000).max(2100).optional().allow(null),
-    deathDatePrecision: Joi.string().valid("full", "year").optional(),
+    deathDate: Joi.date().required(),
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),
     funeralCemetery: Joi.string().max(100).allow(null, "").optional(),
