@@ -48,19 +48,9 @@ Obituary.init(
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-    birthDatePrecision: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-      defaultValue: "full",
-    },
     deathDate: {
       type: DataTypes.DATEONLY,
       allowNull: false,
-    },
-    deathDatePrecision: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-      defaultValue: "full",
     },
     image: {
       type: DataTypes.TEXT,
@@ -196,9 +186,7 @@ const validateObituary = (obituary) => {
     city: Joi.string().max(100).required(),
     gender: Joi.string().valid("Male", "Female").default("Male").required(),
     birthDate: Joi.string().optional().allow(null, ""), // null when unknown; no fake placeholders
-    birthDatePrecision: Joi.string().valid("full", "year").optional(),
     deathDate: Joi.date().required(),
-    deathDatePrecision: Joi.string().valid("full", "year").optional(),
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),
     funeralCemetery: Joi.string().max(100).allow(null, "").optional(),
