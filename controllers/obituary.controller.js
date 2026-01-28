@@ -87,9 +87,7 @@ const obituaryController = {
         city,
         gender,
         birthDate,
-        birthDatePrecision,
         deathDate,
-        deathDatePrecision,
         funeralLocation,
         funeralCemetery,
         funeralCemeteryId,
@@ -147,9 +145,7 @@ const obituaryController = {
         city,
         gender,
         birthDate: birthDateToSave,
-        birthDatePrecision: birthDatePrecision === "year" ? "year" : "full",
         deathDate,
-        deathDatePrecision: deathDatePrecision === "year" ? "year" : "full",
         funeralLocation,
         funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
         funeralCemeteryId: safeParseFuneralCemeteryId(funeralCemeteryId),
@@ -941,14 +937,8 @@ const obituaryController = {
     if (req.body.gender !== undefined) fieldsToUpdate.gender = req.body.gender;
     if (req.body.birthDate !== undefined)
       fieldsToUpdate.birthDate = req.body.birthDate;
-    if (req.body.birthDatePrecision !== undefined)
-      fieldsToUpdate.birthDatePrecision =
-        req.body.birthDatePrecision === "year" ? "year" : "full";
     if (req.body.deathDate !== undefined)
       fieldsToUpdate.deathDate = req.body.deathDate;
-    if (req.body.deathDatePrecision !== undefined)
-      fieldsToUpdate.deathDatePrecision =
-        req.body.deathDatePrecision === "year" ? "year" : "full";
     if (req.body.funeralLocation !== undefined)
       fieldsToUpdate.funeralLocation = req.body.funeralLocation;
     if (req.body.funeralCemetery !== undefined)
