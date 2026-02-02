@@ -72,6 +72,18 @@ KeeperApplication.init(
       allowNull: false,
       defaultValue: "pending",
     },
+    name: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return this.getDataValue('userName');
+      },
+    },
+    deathReport: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return this.getDataValue('document');
+      },
+    },
   },
   {
     sequelize,

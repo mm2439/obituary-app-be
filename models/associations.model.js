@@ -4,6 +4,7 @@ const { Obituary } = require("./obituary.model");
 const { Event } = require("./event.model");
 const { Photo } = require("./photo.model");
 const { Keeper } = require("./keeper.model");
+const { KeeperApplication } = require("./keeper_application.model");
 const { SorrowBook } = require("./sorrow_book.model");
 const { MemoryLog } = require("./memory_logs.model");
 const { Dedication } = require("./dedication.model");
@@ -20,8 +21,45 @@ const { KeeperNotification } = require("./keeper_notification");
 const { Order } = require("./order.model");
 // const { Guardian } = require("./guardian.model");
 
+  //  USER ↔ AUTH
 User.hasMany(RefreshToken, { foreignKey: "userId" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
+
+  //  USER ↔ KEEPER
+User.hasMany(Keeper, {
+  foreignKey: "userId",
+  as: "keepers",
+});
+Keeper.belongsTo(User, {
+  foreignKey: "userId",
+  as: "user",
+});
+
+  //  OBITUARY ↔ KEEPER
+Obituary.hasMany(Keeper, {
+  foreignKey: "obituaryId",
+  as: "keepers",
+});
+Keeper.belongsTo(Obituary, {
+  foreignKey: "obituaryId",
+  as: "obituary",
+});
+
+  //  USER ↔ KEEPER APPLICATION
+User.hasMany(KeeperApplication, {
+  foreignKey: "userId",
+});
+KeeperApplication.belongsTo(User, {
+  foreignKey: "userId",
+});
+
+  //  OBITUARY ↔ KEEPER APPLICATION
+Obituary.hasMany(KeeperApplication, {
+  foreignKey: "obituaryId",
+});
+KeeperApplication.belongsTo(Obituary, {
+  foreignKey: "obituaryId",
+});
 
 Obituary.hasMany(Event, { foreignKey: "obituaryId" });
 Event.belongsTo(Obituary, { foreignKey: "obituaryId" });
@@ -125,6 +163,7 @@ module.exports = {
   Photo,
   MemoryLog,
   Keeper,
+  KeeperApplication,
   SorrowBook,
   Dedication,
   Condolence,

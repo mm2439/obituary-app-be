@@ -223,6 +223,18 @@ const keeperController = {
         limit: parseInt(limit),
         offset: parseInt(offset),
         order: [["createdTimestamp", "DESC"]],
+        include: [
+          {
+            model: User,
+            attributes: ['id', 'name', 'email', 'city'],
+            required: true,
+          },
+          {
+            model: Obituary,
+            attributes: ['id', 'name', 'city'],
+            required: true,
+          },
+        ],
       });
 
       res.status(httpStatus.OK).json({
