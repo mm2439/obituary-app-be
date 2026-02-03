@@ -167,6 +167,25 @@ Obituary.init(
       allowNull: true, // can be null initially
       defaultValue: null,
     },
+    sourceUrl: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    skipObituaryBox: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    privateFuneralIcon: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    ageInYears: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+    },
   },
   {
     sequelize,
@@ -193,6 +212,10 @@ const validateObituary = (obituary) => {
     funeralTimestamp: Joi.date().allow(null, "").optional(),
     events: Joi.any().optional(),
     refuseFlowersIcon: Joi.boolean().optional(),
+    privateFuneralIcon: Joi.boolean().optional(),
+    sourceUrl: Joi.string().uri().allow(null, "").optional(),
+    skipObituaryBox: Joi.boolean().optional(),
+    ageInYears: Joi.number().integer().min(1).max(110).allow(null, "").optional(),
     deathReportExists: Joi.boolean().required(),
     deathReport: Joi.any().allow(null, "").optional(),
     obituary: Joi.string().required(),

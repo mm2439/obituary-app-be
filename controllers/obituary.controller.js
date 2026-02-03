@@ -82,6 +82,10 @@ const obituaryController = {
         funeralTimestamp,
         events,
         refuseFlowersIcon,
+        privateFuneralIcon,
+        sourceUrl,
+        skipObituaryBox,
+        ageInYears,
         deathReportExists,
         obituary,
         symbol,
@@ -126,10 +130,23 @@ const obituaryController = {
         });
       }
 
-      const birthDateToSave =
-        birthDate != "null" && birthDate != "" ?
-          birthDate
-        : new Date("1025-01-01");
+      // Mutual exclusion: if ageInYears is set, clear birthDate; if birthDate is set, clear ageInYears
+      const ageInYearsValue = ageInYears && ageInYears !== "" ? parseInt(ageInYears) : null;
+      let birthDateToSave;
+      let finalAgeInYears;
+      
+      if (ageInYearsValue) {
+        // If ageInYears is set, don't save birthDate
+        birthDateToSave = new Date("1025-01-01");
+        finalAgeInYears = ageInYearsValue;
+      } else {
+        // If birthDate is set, don't save ageInYears
+        birthDateToSave =
+          birthDate != "null" && birthDate != "" ?
+            birthDate
+          : new Date("1025-01-01");
+        finalAgeInYears = null;
+      }
 
       const newObituary = await Obituary.create({
         name,
@@ -147,6 +164,12 @@ const obituaryController = {
         events: JSON.parse(events || "[]"),
         refuseFlowersIcon:
           refuseFlowersIcon === true || refuseFlowersIcon === "true",
+        privateFuneralIcon:
+          privateFuneralIcon === true || privateFuneralIcon === "true",
+        sourceUrl: sourceUrl || null,
+        skipObituaryBox:
+          skipObituaryBox === true || skipObituaryBox === "true",
+        ageInYears: finalAgeInYears,
         deathReportExists,
         obituary,
         symbol,
@@ -301,6 +324,10 @@ const obituaryController = {
           {
             deletedAt: null,
           },
+          {
+            // Exclude obituaries with skipObituaryBox = true (memory pages only)
+            [Op.or]: [{ skipObituaryBox: false }, { skipObituaryBox: null }],
+          },
         ],
       };
 
@@ -438,6 +465,10 @@ const obituaryController = {
           },
           {
             deletedAt: null,
+          },
+          {
+            // Exclude obituaries with skipObituaryBox = true (memory pages only)
+            [Op.or]: [{ skipObituaryBox: false }, { skipObituaryBox: null }],
           },
         ],
       };
@@ -929,8 +960,28 @@ const obituaryController = {
     if (req.body.region !== undefined) fieldsToUpdate.region = req.body.region;
     if (req.body.city !== undefined) fieldsToUpdate.city = req.body.city;
     if (req.body.gender !== undefined) fieldsToUpdate.gender = req.body.gender;
-    if (req.body.birthDate !== undefined)
-      fieldsToUpdate.birthDate = req.body.birthDate;
+    // Mutual exclusion: handle birthDate and ageInYears together
+    if (req.body.birthDate !== undefined || req.body.ageInYears !== undefined) {
+      const ageInYearsValue = req.body.ageInYears !== undefined && req.body.ageInYears !== "" 
+        ? parseInt(req.body.ageInYears) 
+        : null;
+      
+      if (ageInYearsValue !== null) {
+        // If ageInYears is set (has a value), clear birthDate
+        fieldsToUpdate.birthDate = new Date("1025-01-01");
+        fieldsToUpdate.ageInYears = ageInYearsValue;
+      } else if (req.body.birthDate !== undefined) {
+        // If birthDate is set, clear ageInYears
+        const birthDateValue = req.body.birthDate !== "null" && req.body.birthDate !== "" 
+          ? req.body.birthDate 
+          : new Date("1025-01-01");
+        fieldsToUpdate.birthDate = birthDateValue;
+        fieldsToUpdate.ageInYears = null;
+      } else if (req.body.ageInYears !== undefined && (req.body.ageInYears === "" || req.body.ageInYears === null)) {
+        // Explicitly clearing ageInYears (user removed it)
+        fieldsToUpdate.ageInYears = null;
+      }
+    }
     if (req.body.deathDate !== undefined)
       fieldsToUpdate.deathDate = req.body.deathDate;
     if (req.body.funeralLocation !== undefined)
@@ -945,6 +996,17 @@ const obituaryController = {
       fieldsToUpdate.refuseFlowersIcon =
         req.body.refuseFlowersIcon === true ||
         req.body.refuseFlowersIcon === "true";
+    if (req.body.privateFuneralIcon !== undefined)
+      fieldsToUpdate.privateFuneralIcon =
+        req.body.privateFuneralIcon === true ||
+        req.body.privateFuneralIcon === "true";
+    if (req.body.sourceUrl !== undefined)
+      fieldsToUpdate.sourceUrl = req.body.sourceUrl || null;
+    if (req.body.skipObituaryBox !== undefined)
+      fieldsToUpdate.skipObituaryBox =
+        req.body.skipObituaryBox === true ||
+        req.body.skipObituaryBox === "true";
+    // ageInYears is handled above in mutual exclusion logic
     if (req.body.funeralTimestamp !== undefined)
       fieldsToUpdate.funeralTimestamp = req.body.funeralTimestamp;
     if (req.body.verse !== undefined) fieldsToUpdate.verse = req.body.verse;
