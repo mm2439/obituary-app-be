@@ -67,6 +67,15 @@ const safeParseFuneralCemeteryId = (funeralCemeteryId) => {
 const obituaryController = {
   createObituary: async (req, res) => {
     try {
+      // Convert string booleans to actual booleans (FormData sends them as strings)
+      const convertToBoolean = (value) => {
+        if (typeof value === "boolean") return value;
+        if (typeof value === "string") {
+          return value === "true" || value === "1";
+        }
+        return false;
+      };
+
       const {
         name,
         sirName,
@@ -91,12 +100,25 @@ const obituaryController = {
         symbol,
         slugKey: providedSlugKey,
       } = req.body;
-      const { error } = validateObituary(req.body);
+
+      // Prepare validated body with converted booleans and normalized sourceUrl
+      const validatedBody = {
+        ...req.body,
+        refuseFlowersIcon: convertToBoolean(refuseFlowersIcon),
+        privateFuneralIcon: convertToBoolean(privateFuneralIcon),
+        skipObituaryBox: convertToBoolean(skipObituaryBox),
+        deathReportExists: convertToBoolean(deathReportExists),
+        // Normalize sourceUrl: empty string becomes null for validation
+        sourceUrl: sourceUrl && sourceUrl.trim() !== "" ? sourceUrl : null,
+      };
+
+      const { error } = validateObituary(validatedBody);
       if (error) {
-        console.warn(`Invalid data format: ${error}`);
+        console.warn(`Invalid data format: ${error.details?.[0]?.message || error.message}`);
+        const errorMessage = error.details?.[0]?.message || error.message || "Napačni format podatkov";
         return res
           .status(httpStatus.BAD_REQUEST)
-          .json({ error: `Napačni format: ${error}` });
+          .json({ error: `Napačni format: ${errorMessage}` });
       }
       let slugKey = providedSlugKey;
       if (!slugKey) {
@@ -162,15 +184,12 @@ const obituaryController = {
         funeralCemeteryId: safeParseFuneralCemeteryId(funeralCemeteryId),
         funeralTimestamp: funeralTimestamp || null,
         events: JSON.parse(events || "[]"),
-        refuseFlowersIcon:
-          refuseFlowersIcon === true || refuseFlowersIcon === "true",
-        privateFuneralIcon:
-          privateFuneralIcon === true || privateFuneralIcon === "true",
+        refuseFlowersIcon: validatedBody.refuseFlowersIcon,
+        privateFuneralIcon: validatedBody.privateFuneralIcon,
         sourceUrl: sourceUrl || null,
-        skipObituaryBox:
-          skipObituaryBox === true || skipObituaryBox === "true",
+        skipObituaryBox: validatedBody.skipObituaryBox,
         ageInYears: finalAgeInYears,
-        deathReportExists,
+        deathReportExists: validatedBody.deathReportExists,
         obituary,
         symbol,
         userId: req.user.id,
@@ -1012,8 +1031,13 @@ const obituaryController = {
     if (req.body.verse !== undefined) fieldsToUpdate.verse = req.body.verse;
     if (req.body.events !== undefined)
       fieldsToUpdate.events = JSON.parse(req.body.events);
-    if (req.body.deathReportExists !== undefined)
-      fieldsToUpdate.deathReportExists = req.body.deathReportExists;
+    if (req.body.deathReportExists !== undefined) {
+      // Convert string boolean to actual boolean (FormData sends them as strings)
+      fieldsToUpdate.deathReportExists = 
+        req.body.deathReportExists === true || 
+        req.body.deathReportExists === "true" ||
+        req.body.deathReportExists === "1";
+    }
     if (req.body.obituary !== undefined)
       fieldsToUpdate.obituary = req.body.obituary;
     if (req.body.symbol !== undefined) fieldsToUpdate.symbol = req.body.symbol;
