@@ -46,11 +46,6 @@ module.exports = {
         type: Sequelize.DATEONLY,
         allowNull: false,
       },
-      ageInYears: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        defaultValue: null,
-      },
       image: {
         type: Sequelize.TEXT,
         allowNull: true,
@@ -142,20 +137,6 @@ module.exports = {
         type: Sequelize.JSON,
         allowNull: true,
         defaultValue: [],
-      },
-      sourceUrl: {
-        type: Sequelize.STRING(500),
-        allowNull: true,
-      },
-      skipObituaryBox: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      },
-      privateFuneralIcon: {
-        type: Sequelize.BOOLEAN,
-        allowNull: true,
-        defaultValue: false,
       },
     });
   },
