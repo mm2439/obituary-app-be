@@ -51,12 +51,32 @@ const isInvalidDate = (value) => {
   if (d.getFullYear() === 1025) return true;
   return false;
 };
+const calculateAgeFromDates = (birthDate, deathDate) => {
+  if (!birthDate || !deathDate) return null;
+  const birth = new Date(birthDate);
+  const death = new Date(deathDate);
+  if (Number.isNaN(birth.getTime()) || Number.isNaN(death.getTime())) return null;
+  if (birth.getFullYear() === 1025) return null;
+  let age = death.getFullYear() - birth.getFullYear();
+  if (
+    death.getMonth() < birth.getMonth() ||
+    (death.getMonth() === birth.getMonth() && death.getDate() < birth.getDate())
+  ) {
+    age--;
+  }
+  return age > 0 ? age : null;
+};
+
 const sanitizeObituaryDates = (plain) => {
   if (!plain || typeof plain !== "object") return plain;
   const out = { ...plain };
   if (isInvalidDate(out.birthDate)) out.birthDate = null;
   if (isInvalidDate(out.deathDate)) out.deathDate = null;
   if (isInvalidDate(out.funeralTimestamp)) out.funeralTimestamp = null;
+  if ((out.ageInYears == null || out.ageInYears === "") && out.birthDate && out.deathDate) {
+    const computed = calculateAgeFromDates(out.birthDate, out.deathDate);
+    if (computed != null) out.ageInYears = computed;
+  }
   return out;
 };
 
