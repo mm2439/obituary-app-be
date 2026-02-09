@@ -197,14 +197,14 @@ const obituaryController = {
 
       if (ageInYearsValue) {
         // If ageInYears is set, don't save birthDate
-        birthDateToSave = new Date("1025-01-01");
+        birthDateToSave = null;
         finalAgeInYears = ageInYearsValue;
       } else {
         // If birthDate is set, don't save ageInYears
         birthDateToSave =
           birthDate != "null" && birthDate != "" ?
             birthDate
-            : new Date("1025-01-01");
+            : null;
         finalAgeInYears = null;
       }
 
@@ -1025,13 +1025,13 @@ const obituaryController = {
 
       if (ageInYearsValue !== null) {
         // If ageInYears is set (has a value), clear birthDate
-        fieldsToUpdate.birthDate = new Date("1025-01-01");
+        fieldsToUpdate.birthDate = null;
         fieldsToUpdate.ageInYears = ageInYearsValue;
       } else if (req.body.birthDate !== undefined) {
         // If birthDate is set, clear ageInYears
         const birthDateValue = req.body.birthDate !== "null" && req.body.birthDate !== ""
           ? req.body.birthDate
-          : new Date("1025-01-01");
+          : null;
         fieldsToUpdate.birthDate = birthDateValue;
         fieldsToUpdate.ageInYears = null;
       } else if (req.body.ageInYears !== undefined && (req.body.ageInYears === "" || req.body.ageInYears === null)) {
