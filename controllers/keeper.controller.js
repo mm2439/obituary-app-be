@@ -252,7 +252,14 @@ const keeperController = {
           {
             model: Obituary,
             as: "obituary",
-            attributes: ["id", "name", "deathDate", "city"],
+            attributes: [
+              "id",
+              "name",
+              "deathDate",
+              "city",
+              "sirName",
+              "slugKey",
+            ],
           },
         ],
         limit: parseInt(limit),
@@ -310,43 +317,47 @@ const keeperController = {
         //   },
         // });
 
-          // const expiry = new Date();
-          // expiry.setDate(expiry.getDate() + 60); // Default 60 days
+        // const expiry = new Date();
+        // expiry.setDate(expiry.getDate() + 60); // Default 60 days
 
-          // const keeper = await Keeper.create({
-          //   userId: keeperApplication.userId,
-          //   obituaryId: keeperApplication.obituaryId,
-          //   expiry,
-          //   relation: keeperApplication.relation,
-          //   name: keeperApplication.userName,
-          //   deathReport: keeperApplication.document,
-          //   isNotified: false,
-          //   time: null, // time is not collected in application
-          // });
+        // const keeper = await Keeper.create({
+        //   userId: keeperApplication.userId,
+        //   obituaryId: keeperApplication.obituaryId,
+        //   expiry,
+        //   relation: keeperApplication.relation,
+        //   name: keeperApplication.userName,
+        //   deathReport: keeperApplication.document,
+        //   isNotified: false,
+        //   time: null, // time is not collected in application
+        // });
 
-          // Create Notification
-          await KeeperNotification.create({
-            sender: req.user.id,
-            receiver: keeperApplication.userId,
-            obituaryId: keeperApplication.obituaryId,
-            isNotified: false,
-            time: null,
-          });
+        // Create Notification
+        await KeeperNotification.create({
+          sender: req.user.id,
+          receiver: keeperApplication.userId,
+          obituaryId: keeperApplication.obituaryId,
+          isNotified: false,
+          time: null,
+        });
 
-          // Create Memory Log
-          await memoryLogsController.createLog(
-            "keeper_activation",
-            parseInt(keeperApplication.obituaryId),
-            keeperApplication.userId,
-            keeperApplication.id,
-            "approved",
-            keeperApplication.name,
-            "Skrbnik",
-            null,
-          );
+        // Create Memory Log
+        await memoryLogsController.createLog(
+          "keeper_activation",
+          parseInt(keeperApplication.obituaryId),
+          keeperApplication.userId,
+          keeperApplication.id,
+          "approved",
+          keeperApplication.name,
+          "Skrbnik",
+          null,
+        );
 
         try {
-          if ((status === "approved" || status === "rejected") && user && user.email) {
+          if (
+            (status === "approved" || status === "rejected") &&
+            user &&
+            user.email
+          ) {
             if (environment !== "development") {
               await emailService.sendUserGuardianStatusUpdate(
                 user.email,
@@ -376,11 +387,11 @@ const keeperController = {
       const { id } = req.params;
       const { expiry } = req.body;
 
-       const parsedExpiry = new Date(`${expiry}T00:00:00`);
+      const parsedExpiry = new Date(`${expiry}T00:00:00`);
 
-  if (isNaN(parsedExpiry.getTime())) {
-    return res.status(400).json({ message: "Invalid date" });
-  }
+      if (isNaN(parsedExpiry.getTime())) {
+        return res.status(400).json({ message: "Invalid date" });
+      }
 
       const keeperApplication = await Keeper.findByPk(id);
 
