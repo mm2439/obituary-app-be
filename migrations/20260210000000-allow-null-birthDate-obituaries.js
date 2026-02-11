@@ -2,14 +2,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Replace placeholder date with NULL so column can be made nullable
-    await queryInterface.sequelize.query(`
-      UPDATE obituaries SET birthDate = NULL WHERE birthDate = '1025-01-01'
-    `);
+    // allow null values
     await queryInterface.changeColumn("obituaries", "birthDate", {
       type: Sequelize.DATEONLY,
       allowNull: true,
     });
+    // Replace placeholder date with NULL so column can be made nullable
+    await queryInterface.sequelize.query(`
+      UPDATE obituaries SET birthDate = NULL WHERE birthDate = '1025-01-01'
+    `);
   },
 
   async down(queryInterface, Sequelize) {
