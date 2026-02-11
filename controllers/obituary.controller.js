@@ -42,6 +42,44 @@ const slugKeyFilter = (name) => {
     .join("");
 };
 
+// If date is placeholder (1025) or invalid, return null in API responses. No DB change.
+const isInvalidDate = (value) => {
+  if (value == null) return true;
+  if (typeof value === "string" && value.includes("1025")) return true;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return true;
+  if (d.getFullYear() === 1025) return true;
+  return false;
+};
+const calculateAgeFromDates = (birthDate, deathDate) => {
+  if (!birthDate || !deathDate) return null;
+  const birth = new Date(birthDate);
+  const death = new Date(deathDate);
+  if (Number.isNaN(birth.getTime()) || Number.isNaN(death.getTime())) return null;
+  if (birth.getFullYear() === 1025) return null;
+  let age = death.getFullYear() - birth.getFullYear();
+  if (
+    death.getMonth() < birth.getMonth() ||
+    (death.getMonth() === birth.getMonth() && death.getDate() < birth.getDate())
+  ) {
+    age--;
+  }
+  return age > 0 ? age : null;
+};
+
+const sanitizeObituaryDates = (plain) => {
+  if (!plain || typeof plain !== "object") return plain;
+  const out = { ...plain };
+  if (isInvalidDate(out.birthDate)) out.birthDate = null;
+  if (isInvalidDate(out.deathDate)) out.deathDate = null;
+  if (isInvalidDate(out.funeralTimestamp)) out.funeralTimestamp = null;
+  if ((out.ageInYears == null || out.ageInYears === "") && out.birthDate && out.deathDate) {
+    const computed = calculateAgeFromDates(out.birthDate, out.deathDate);
+    if (computed != null) out.ageInYears = computed;
+  }
+  return out;
+};
+
 // Safely parse and validate funeralCemeteryId
 const safeParseFuneralCemeteryId = (funeralCemeteryId) => {
   // Return null for empty string or undefined
@@ -156,17 +194,17 @@ const obituaryController = {
       const ageInYearsValue = ageInYears && ageInYears !== "" ? parseInt(ageInYears) : null;
       let birthDateToSave;
       let finalAgeInYears;
-      
+
       if (ageInYearsValue) {
         // If ageInYears is set, don't save birthDate
-        birthDateToSave = new Date("1025-01-01");
+        birthDateToSave = null;
         finalAgeInYears = ageInYearsValue;
       } else {
         // If birthDate is set, don't save ageInYears
         birthDateToSave =
           birthDate != "null" && birthDate != "" ?
             birthDate
-          : new Date("1025-01-01");
+            : null;
         finalAgeInYears = null;
       }
 
@@ -266,7 +304,7 @@ const obituaryController = {
 
       await newObituary.save();
 
-      return res.status(httpStatus.CREATED).json(newObituary);
+      return res.status(httpStatus.CREATED).json(sanitizeObituaryDates(newObituary.toJSON ? newObituary.toJSON() : newObituary));
     } catch (err) {
       console.error("Error in createObituary:", err);
       return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
@@ -420,7 +458,7 @@ const obituaryController = {
       });
       res.status(httpStatus.OK).json({
         total: totalObit.count,
-        obituaries: totalObit.rows,
+        obituaries: (totalObit.rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
         funeralCount: funeralCount,
       });
     } catch (error) {
@@ -516,7 +554,7 @@ const obituaryController = {
         totalPages,
         currentPage: pageNum,
         limit: limitNum,
-        obituaries: rows,
+        obituaries: (rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
       });
     } catch (error) {
       console.error("Error in getObituariesPaginated:", error);
@@ -589,7 +627,7 @@ const obituaryController = {
       });
       res.status(httpStatus.OK).json({
         total: totalObit.count,
-        obituaries: totalObit.rows,
+        obituaries: (totalObit.rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
         funeralCount: funeralCount,
       });
     } catch (error) {
@@ -735,7 +773,7 @@ const obituaryController = {
         .json({ error: "Spominska ne obstaja" });
     }
     res.status(httpStatus.OK).json({
-      obituary,
+      obituary: sanitizeObituaryDates(obituary.toJSON ? obituary.toJSON() : obituary),
     });
   },
   getMemories: async (req, res) => {
@@ -811,7 +849,7 @@ const obituaryController = {
       const lastCandleBurnt =
         totalCandles > 0 ? obituary.candles[0].createdTimestamp : null;
       return {
-        ...obituary.toJSON(),
+        ...sanitizeObituaryDates(obituary.toJSON()),
         isKeeper: isKeeper,
         totalVisits,
         lastVisit,
@@ -854,7 +892,7 @@ const obituaryController = {
     });
     res.status(httpStatus.OK).json({
       total: obituaries.count,
-      obituaries: obituaries.rows,
+      obituaries: (obituaries.rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
     });
   },
 
@@ -905,7 +943,7 @@ const obituaryController = {
     });
     res.status(httpStatus.OK).json({
       total: obituaries.count,
-      obituaries: obituaries.rows,
+      obituaries: (obituaries.rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
     });
   },
 
@@ -981,19 +1019,19 @@ const obituaryController = {
     if (req.body.gender !== undefined) fieldsToUpdate.gender = req.body.gender;
     // Mutual exclusion: handle birthDate and ageInYears together
     if (req.body.birthDate !== undefined || req.body.ageInYears !== undefined) {
-      const ageInYearsValue = req.body.ageInYears !== undefined && req.body.ageInYears !== "" 
-        ? parseInt(req.body.ageInYears) 
+      const ageInYearsValue = req.body.ageInYears !== undefined && req.body.ageInYears !== ""
+        ? parseInt(req.body.ageInYears)
         : null;
-      
+
       if (ageInYearsValue !== null) {
         // If ageInYears is set (has a value), clear birthDate
-        fieldsToUpdate.birthDate = new Date("1025-01-01");
+        fieldsToUpdate.birthDate = null;
         fieldsToUpdate.ageInYears = ageInYearsValue;
       } else if (req.body.birthDate !== undefined) {
         // If birthDate is set, clear ageInYears
-        const birthDateValue = req.body.birthDate !== "null" && req.body.birthDate !== "" 
-          ? req.body.birthDate 
-          : new Date("1025-01-01");
+        const birthDateValue = req.body.birthDate !== "null" && req.body.birthDate !== ""
+          ? req.body.birthDate
+          : null;
         fieldsToUpdate.birthDate = birthDateValue;
         fieldsToUpdate.ageInYears = null;
       } else if (req.body.ageInYears !== undefined && (req.body.ageInYears === "" || req.body.ageInYears === null)) {
@@ -1033,8 +1071,8 @@ const obituaryController = {
       fieldsToUpdate.events = JSON.parse(req.body.events);
     if (req.body.deathReportExists !== undefined) {
       // Convert string boolean to actual boolean (FormData sends them as strings)
-      fieldsToUpdate.deathReportExists = 
-        req.body.deathReportExists === true || 
+      fieldsToUpdate.deathReportExists =
+        req.body.deathReportExists === true ||
         req.body.deathReportExists === "true" ||
         req.body.deathReportExists === "1";
     }
@@ -1048,7 +1086,7 @@ const obituaryController = {
       fieldsToUpdate.deathReport = deathReportPath;
     }
     await existingObituary.update(fieldsToUpdate);
-    res.status(httpStatus.OK).json(existingObituary);
+    res.status(httpStatus.OK).json(sanitizeObituaryDates(existingObituary.toJSON ? existingObituary.toJSON() : existingObituary));
   },
   updateVisitCounts: async (req, res) => {
     try {
@@ -1187,7 +1225,7 @@ const obituaryController = {
       }
       obituary.dataValues.floristShops = floristShopList;
       obituary.dataValues.Company = company;
-      res.status(httpStatus.OK).json(obituary);
+      res.status(httpStatus.OK).json(sanitizeObituaryDates(obituary.toJSON ? obituary.toJSON() : obituary));
     } catch (error) {
       console.error("Error updating visit counts:", error);
       res
@@ -1318,7 +1356,7 @@ const obituaryController = {
             const plainObituary = obituary.toJSON();
 
             return {
-              ...plainObituary,
+              ...sanitizeObituaryDates(plainObituary),
               totalVisits,
             };
           }),
@@ -1484,7 +1522,7 @@ const obituaryController = {
       }).length;
       const totalCandles = obituary.candles.length;
       return {
-        ...obituary.toJSON(),
+        ...sanitizeObituaryDates(obituary.toJSON()),
         hasKeeper,
         totalVisits,
         totalContributions,
@@ -1556,7 +1594,7 @@ const obituaryController = {
 
       const modifiedObituaries = obituaries.map((obituary) => {
         return {
-          ...obituary.toJSON(),
+          ...sanitizeObituaryDates(obituary.toJSON()),
           hasKeeper: obituary.Keepers && obituary.Keepers.length > 0,
         };
       });
@@ -1703,7 +1741,7 @@ const obituaryController = {
         createdTimestamp:
           type === "previous" ?
             { [Op.lt]: new Date(date) }
-          : { [Op.gt]: new Date(date) },
+            : { [Op.gt]: new Date(date) },
       };
       const order = [
         ["createdTimestamp", type === "previous" ? "DESC" : "ASC"],
@@ -1718,7 +1756,7 @@ const obituaryController = {
         });
       }
       //
-      return res.status(200).json(obituary);
+      return res.status(200).json(sanitizeObituaryDates(obituary.toJSON ? obituary.toJSON() : obituary));
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Prišlo je do napake" });
