@@ -49,7 +49,15 @@ Obituary.init(
     },
     deathDate: {
       type: DataTypes.DATEONLY,
-      allowNull: false,
+      allowNull: true,
+    },
+    birthYear: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    deathYear: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     image: {
       type: DataTypes.TEXT,
@@ -204,7 +212,9 @@ const validateObituary = (obituary) => {
     city: Joi.string().max(100).required(),
     gender: Joi.string().valid("Male", "Female").default("Male").required(),
     birthDate: Joi.string().optional().allow(null, ""),
-    deathDate: Joi.date().required(),
+    deathDate: Joi.date().optional().allow(null, ""),
+    birthYear: Joi.number().integer().min(1900).max(2100).optional().allow(null, ""),
+    deathYear: Joi.number().integer().min(1900).max(2100).optional().allow(null, ""),
     picture: Joi.any(),
     funeralLocation: Joi.string().max(100).allow(null, "").optional(),
     funeralCemetery: Joi.string().max(100).allow(null, "").optional(),
