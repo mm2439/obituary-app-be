@@ -21,11 +21,11 @@ const { KeeperNotification } = require("./keeper_notification");
 const { Order } = require("./order.model");
 // const { Guardian } = require("./guardian.model");
 
-//  USER ↔ AUTH
+  //  USER ↔ AUTH
 User.hasMany(RefreshToken, { foreignKey: "userId" });
 RefreshToken.belongsTo(User, { foreignKey: "userId" });
 
-//  USER ↔ KEEPER
+  //  USER ↔ KEEPER
 User.hasMany(Keeper, {
   foreignKey: "userId",
   as: "keepers",
@@ -35,7 +35,7 @@ Keeper.belongsTo(User, {
   as: "user",
 });
 
-//  OBITUARY ↔ KEEPER
+  //  OBITUARY ↔ KEEPER
 Obituary.hasMany(Keeper, {
   foreignKey: "obituaryId",
   as: "keepers",
@@ -45,7 +45,7 @@ Keeper.belongsTo(Obituary, {
   as: "obituary",
 });
 
-//  USER ↔ KEEPER APPLICATION
+  //  USER ↔ KEEPER APPLICATION
 User.hasMany(KeeperApplication, {
   foreignKey: "userId",
 });
@@ -53,7 +53,7 @@ KeeperApplication.belongsTo(User, {
   foreignKey: "userId",
 });
 
-//  OBITUARY ↔ KEEPER APPLICATION
+  //  OBITUARY ↔ KEEPER APPLICATION
 Obituary.hasMany(KeeperApplication, {
   foreignKey: "obituaryId",
 });

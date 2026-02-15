@@ -83,14 +83,9 @@ const userController = {
       city,
       secondaryCity,
       thirdCity,
-      fourthCity,
-      fifthCity,
-      sixthCity,
-      seventhCity,
-      eightCity,
       sendGiftsPermission,
       sendMobilePermission,
-      createObituaryPermission,
+      createObitaryPermission,
       assignKeeperPermission,
     } = req.body;
 
@@ -119,15 +114,76 @@ const userController = {
     if (company) user.company = company;
     if (region) user.region = region;
     if (city) user.city = city;
-    if (assignKeeperPermission !== undefined)
+    if (assignKeeperPermission)
       user.assignKeeperPermission = assignKeeperPermission;
-    if (sendGiftsPermission !== undefined)
-      user.sendGiftsPermission = sendGiftsPermission;
-    if (sendMobilePermission !== undefined)
-      user.sendMobilePermission = sendMobilePermission;
-    if (createObituaryPermission !== undefined)
-      user.createObituaryPermission = createObituaryPermission;
+    if (sendGiftsPermission) user.sendGiftsPermission = sendGiftsPermission;
+    if (sendMobilePermission) user.sendMobilePermission = sendMobilePermission;
+    if (createObitaryPermission)
+      user.createObitaryPermission = createObitaryPermission;
+    if (req.body.hasOwnProperty("secondaryCity")) {
+      user.secondaryCity = secondaryCity;
+    }
+    if (req.body.hasOwnProperty("thirdCity")) {
+      user.thirdCity = thirdCity;
+    }
 
+    await user.save();
+
+    res.status(httpStatus.OK).json({
+      message: "Uspešno",
+      updatedUser: user.toSafeObject(),
+    });
+  },
+  updateMyUser: async (req, res) => {
+    const {
+      email,
+      company,
+      region,
+      city,
+      secondaryCity,
+      thirdCity,
+      fourthCity,
+      fifthCity,
+      sixthCity,
+      seventhCity,
+      eightCity,
+      sendGiftsPermission,
+      sendMobilePermission,
+      createObitaryPermission,
+      assignKeeperPermission,
+    } = req.body;
+
+    const user = await User.findByPk(req.user.id);
+    console.log(req.body);
+    if (!user) {
+      console.warn("User not found");
+
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json({ error: "Podatki se je ujemajo" });
+    }
+
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ where: { email } });
+
+      if (existingUser) {
+        console.warn("Email is already in use");
+        return res
+          .status(httpStatus.CONFLICT)
+          .json({ error: "Ta email je že v uporabi" });
+      }
+    }
+
+    if (email) user.email = email;
+    if (company) user.company = company;
+    if (region) user.region = region;
+    if (city) user.city = city;
+    if (assignKeeperPermission)
+      user.assignKeeperPermission = assignKeeperPermission;
+    if (sendGiftsPermission) user.sendGiftsPermission = sendGiftsPermission;
+    if (sendMobilePermission) user.sendMobilePermission = sendMobilePermission;
+    if (createObitaryPermission)
+      user.createObitaryPermission = createObitaryPermission;
     if (req.body.hasOwnProperty("secondaryCity")) {
       user.secondaryCity = secondaryCity;
     }
