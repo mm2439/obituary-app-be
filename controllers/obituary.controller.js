@@ -73,10 +73,6 @@ const sanitizeObituaryDates = (plain) => {
   if (isInvalidDate(out.birthDate)) out.birthDate = null;
   if (isInvalidDate(out.deathDate)) out.deathDate = null;
   if (isInvalidDate(out.funeralTimestamp)) out.funeralTimestamp = null;
-  if ((out.ageInYears == null || out.ageInYears === "") && out.birthDate && out.deathDate) {
-    const computed = calculateAgeFromDates(out.birthDate, out.deathDate);
-    if (computed != null) out.ageInYears = computed;
-  }
   return out;
 };
 
@@ -123,6 +119,8 @@ const obituaryController = {
         gender,
         birthDate,
         deathDate,
+        birthYear,
+        deathYear,
         funeralLocation,
         funeralCemetery,
         funeralCemeteryId,
@@ -158,9 +156,24 @@ const obituaryController = {
           .status(httpStatus.BAD_REQUEST)
           .json({ error: `Napačni format: ${errorMessage}` });
       }
+
+      const deathDateToSave = (deathDate && deathDate !== "null" && deathDate !== "") ? deathDate : null;
+      const deathYearVal = (deathYear !== undefined && deathYear !== "" && deathYear !== "null") ? parseInt(deathYear, 10) : null;
+      const deathYearToSave = (deathYearVal != null && !Number.isNaN(deathYearVal)) ? deathYearVal : null;
+      if (!deathDateToSave && deathYearToSave == null) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          error: "Potreben je datum smrti ali leto smrti",
+        });
+      }
+      if (deathDateToSave && deathYearToSave != null) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+          error: "Navedi bodisi datum smrti bodisi leto smrti, ne oboje",
+        });
+      }
+
       let slugKey = providedSlugKey;
       if (!slugKey) {
-        const formatDate = (date) => {
+        const formatDateForSlug = (date) => {
           const d = new Date(date);
           const day = String(d.getDate()).padStart(2, "0");
           const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -169,9 +182,8 @@ const obituaryController = {
         };
         const cleanFirstName = slugKeyFilter(name);
         const cleanSirName = slugKeyFilter(sirName);
-        slugKey = `${cleanFirstName}_${cleanSirName}_${formatDate(
-          deathDate,
-        )}`.replace(/\s+/g, "_");
+        const deathPart = deathDateToSave ? formatDateForSlug(deathDateToSave) : String(deathYearToSave);
+        slugKey = `${cleanFirstName}_${cleanSirName}_${deathPart}`.replace(/\s+/g, "_");
       }
       let uniqueSlugKey = slugKey;
       let counter = 1;
@@ -180,9 +192,11 @@ const obituaryController = {
         counter++;
       }
       slugKey = uniqueSlugKey;
-      const existingObituary = await Obituary.findOne({
-        where: { name, sirName, deathDate },
-      });
+
+      const duplicateWhere = deathDateToSave
+        ? { name, sirName, deathDate: deathDateToSave }
+        : { name, sirName, deathYear: deathYearToSave };
+      const existingObituary = await Obituary.findOne({ where: duplicateWhere });
       if (existingObituary) {
         console.warn("Duplicate obituary detected");
         return res.status(httpStatus.CONFLICT).json({
@@ -190,22 +204,30 @@ const obituaryController = {
         });
       }
 
-      // Mutual exclusion: if ageInYears is set, clear birthDate; if birthDate is set, clear ageInYears
       const ageInYearsValue = ageInYears && ageInYears !== "" ? parseInt(ageInYears) : null;
       let birthDateToSave;
+      let birthYearToSave;
       let finalAgeInYears;
 
       if (ageInYearsValue) {
-        // If ageInYears is set, don't save birthDate
         birthDateToSave = null;
+        birthYearToSave = null;
         finalAgeInYears = ageInYearsValue;
       } else {
-        // If birthDate is set, don't save ageInYears
-        birthDateToSave =
-          birthDate != "null" && birthDate != "" ?
-            birthDate
-            : null;
         finalAgeInYears = null;
+        const hasBirthDate = birthDate != null && birthDate !== "null" && birthDate !== "";
+        const birthYearVal = (birthYear !== undefined && birthYear !== "" && birthYear !== "null") ? parseInt(birthYear, 10) : null;
+        const hasBirthYear = birthYearVal != null && !Number.isNaN(birthYearVal);
+        if (hasBirthDate) {
+          birthDateToSave = birthDate;
+          birthYearToSave = null;
+        } else if (hasBirthYear) {
+          birthDateToSave = null;
+          birthYearToSave = birthYearVal;
+        } else {
+          birthDateToSave = null;
+          birthYearToSave = null;
+        }
       }
 
       const newObituary = await Obituary.create({
@@ -216,7 +238,9 @@ const obituaryController = {
         city,
         gender,
         birthDate: birthDateToSave,
-        deathDate,
+        birthYear: birthYearToSave,
+        deathDate: deathDateToSave,
+        deathYear: deathYearToSave,
         funeralLocation,
         funeralCemetery: funeralCemetery === "" ? null : funeralCemetery,
         funeralCemeteryId: safeParseFuneralCemeteryId(funeralCemeteryId),
@@ -790,8 +814,10 @@ const obituaryController = {
         "name",
         "sirName",
         "deathDate",
+        "deathYear",
         "city",
         "birthDate",
+        "birthYear",
         "funeralTimestamp",
         "totalVisits",
         "slugKey",
@@ -1017,30 +1043,48 @@ const obituaryController = {
     if (req.body.region !== undefined) fieldsToUpdate.region = req.body.region;
     if (req.body.city !== undefined) fieldsToUpdate.city = req.body.city;
     if (req.body.gender !== undefined) fieldsToUpdate.gender = req.body.gender;
-    // Mutual exclusion: handle birthDate and ageInYears together
-    if (req.body.birthDate !== undefined || req.body.ageInYears !== undefined) {
+    // Mutual exclusion: handle birthDate, birthYear and ageInYears together
+    if (req.body.birthDate !== undefined || req.body.birthYear !== undefined || req.body.ageInYears !== undefined) {
       const ageInYearsValue = req.body.ageInYears !== undefined && req.body.ageInYears !== ""
         ? parseInt(req.body.ageInYears)
         : null;
 
       if (ageInYearsValue !== null) {
-        // If ageInYears is set (has a value), clear birthDate
         fieldsToUpdate.birthDate = null;
+        fieldsToUpdate.birthYear = null;
         fieldsToUpdate.ageInYears = ageInYearsValue;
       } else if (req.body.birthDate !== undefined) {
-        // If birthDate is set, clear ageInYears
         const birthDateValue = req.body.birthDate !== "null" && req.body.birthDate !== ""
           ? req.body.birthDate
           : null;
         fieldsToUpdate.birthDate = birthDateValue;
+        fieldsToUpdate.birthYear = null;
+        fieldsToUpdate.ageInYears = null;
+      } else if (req.body.birthYear !== undefined) {
+        const birthYearVal = (req.body.birthYear !== "" && req.body.birthYear !== "null") ? parseInt(req.body.birthYear, 10) : null;
+        fieldsToUpdate.birthYear = (birthYearVal != null && !Number.isNaN(birthYearVal)) ? birthYearVal : null;
+        fieldsToUpdate.birthDate = null;
         fieldsToUpdate.ageInYears = null;
       } else if (req.body.ageInYears !== undefined && (req.body.ageInYears === "" || req.body.ageInYears === null)) {
-        // Explicitly clearing ageInYears (user removed it)
         fieldsToUpdate.ageInYears = null;
       }
     }
-    if (req.body.deathDate !== undefined)
-      fieldsToUpdate.deathDate = req.body.deathDate;
+    if (req.body.deathDate !== undefined || req.body.deathYear !== undefined) {
+      const hasDeathDate = req.body.deathDate !== undefined && req.body.deathDate !== "null" && req.body.deathDate !== "";
+      const deathYearVal = (req.body.deathYear !== undefined && req.body.deathYear !== "" && req.body.deathYear !== "null")
+        ? parseInt(req.body.deathYear, 10) : null;
+      const hasDeathYear = deathYearVal != null && !Number.isNaN(deathYearVal);
+      if (hasDeathDate) {
+        fieldsToUpdate.deathDate = req.body.deathDate;
+        fieldsToUpdate.deathYear = null;
+      } else if (hasDeathYear) {
+        fieldsToUpdate.deathDate = null;
+        fieldsToUpdate.deathYear = deathYearVal;
+      } else {
+        fieldsToUpdate.deathDate = null;
+        fieldsToUpdate.deathYear = null;
+      }
+    }
     if (req.body.funeralLocation !== undefined)
       fieldsToUpdate.funeralLocation = req.body.funeralLocation;
     if (req.body.funeralCemetery !== undefined)
@@ -1462,8 +1506,10 @@ const obituaryController = {
         "name",
         "sirName",
         "deathDate",
+        "deathYear",
         "city",
         "birthDate",
+        "birthYear",
         "funeralTimestamp",
         "totalVisits",
         "createdTimestamp",
