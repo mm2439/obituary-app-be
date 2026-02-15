@@ -12,6 +12,7 @@ const memoryLogsController = require("./memoryLogs.controller");
 const { KeeperNotification } = require("../models/keeper_notification");
 const KEEPER_DEATH_DOCS = path.join(__dirname, "../keeperDocs");
 const { uploadBuffer, buildRemotePath, publicUrl } = require("../config/bunny");
+const { formatDDMMYYYY } = require("../helpers/time");
 
 const keeperController = {
   assignKeeper: async (req, res) => {
@@ -226,12 +227,12 @@ const keeperController = {
         include: [
           {
             model: User,
-            attributes: ['id', 'name', 'email', 'city'],
+            attributes: ["id", "name", "email", "city"],
             required: true,
           },
           {
             model: Obituary,
-            attributes: ['id', 'name', 'city'],
+            attributes: ["id", "name", "city"],
             required: true,
           },
         ],
