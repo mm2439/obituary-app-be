@@ -350,8 +350,16 @@ const obituaryController = {
         days,
         startDate,
         endDate,
+        page: pageParam,
+        limit: limitParam,
       } = req.query;
       const allow = req.query?.allow;
+
+      const isListQuery = !id && !slugKey && !obituaryId;
+      const pageNum = isListQuery ? (parseInt(pageParam, 10) || 1) : 1;
+      const limitNum = isListQuery ? (parseInt(limitParam, 10) || 50) : null;
+      const offset = limitNum != null ? (pageNum - 1) * limitNum : 0;
+
       const whereClause = {};
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
@@ -367,11 +375,29 @@ const obituaryController = {
           [Op.between]: [startOfDay, endOfDay],
         };
       }
+      let nameCondition = null;
       if (name) {
-        whereClause[Op.or] = [
-          { name: { [Op.like]: `%${name}%` } },
-          { sirName: { [Op.like]: `%${name}%` } },
-        ];
+        const trimmedName = String(name).trim();
+        const words = trimmedName.split(/\s+/).filter(Boolean);
+        if (words.length > 1) {
+          // Multi-word (e.g. "Jože Goršek"): each word must match in name or sirName
+          nameCondition = {
+            [Op.and]: words.map((word) => ({
+              [Op.or]: [
+                { name: { [Op.like]: `%${word}%` } },
+                { sirName: { [Op.like]: `%${word}%` } },
+              ],
+            })),
+          };
+        } else {
+          // Single word: match in name or sirName
+          nameCondition = {
+            [Op.or]: [
+              { name: { [Op.like]: `%${trimmedName}%` } },
+              { sirName: { [Op.like]: `%${trimmedName}%` } },
+            ],
+          };
+        }
       }
       if (city) {
         whereClause.city = city;
@@ -389,8 +415,6 @@ const obituaryController = {
       // Exclude deleted obituaries from all queries
       // Build the where clause properly to avoid conflicts
       const baseWhere = { ...whereClause };
-      // Remove Op.or and Op.and if they exist to rebuild properly
-      const nameOr = baseWhere[Op.or];
       delete baseWhere[Op.or];
       delete baseWhere[Op.and];
 
@@ -398,7 +422,7 @@ const obituaryController = {
       const finalWhere = {
         ...baseWhere,
         [Op.and]: [
-          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          ...(nameCondition ? [nameCondition] : []),
           {
             [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
           },
@@ -429,6 +453,7 @@ const obituaryController = {
         const myobituaries = await Obituary.findAndCountAll({
           where: myClause,
           order: [["createdTimestamp", "DESC"]],
+          ...(limitNum != null && { limit: limitNum, offset }),
           include: [
             {
               model: User,
@@ -449,6 +474,7 @@ const obituaryController = {
         const obituaries = await Obituary.findAndCountAll({
           where: finalWhere,
           order: [["createdTimestamp", "DESC"]],
+          ...(limitNum != null && { limit: limitNum, offset }),
           include: [
             {
               model: User,
@@ -480,11 +506,17 @@ const obituaryController = {
           },
         },
       });
-      res.status(httpStatus.OK).json({
+      const payload = {
         total: totalObit.count,
         obituaries: (totalObit.rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
         funeralCount: funeralCount,
-      });
+      };
+      if (isListQuery && limitNum != null) {
+        payload.totalPages = Math.ceil(totalObit.count / limitNum);
+        payload.currentPage = pageNum;
+        payload.limit = limitNum;
+      }
+      res.status(httpStatus.OK).json(payload);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Prišlo je do napake" });
@@ -516,11 +548,27 @@ const obituaryController = {
           [Op.between]: [startOfDay, endOfDay],
         };
       }
+      let nameConditionPaginated = null;
       if (name) {
-        whereClause[Op.or] = [
-          { name: { [Op.like]: `%${name}%` } },
-          { sirName: { [Op.like]: `%${name}%` } },
-        ];
+        const trimmedName = String(name).trim();
+        const words = trimmedName.split(/\s+/).filter(Boolean);
+        if (words.length > 1) {
+          nameConditionPaginated = {
+            [Op.and]: words.map((word) => ({
+              [Op.or]: [
+                { name: { [Op.like]: `%${word}%` } },
+                { sirName: { [Op.like]: `%${word}%` } },
+              ],
+            })),
+          };
+        } else {
+          nameConditionPaginated = {
+            [Op.or]: [
+              { name: { [Op.like]: `%${trimmedName}%` } },
+              { sirName: { [Op.like]: `%${trimmedName}%` } },
+            ],
+          };
+        }
       }
       if (city) {
         whereClause.city = city;
@@ -529,18 +577,14 @@ const obituaryController = {
       }
 
       // Exclude deleted obituaries from all queries
-      // Build the where clause properly to avoid conflicts
       const baseWhere = { ...whereClause };
-      // Remove Op.or and Op.and if they exist to rebuild properly
-      const nameOr = baseWhere[Op.or];
       delete baseWhere[Op.or];
       delete baseWhere[Op.and];
 
-      // Build final where clause with deleted check
       const finalWhere = {
         ...baseWhere,
         [Op.and]: [
-          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          ...(nameConditionPaginated ? [nameConditionPaginated] : []),
           {
             [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
           },
@@ -548,7 +592,6 @@ const obituaryController = {
             deletedAt: null,
           },
           {
-            // Exclude obituaries with skipObituaryBox = true (memory pages only)
             [Op.or]: [{ skipObituaryBox: false }, { skipObituaryBox: null }],
           },
         ],
