@@ -59,7 +59,7 @@ const escapeFulltext = (str) => {
   return sanitized
     .split(" ")
     .map((w) => w + "*")
-    .join(" ")
+    .join(" ");
 };
 
 const isMySQLOrMariaDB = () => {
