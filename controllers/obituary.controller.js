@@ -47,8 +47,21 @@ const slugKeyFilter = (name) => {
 const escapeLike = (str) => String(str).replace(/[%_]/g, "\\$&");
 
 /** Escape for use inside MATCH(...) AGAINST('...' IN BOOLEAN MODE). Appends '*' for prefix match. */
-const escapeFulltext = (str) =>
-  (String(str).trim() + "*").replace(/\\/g, "\\\\").replace(/'/g, "''");
+const escapeFulltext = (str) => {
+  // Strip boolean-mode operators, then escape SQL characters
+  const sanitized = String(str)
+    .trim()
+    .replace(/[+\-~<>()@"*\\]/g, " ")   // neutralize boolean operators and wildcards
+    .replace(/\s+/g, " ")                 // collapse whitespace
+    .trim();
+  if (!sanitized) return "";
+  // Wrap each word with prefix wildcard for partial matching
+  return sanitized
+    .split(" ")
+    .map((w) => w + "*")
+    .join(" ")
+    .replace(/'/g, "''");
+};
 
 const isMySQLOrMariaDB = () => {
   const d = sequelize.getDialect();
@@ -395,28 +408,30 @@ const obituaryController = {
       let useFulltext = false;
       let fulltextSearchEscaped = null;
       if (name) {
-        if (isMySQLOrMariaDB()) {
-          useFulltext = true;
-          fulltextSearchEscaped = escapeFulltext(name);
-        } else {
-          const trimmedName = String(name).trim();
-          const words = trimmedName.split(/\s+/).filter(Boolean);
-          if (words.length > 1) {
-            nameCondition = {
-              [Op.and]: words.map((word) => ({
-                [Op.or]: [
-                  where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
-                  where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
-                ],
-              })),
-            };
+        const trimmedSearch = String(name).trim();
+        if (trimmedSearch) {
+          if (isMySQLOrMariaDB()) {
+            useFulltext = true;
+            fulltextSearchEscaped = escapeFulltext(trimmedSearch);
           } else {
-            nameCondition = {
-              [Op.or]: [
-                where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(trimmedName.toLowerCase())}%` }),
-                where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(trimmedName.toLowerCase())}%` }),
-              ],
-            };
+            const words = trimmedSearch.split(/\s+/).filter(Boolean);
+            if (words.length > 1) {
+              nameCondition = {
+                [Op.and]: words.map((word) => ({
+                  [Op.or]: [
+                    where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
+                    where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
+                  ],
+                })),
+              };
+            } else {
+              nameCondition = {
+                [Op.or]: [
+                  where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(trimmedSearch.toLowerCase())}%` }),
+                  where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(trimmedSearch.toLowerCase())}%` }),
+                ],
+              };
+            }
           }
         }
       }
@@ -445,7 +460,7 @@ const obituaryController = {
         [Op.and]: [
           ...(nameCondition ? [nameCondition] : []),
           ...(useFulltext
-            ? [literal(`MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${fulltextSearchEscaped}' IN BOOLEAN MODE)`)]
+            ? [literal(`MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscaped)} IN BOOLEAN MODE)`)]
             : []),
           {
             [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
@@ -482,7 +497,7 @@ const obituaryController = {
                   include: [
                     [
                       literal(
-                        `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${fulltextSearchEscaped}' IN BOOLEAN MODE)`
+                        `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscaped)} IN BOOLEAN MODE)`
                       ),
                       "relevance",
                     ],
@@ -520,7 +535,7 @@ const obituaryController = {
                   include: [
                     [
                       literal(
-                        `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${fulltextSearchEscaped}' IN BOOLEAN MODE)`
+                        `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscaped)} IN BOOLEAN MODE)`
                       ),
                       "relevance",
                     ],
@@ -706,11 +721,11 @@ const obituaryController = {
         if (isMySQLOrMariaDB()) {
           whereClause[Op.and] = [
             literal(
-              `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${escapeFulltext(search)}' IN BOOLEAN MODE)`
+              `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(escapeFulltext(search))} IN BOOLEAN MODE)`
             ),
           ];
         } else {
-          const searchTerm = `%${search.toLowerCase()}%`;
+          const searchTerm = `%${escapeLike(search.toLowerCase())}%`;
           whereClause[Op.and] = [
             {
               [Op.or]: [
@@ -735,7 +750,7 @@ const obituaryController = {
                 include: [
                   [
                     literal(
-                      `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${fulltextSearchEscapedCompany}' IN BOOLEAN MODE)`
+                      `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscapedCompany)} IN BOOLEAN MODE)`
                     ),
                     "relevance",
                   ],
@@ -1063,11 +1078,11 @@ const obituaryController = {
       if (isMySQLOrMariaDB()) {
         whereClause[Op.and] = [
           literal(
-            `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${escapeFulltext(search)}' IN BOOLEAN MODE)`
+            `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(escapeFulltext(search))} IN BOOLEAN MODE)`
           ),
         ];
       } else {
-        const searchTerm = `%${search.toLowerCase()}%`;
+        const searchTerm = `%${escapeLike(search.toLowerCase())}%`;
         whereClause[Op.and] = [
           {
             [Op.or]: [
@@ -1093,7 +1108,7 @@ const obituaryController = {
               include: [
                 [
                   literal(
-                    `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST('${fulltextSearchEscapedFunerals}' IN BOOLEAN MODE)`
+                    `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscapedFunerals)} IN BOOLEAN MODE)`
                   ),
                   "relevance",
                 ],
