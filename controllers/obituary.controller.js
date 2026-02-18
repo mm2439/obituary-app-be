@@ -59,8 +59,7 @@ const escapeFulltext = (str) => {
   return sanitized
     .split(" ")
     .map((w) => w + "*")
-    .join(" ")
-    .replace(/'/g, "''");
+    .join(" ");
 };
 
 const isMySQLOrMariaDB = () => {
