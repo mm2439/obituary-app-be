@@ -504,11 +504,11 @@ const obituaryController = {
                   ],
                 },
                 order: [
-                  [literal("relevance"), "DESC"],
-                  ["deathDate", "DESC"],
+                  ["createdTimestamp", "DESC"],
+                  ["id", "DESC"],
                 ],
               }
-            : { order: [["createdTimestamp", "DESC"]] }),
+            : { order: [["createdTimestamp", "DESC"], ["id", "DESC"]] }),
           ...(limitNum != null && { limit: limitNum, offset }),
           include: [
             {
@@ -542,11 +542,11 @@ const obituaryController = {
                   ],
                 },
                 order: [
-                  [literal("relevance"), "DESC"],
-                  ["deathDate", "DESC"],
+                  ["createdTimestamp", "DESC"],
+                  ["id", "DESC"],
                 ],
               }
-            : { order: [["createdTimestamp", "DESC"]] }),
+            : { order: [["createdTimestamp", "DESC"], ["id", "DESC"]] }),
           ...(limitNum != null && { limit: limitNum, offset }),
           include: [
             {
@@ -673,7 +673,7 @@ const obituaryController = {
       const { count, rows } = await Obituary.findAndCountAll({
         attributes: { exclude: ["funeralCemeteryId", "refuseFlowersIcon"] },
         where: finalWhere,
-        order: [["createdTimestamp", "DESC"]],
+        order: [["createdTimestamp", "DESC"], ["id", "DESC"]],
         limit: limitNum,
         offset: offset,
         include: [
@@ -757,11 +757,11 @@ const obituaryController = {
                 ],
               },
               order: [
-                [literal("relevance"), "DESC"],
-                ["deathDate", "DESC"],
+                ["createdTimestamp", "DESC"],
+                ["id", "DESC"],
               ],
             }
-          : { order: [["createdTimestamp", "DESC"]] }),
+          : { order: [["createdTimestamp", "DESC"], ["id", "DESC"]] }),
         include: [
           {
             model: User,
