@@ -8,6 +8,7 @@ const { optimizeAndSaveImage } = require("../utils/imageOptimizer");
 const moment = require("moment");
 const { FloristShop } = require("../models/florist_shop.model");
 
+const { sequelize } = require("../startup/db");
 const { Obituary, validateObituary } = require("../models/obituary.model");
 const { User } = require("../models/user.model");
 const { Keeper } = require("../models/keeper.model");
@@ -40,6 +41,30 @@ const slugKeyFilter = (name) => {
       return char;
     })
     .join("");
+};
+
+/** Escape SQL LIKE wildcards (% and _) so they match literally. */
+const escapeLike = (str) => String(str).replace(/[%_]/g, "\\$&");
+
+/** Escape for use inside MATCH(...) AGAINST('...' IN BOOLEAN MODE). Appends '*' for prefix match. */
+const escapeFulltext = (str) => {
+  // Strip boolean-mode operators, then escape SQL characters
+  const sanitized = String(str)
+    .trim()
+    .replace(/[+\-~<>()@"*\\]/g, " ")   // neutralize boolean operators and wildcards
+    .replace(/\s+/g, " ")                 // collapse whitespace
+    .trim();
+  if (!sanitized) return "";
+  // Wrap each word with prefix wildcard for partial matching
+  return sanitized
+    .split(" ")
+    .map((w) => w + "*")
+    .join(" ");
+};
+
+const isMySQLOrMariaDB = () => {
+  const d = sequelize.getDialect();
+  return d === "mysql" || d === "mariadb";
 };
 
 // If date is placeholder (1025) or invalid, return null in API responses. No DB change.
@@ -350,8 +375,19 @@ const obituaryController = {
         days,
         startDate,
         endDate,
+        page: pageParam,
+        limit: limitParam,
       } = req.query;
       const allow = req.query?.allow;
+
+      const isListQuery = !id && !slugKey && !obituaryId;
+      const pageNum = isListQuery ? (parseInt(pageParam, 10) || 1) : 1;
+      const MAX_LIMIT = 200;
+      const limitNum = isListQuery
+        ? Math.min(parseInt(limitParam, 10) || 50, MAX_LIMIT)
+        : null;
+      const offset = limitNum != null ? (pageNum - 1) * limitNum : 0;
+
       const whereClause = {};
       if (id) whereClause.id = id;
       if (userId) whereClause.userId = userId;
@@ -367,11 +403,36 @@ const obituaryController = {
           [Op.between]: [startOfDay, endOfDay],
         };
       }
+      let nameCondition = null;
+      let useFulltext = false;
+      let fulltextSearchEscaped = null;
       if (name) {
-        whereClause[Op.or] = [
-          { name: { [Op.like]: `%${name}%` } },
-          { sirName: { [Op.like]: `%${name}%` } },
-        ];
+        const trimmedSearch = String(name).trim();
+        if (trimmedSearch) {
+          if (isMySQLOrMariaDB()) {
+            useFulltext = true;
+            fulltextSearchEscaped = escapeFulltext(trimmedSearch);
+          } else {
+            const words = trimmedSearch.split(/\s+/).filter(Boolean);
+            if (words.length > 1) {
+              nameCondition = {
+                [Op.and]: words.map((word) => ({
+                  [Op.or]: [
+                    where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
+                    where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
+                  ],
+                })),
+              };
+            } else {
+              nameCondition = {
+                [Op.or]: [
+                  where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(trimmedSearch.toLowerCase())}%` }),
+                  where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(trimmedSearch.toLowerCase())}%` }),
+                ],
+              };
+            }
+          }
+        }
       }
       if (city) {
         whereClause.city = city;
@@ -389,8 +450,6 @@ const obituaryController = {
       // Exclude deleted obituaries from all queries
       // Build the where clause properly to avoid conflicts
       const baseWhere = { ...whereClause };
-      // Remove Op.or and Op.and if they exist to rebuild properly
-      const nameOr = baseWhere[Op.or];
       delete baseWhere[Op.or];
       delete baseWhere[Op.and];
 
@@ -398,7 +457,10 @@ const obituaryController = {
       const finalWhere = {
         ...baseWhere,
         [Op.and]: [
-          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          ...(nameCondition ? [nameCondition] : []),
+          ...(useFulltext
+            ? [literal(`MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscaped)} IN BOOLEAN MODE)`)]
+            : []),
           {
             [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
           },
@@ -428,7 +490,25 @@ const obituaryController = {
 
         const myobituaries = await Obituary.findAndCountAll({
           where: myClause,
-          order: [["createdTimestamp", "DESC"]],
+          ...(useFulltext
+            ? {
+                attributes: {
+                  include: [
+                    [
+                      literal(
+                        `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscaped)} IN BOOLEAN MODE)`
+                      ),
+                      "relevance",
+                    ],
+                  ],
+                },
+                order: [
+                  [literal("relevance"), "DESC"],
+                  ["deathDate", "DESC"],
+                ],
+              }
+            : { order: [["createdTimestamp", "DESC"]] }),
+          ...(limitNum != null && { limit: limitNum, offset }),
           include: [
             {
               model: User,
@@ -448,7 +528,25 @@ const obituaryController = {
       } else {
         const obituaries = await Obituary.findAndCountAll({
           where: finalWhere,
-          order: [["createdTimestamp", "DESC"]],
+          ...(useFulltext
+            ? {
+                attributes: {
+                  include: [
+                    [
+                      literal(
+                        `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscaped)} IN BOOLEAN MODE)`
+                      ),
+                      "relevance",
+                    ],
+                  ],
+                },
+                order: [
+                  [literal("relevance"), "DESC"],
+                  ["deathDate", "DESC"],
+                ],
+              }
+            : { order: [["createdTimestamp", "DESC"]] }),
+          ...(limitNum != null && { limit: limitNum, offset }),
           include: [
             {
               model: User,
@@ -480,11 +578,17 @@ const obituaryController = {
           },
         },
       });
-      res.status(httpStatus.OK).json({
+      const payload = {
         total: totalObit.count,
         obituaries: (totalObit.rows || []).map((o) => sanitizeObituaryDates(o.toJSON ? o.toJSON() : o)),
         funeralCount: funeralCount,
-      });
+      };
+      if (isListQuery && limitNum != null) {
+        payload.totalPages = Math.ceil(totalObit.count / limitNum);
+        payload.currentPage = pageNum;
+        payload.limit = limitNum;
+      }
+      res.status(httpStatus.OK).json(payload);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Prišlo je do napake" });
@@ -516,11 +620,27 @@ const obituaryController = {
           [Op.between]: [startOfDay, endOfDay],
         };
       }
+      let nameConditionPaginated = null;
       if (name) {
-        whereClause[Op.or] = [
-          { name: { [Op.like]: `%${name}%` } },
-          { sirName: { [Op.like]: `%${name}%` } },
-        ];
+        const trimmedName = String(name).trim();
+        const words = trimmedName.split(/\s+/).filter(Boolean);
+        if (words.length > 1) {
+          nameConditionPaginated = {
+            [Op.and]: words.map((word) => ({
+              [Op.or]: [
+                where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
+                where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(word.toLowerCase())}%` }),
+              ],
+            })),
+          };
+        } else {
+          nameConditionPaginated = {
+            [Op.or]: [
+              where(fn("LOWER", col("name")), { [Op.like]: `%${escapeLike(trimmedName.toLowerCase())}%` }),
+              where(fn("LOWER", col("sirName")), { [Op.like]: `%${escapeLike(trimmedName.toLowerCase())}%` }),
+            ],
+          };
+        }
       }
       if (city) {
         whereClause.city = city;
@@ -529,18 +649,14 @@ const obituaryController = {
       }
 
       // Exclude deleted obituaries from all queries
-      // Build the where clause properly to avoid conflicts
       const baseWhere = { ...whereClause };
-      // Remove Op.or and Op.and if they exist to rebuild properly
-      const nameOr = baseWhere[Op.or];
       delete baseWhere[Op.or];
       delete baseWhere[Op.and];
 
-      // Build final where clause with deleted check
       const finalWhere = {
         ...baseWhere,
         [Op.and]: [
-          ...(nameOr ? [{ [Op.or]: nameOr }] : []),
+          ...(nameConditionPaginated ? [nameConditionPaginated] : []),
           {
             [Op.or]: [{ isDeleted: false }, { isDeleted: null }],
           },
@@ -548,7 +664,6 @@ const obituaryController = {
             deletedAt: null,
           },
           {
-            // Exclude obituaries with skipObituaryBox = true (memory pages only)
             [Op.or]: [{ skipObituaryBox: false }, { skipObituaryBox: null }],
           },
         ],
@@ -602,29 +717,50 @@ const obituaryController = {
       }
 
       if (search) {
-        const searchTerm = `%${search.toLowerCase()}%`;
-
-        // whereClause[Op.and] = [
-        //   {
-        //     [Op.or]: [
-        //       where(fn('LOWER', col('name')), { [Op.like]: searchTerm }),
-        //       where(fn('LOWER', col('sirName')), { [Op.like]: searchTerm }),
-        //     ]
-        //   }
-        // ];
-        whereClause[Op.and] = [
-          { name: { [Op.like]: `%${search}%` } },
-          { sirName: { [Op.like]: `%${search}%` } },
-        ];
+        if (isMySQLOrMariaDB()) {
+          whereClause[Op.and] = [
+            literal(
+              `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(escapeFulltext(search))} IN BOOLEAN MODE)`
+            ),
+          ];
+        } else {
+          const searchTerm = `%${escapeLike(search.toLowerCase())}%`;
+          whereClause[Op.and] = [
+            {
+              [Op.or]: [
+                where(fn("LOWER", col("name")), { [Op.like]: searchTerm }),
+                where(fn("LOWER", col("sirName")), { [Op.like]: searchTerm }),
+              ],
+            },
+          ];
+        }
       }
 
       let totalObit = [];
 
+      const fulltextSearchEscapedCompany = search && isMySQLOrMariaDB() ? escapeFulltext(search) : null;
       const myobituaries = await Obituary.findAndCountAll({
         where: {
           ...whereClause,
         },
-        order: [["createdTimestamp", "DESC"]],
+        ...(fulltextSearchEscapedCompany
+          ? {
+              attributes: {
+                include: [
+                  [
+                    literal(
+                      `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscapedCompany)} IN BOOLEAN MODE)`
+                    ),
+                    "relevance",
+                  ],
+                ],
+              },
+              order: [
+                [literal("relevance"), "DESC"],
+                ["deathDate", "DESC"],
+              ],
+            }
+          : { order: [["createdTimestamp", "DESC"]] }),
         include: [
           {
             model: User,
@@ -937,30 +1073,53 @@ const obituaryController = {
         [Op.between]: [startOfDay, endOfDay],
       };
     }
-    // if (search) {
-    //   whereClause[Op.or].push({ [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { sirName: { [Op.iLike]: `%${search}%` } }] });
-    // }
-
     if (search) {
-      const searchTerm = `%${search.toLowerCase()}%`;
-
-      whereClause[Op.and] = [
-        {
-          [Op.or]: [
-            where(fn("LOWER", col("obituaries.name")), {
-              [Op.like]: searchTerm,
-            }),
-            where(fn("LOWER", col("obituaries.sirName")), {
-              [Op.like]: searchTerm,
-            }),
-          ],
-        },
-      ];
+      if (isMySQLOrMariaDB()) {
+        whereClause[Op.and] = [
+          literal(
+            `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(escapeFulltext(search))} IN BOOLEAN MODE)`
+          ),
+        ];
+      } else {
+        const searchTerm = `%${escapeLike(search.toLowerCase())}%`;
+        whereClause[Op.and] = [
+          {
+            [Op.or]: [
+              where(fn("LOWER", col("obituaries.name")), {
+                [Op.like]: searchTerm,
+              }),
+              where(fn("LOWER", col("obituaries.sirName")), {
+                [Op.like]: searchTerm,
+              }),
+            ],
+          },
+        ];
+      }
     }
 
+    const fulltextSearchEscapedFunerals =
+      search && isMySQLOrMariaDB() ? escapeFulltext(search) : null;
     const obituaries = await Obituary.findAndCountAll({
       where: whereClause,
-      order: [["funeralTimestamp", "ASC"]], // Order by time ascending
+      ...(fulltextSearchEscapedFunerals
+        ? {
+            attributes: {
+              include: [
+                [
+                  literal(
+                    `MATCH(\`Obituary\`.\`name\`, \`Obituary\`.\`sirName\`) AGAINST(${sequelize.escape(fulltextSearchEscapedFunerals)} IN BOOLEAN MODE)`
+                  ),
+                  "relevance",
+                ],
+              ],
+            },
+            order: [
+              [literal("relevance"), "DESC"],
+              ["deathDate", "DESC"],
+              ["funeralTimestamp", "ASC"],
+            ],
+          }
+        : { order: [["funeralTimestamp", "ASC"]] }),
       include: [
         {
           model: User,
